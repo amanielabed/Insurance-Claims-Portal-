@@ -965,6 +965,8 @@ function lookupPolicy(policyNumber: string): PolicyLookup | null {
 }
 
 type PoliceReportStatus = "uploaded" | "pending" | "not_available" | "";
+type CoverageType = "full" | "third_party" | "";
+type FaultDetermination = "policyholder" | "other" | "unclear" | "single_vehicle" | "";
 
 interface ClaimForm {
   policyNumber: string;
@@ -981,6 +983,9 @@ interface ClaimForm {
   vin: string;
   vehicleAutoFilled: boolean;
   policeReport: PoliceReportStatus;
+  coverage: CoverageType;
+  fault: FaultDetermination;
+  deductible: string;
 }
 
 const emptyForm = (): ClaimForm => ({
@@ -998,6 +1003,9 @@ const emptyForm = (): ClaimForm => ({
   vin: "",
   vehicleAutoFilled: false,
   policeReport: "",
+  coverage: "",
+  fault: "",
+  deductible: "",
 });
 
 
@@ -1020,8 +1028,12 @@ const demoForm = (): ClaimForm => {
     vin: "4T1G11AK5NU712398",
     vehicleAutoFilled: true,
     policeReport: "uploaded",
+    coverage: "full",
+    fault: "other",
+    deductible: "",
   };
 };
+
 
 
 function InitiateClaimStep({
