@@ -208,6 +208,93 @@ const claimData: Claim[] = [
   },
 ];
 
+type OverlaySeverity = "green" | "amber" | "red";
+
+interface DamageOverlay {
+  partIndex: number;
+  label: string;
+  sub: string;
+  severity: OverlaySeverity;
+  dashed?: boolean;
+  /** % of image dimensions */
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+const OVERLAY_COLORS: Record<OverlaySeverity, { fill: string; border: string; pillBg: string; pillFg: string }> = {
+  green: {
+    fill: "rgba(34, 197, 94, 0.15)",
+    border: "#16A34A",
+    pillBg: "#DCFCE7",
+    pillFg: "#15803D",
+  },
+  amber: {
+    fill: "rgba(245, 158, 11, 0.15)",
+    border: "#D97706",
+    pillBg: "#FEF3C7",
+    pillFg: "#B45309",
+  },
+  red: {
+    fill: "rgba(220, 38, 38, 0.15)",
+    border: "#DC2626",
+    pillBg: "#FEE2E2",
+    pillFg: "#B91C1C",
+  },
+};
+
+const OVERLAYS: Record<string, DamageOverlay[]> = {
+  "2026-001": [
+    {
+      partIndex: 0,
+      label: "Rear Bumper Cover",
+      sub: "Cosmetic damage — repair recommended",
+      severity: "green",
+      x: 36, y: 60, w: 30, h: 22,
+    },
+  ],
+  "2026-002": [
+    {
+      partIndex: 0,
+      label: "Rear Quarter Panel",
+      sub: "Damage extent requires verification",
+      severity: "amber",
+      x: 52, y: 26, w: 36, h: 40,
+    },
+    {
+      partIndex: 1,
+      label: "Frame Rail Area",
+      sub: "Structural impact cannot be confirmed from available images",
+      severity: "red",
+      dashed: true,
+      x: 48, y: 62, w: 26, h: 22,
+    },
+  ],
+  "2026-003": [
+    {
+      partIndex: 1,
+      label: "Driver Door",
+      sub: "Severe deformation detected",
+      severity: "red",
+      x: 8, y: 32, w: 30, h: 40,
+    },
+    {
+      partIndex: 3,
+      label: "Rocker Panel",
+      sub: "Possible frame involvement",
+      severity: "red",
+      x: 34, y: 72, w: 38, h: 14,
+    },
+    {
+      partIndex: 4,
+      label: "A-Pillar",
+      sub: "Inspection required before authorization",
+      severity: "amber",
+      x: 6, y: 8, w: 18, h: 28,
+    },
+  ],
+};
 
 
 const COLORS = {
