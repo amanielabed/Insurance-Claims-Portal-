@@ -204,6 +204,93 @@ function Index() {
   );
 }
 
+function AssessmentReviewPanel({ claim }: { claim: Claim }) {
+  const isFastTrack = claim.delegationState === "FAST_TRACK";
+
+  return (
+    <div className="flex flex-col h-full gap-4">
+      {/* Delegation Status Badge */}
+      {isFastTrack ? (
+        <div
+          className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-semibold self-start"
+          style={{
+            backgroundColor: COLORS.greenBg,
+            color: COLORS.greenText,
+            border: "1px solid #BBF7D0",
+          }}
+        >
+          <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.green }} />
+          Fast-Track Eligible
+        </div>
+      ) : (
+        <div
+          className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-semibold self-start"
+          style={{
+            backgroundColor: COLORS.amberBg,
+            color: COLORS.amberText,
+            border: `1px solid ${COLORS.amberBorder}`,
+          }}
+        >
+          <span className="text-sm leading-none">⚠</span>
+          Manual Review Required
+        </div>
+      )}
+
+      {/* Review Confidence Card */}
+      <div
+        className="rounded-md border p-4"
+        style={{
+          backgroundColor: isFastTrack ? COLORS.greenBg : "#FAFAFA",
+          borderColor: isFastTrack ? "#BBF7D0" : COLORS.border,
+        }}
+      >
+        <Label>Review Confidence</Label>
+        <p className="text-sm leading-relaxed mt-2" style={{ color: "#374151" }}>
+          {claim.confidenceLabel}
+        </p>
+
+        <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${isFastTrack ? "#BBF7D0" : COLORS.border}` }}>
+          {isFastTrack ? (
+            <p className="text-sm" style={{ color: COLORS.muted }}>
+              No additional review triggers detected.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              <p className="text-xs font-medium" style={{ color: COLORS.amberText }}>
+                Verification concerns:
+              </p>
+              {claim.verificationConcerns?.map((concern, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm" style={{ color: "#374151" }}>
+                  <span className="mt-1.5 w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: COLORS.amber }} />
+                  {concern}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Recommended Reviewer — MANUAL_REVIEW only */}
+      {!isFastTrack && claim.recommendedReviewer && (
+        <div
+          className="rounded-md border p-4"
+          style={{
+            backgroundColor: COLORS.amberBg,
+            borderColor: COLORS.amberBorder,
+          }}
+        >
+          <div className="text-sm font-semibold" style={{ color: COLORS.amberText }}>
+            {claim.recommendedReviewer.title}
+          </div>
+          <p className="text-sm mt-1" style={{ color: "#92400E" }}>
+            {claim.recommendedReviewer.description}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DamagePhotoPanel({ claim }: { claim: Claim }) {
   const confidence = claim.reviewConfidence;
 
