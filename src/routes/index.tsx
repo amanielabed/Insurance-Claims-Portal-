@@ -1452,23 +1452,6 @@ function ReviewEstimateStep({
             </div>
           </div>
         ) : (
-          <div
-            className="flex items-start gap-3 px-6 py-3 border-b shrink-0"
-            style={{
-              backgroundColor: "#FEF2F2",
-              borderColor: "#FECACA",
-              color: "#991B1B",
-            }}
-          >
-            <span className="text-base leading-5">●</span>
-            <div>
-              <div className="text-sm font-semibold">Senior Review Required</div>
-              <div className="text-xs mt-0.5" style={{ color: "#B91C1C" }}>
-                This claim requires authorization before submission.
-              </div>
-            </div>
-          </div>
-        ) : (
           !isFastTrack && (
             <div
               className="flex items-start gap-3 px-6 py-3 border-b shrink-0"
