@@ -3023,31 +3023,100 @@ function EstimateReviewPanel({
         pdf.setLineWidth(0.5);
         pdf.line(M, y, pageW - M, y);
       });
-      // photos row
-      need(64);
-      setText(11, "#6B7280");
-      pdf.text("Photos submitted", labelX, y + 14);
-      const thumbW = 60;
-      const thumbH = 48;
-      for (let i = 0; i < 3; i++) {
-        const tx = valX + i * (thumbW + 10);
-        const ty = y + 4;
-        pdf.setFillColor("#F9FAFB");
-        pdf.setDrawColor("#E5E7EB");
-        pdf.setLineWidth(0.5);
-        pdf.roundedRect(tx, ty, thumbW, thumbH, 3, 3, "FD");
-        // simple camera icon
-        pdf.setFillColor("#D1D5DB");
-        pdf.rect(tx + 18, ty + 14, 24, 16, "F");
-        pdf.setFillColor("#9CA3AF");
-        pdf.circle(tx + 30, ty + 22, 4, "F");
-        setText(8, "#6B7280");
-        pdf.text(`Photo ${i + 1}`, tx + thumbW / 2, ty + thumbH - 4, { align: "center" });
+      // ===== SECTION — UPLOADED DAMAGE PHOTOS =====
+      sectionLabel("Uploaded Damage Photos");
+
+      // Load uploaded photo blob URLs into data URLs for embedding
+      const toDataUrl = (url: string): Promise<{ data: string; w: number; h: number } | null> =>
+        new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => {
+            try {
+              const canvas = document.createElement("canvas");
+              canvas.width = img.naturalWidth;
+              canvas.height = img.naturalHeight;
+              const ctx = canvas.getContext("2d");
+              if (!ctx) return resolve(null);
+              ctx.drawImage(img, 0, 0);
+              resolve({
+                data: canvas.toDataURL("image/jpeg", 0.85),
+                w: img.naturalWidth,
+                h: img.naturalHeight,
+              });
+            } catch {
+              resolve(null);
+            }
+          };
+          img.onerror = () => resolve(null);
+          img.src = url;
+        });
+
+      const photoData = await Promise.all(uploadedPhotos.map((p) => toDataUrl(p.url)));
+
+      if (uploadedPhotos.length === 0) {
+        setText(12, "#6B7280", false, true);
+        pdf.text("No photos were uploaded for this claim.", M, y + 14);
+        y += 24;
+      } else {
+        const photoGap = 12;
+        const photosPerRow = 3;
+        const photoW = (W - photoGap * (photosPerRow - 1)) / photosPerRow;
+        const photoH = photoW * 0.72;
+        const captionH = 44;
+        const blockH = photoH + captionH + 6;
+
+        for (let i = 0; i < uploadedPhotos.length; i++) {
+          const col = i % photosPerRow;
+          if (col === 0) need(blockH + 6);
+          const px = M + col * (photoW + photoGap);
+          const py = y;
+          // frame
+          pdf.setFillColor("#F9FAFB");
+          pdf.setDrawColor("#E5E7EB");
+          pdf.setLineWidth(0.5);
+          pdf.roundedRect(px, py, photoW, photoH, 3, 3, "FD");
+          const pd = photoData[i];
+          if (pd) {
+            // contain image inside frame
+            const ratio = Math.min(photoW / pd.w, photoH / pd.h);
+            const iw = pd.w * ratio;
+            const ih = pd.h * ratio;
+            const ix = px + (photoW - iw) / 2;
+            const iy = py + (photoH - ih) / 2;
+            try {
+              pdf.addImage(pd.data, "JPEG", ix, iy, iw, ih);
+            } catch {
+              setText(9, "#9CA3AF");
+              pdf.text("Image unavailable", px + photoW / 2, py + photoH / 2, { align: "center" });
+            }
+          } else {
+            setText(9, "#9CA3AF");
+            pdf.text("Image unavailable", px + photoW / 2, py + photoH / 2, { align: "center" });
+          }
+
+          // caption
+          const cap = uploadedPhotos[i];
+          const ts = new Date(cap.uploadedAt).toLocaleString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          });
+          setText(10, "#111827", true);
+          pdf.text(cap.name, px, py + photoH + 12);
+          setText(9, "#6B7280");
+          pdf.text(ts, px, py + photoH + 24);
+          // accepted pill
+          drawBadge("Accepted", px, py + photoH + 36, "#DCFCE7", "#15803D");
+
+          if (col === photosPerRow - 1 || i === uploadedPhotos.length - 1) {
+            y += blockH;
+          }
+        }
+        y += 8;
       }
-      y += thumbH + 16;
-      pdf.setDrawColor("#F3F4F6");
-      pdf.setLineWidth(0.5);
-      pdf.line(M, y, pageW - M, y);
 
       // ===== SECTION 2b — COVERAGE SUMMARY =====
       sectionLabel("Coverage Summary");
