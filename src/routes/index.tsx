@@ -2109,35 +2109,87 @@ function DemoGuide() {
 
 function AssessmentReviewPanel({ claim }: { claim: Claim }) {
   const isFastTrack = claim.delegationState === "FAST_TRACK";
+  const isSenior = claim.delegationState === "SENIOR_REVIEW";
+
+  const badgeMeta = isFastTrack
+    ? { bg: COLORS.greenBg, fg: COLORS.greenText, border: "#BBF7D0", dot: COLORS.green, label: "Fast-Track Eligible", icon: null as string | null }
+    : isSenior
+      ? { bg: "#FEF2F2", fg: "#991B1B", border: "#FECACA", dot: "#DC2626", label: "Senior Review Required", icon: "●" }
+      : { bg: COLORS.amberBg, fg: COLORS.amberText, border: COLORS.amberBorder, dot: COLORS.amber, label: "Manual Review Required", icon: "⚠" };
+
+  const tooltipText = isFastTrack
+    ? "Routed to Fast-Track: high photo clarity, single part affected, estimated value within standard threshold, no flagged components."
+    : isSenior
+      ? "Routed to Senior Review: estimated value ($8,400) exceeds standard authorization threshold, multiple flagged components, structural integrity cannot be confirmed from photo evidence alone."
+      : "Routed to Manual Review: low resolution detected on rear quarter panel, frame rail damage cannot be confirmed from available angles, labor estimate range too wide to auto-authorize.";
+
+  const routingBasis = isFastTrack
+    ? [
+        ["Photo quality", "High"],
+        ["Financial exposure", "Standard ($187)"],
+        ["Damage complexity", "Single part, cosmetic"],
+      ]
+    : isSenior
+      ? [
+          ["Photo quality", "Moderate"],
+          ["Financial exposure", "Exceeds threshold ($8,400+)"],
+          ["Damage complexity", "Multi-panel, structural involvement suspected"],
+        ]
+      : [
+          ["Photo quality", "Low — rear panel unclear"],
+          ["Financial exposure", "Elevated ($1,240–$2,100)"],
+          ["Damage complexity", "Multi-part, possible structural"],
+        ];
+
+  const routingTone = isFastTrack
+    ? { border: COLORS.green, bg: "#F0FDF4" }
+    : isSenior
+      ? { border: "#DC2626", bg: "#FEF2F2" }
+      : { border: COLORS.amber, bg: "#FFFBEB" };
 
   return (
     <div className="flex flex-col h-full gap-4">
-      {/* Delegation Status Badge */}
-      {isFastTrack ? (
+      {/* Delegation Status Badge with routing tooltip */}
+      <div className="relative self-start group">
         <div
-          className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-semibold self-start"
+          className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-semibold cursor-help"
           style={{
-            backgroundColor: COLORS.greenBg,
-            color: COLORS.greenText,
-            border: "1px solid #BBF7D0",
+            backgroundColor: badgeMeta.bg,
+            color: badgeMeta.fg,
+            border: `1px solid ${badgeMeta.border}`,
           }}
         >
-          <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.green }} />
-          Fast-Track Eligible
+          {badgeMeta.icon ? (
+            <span className="text-sm leading-none">{badgeMeta.icon}</span>
+          ) : (
+            <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: badgeMeta.dot }} />
+          )}
+          {badgeMeta.label}
+          <span
+            className="ml-0.5 inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[9px] font-bold border"
+            style={{ borderColor: badgeMeta.fg, color: badgeMeta.fg }}
+            aria-label="Routing explanation"
+          >
+            i
+          </span>
         </div>
-      ) : (
         <div
-          className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-semibold self-start"
-          style={{
-            backgroundColor: COLORS.amberBg,
-            color: COLORS.amberText,
-            border: `1px solid ${COLORS.amberBorder}`,
-          }}
+          role="tooltip"
+          className="pointer-events-none absolute left-0 top-full mt-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150 z-30"
+          style={{ maxWidth: 280, width: 280 }}
         >
-          <span className="text-sm leading-none">⚠</span>
-          Manual Review Required
+          <div
+            className="rounded-md px-3 py-2 text-[12px] leading-snug shadow-md"
+            style={{
+              backgroundColor: "#FFFFFF",
+              color: COLORS.muted,
+              border: "0.5px solid " + COLORS.border,
+            }}
+          >
+            {tooltipText}
+          </div>
         </div>
-      )}
+      </div>
 
       {/* Review Confidence Card */}
       <div
@@ -2151,6 +2203,35 @@ function AssessmentReviewPanel({ claim }: { claim: Claim }) {
         <p className="text-sm leading-relaxed mt-2" style={{ color: "#374151" }}>
           {claim.confidenceLabel}
         </p>
+
+        {/* Routing basis */}
+        <div className="mt-3">
+          <div
+            className="text-[11px] font-semibold uppercase mb-1.5"
+            style={{ color: COLORS.muted, letterSpacing: "0.08em" }}
+          >
+            Routing basis
+          </div>
+          <div
+            className="rounded-sm"
+            style={{
+              backgroundColor: routingTone.bg,
+              borderLeft: `2px solid ${routingTone.border}`,
+              padding: "8px 12px",
+            }}
+          >
+            <ul className="flex flex-col gap-1 text-[12px]" style={{ color: COLORS.muted }}>
+              {routingBasis.map(([k, v]) => (
+                <li key={k} className="flex items-start gap-1.5">
+                  <span className="mt-1.5 w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: routingTone.border }} />
+                  <span>
+                    <span style={{ color: COLORS.text }}>{k}:</span> {v}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
 
         <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${isFastTrack ? "#BBF7D0" : COLORS.border}` }}>
           {isFastTrack ? (
@@ -2172,6 +2253,7 @@ function AssessmentReviewPanel({ claim }: { claim: Claim }) {
           )}
         </div>
       </div>
+
 
       {/* Recommended Reviewer — MANUAL_REVIEW only */}
       {!isFastTrack && claim.recommendedReviewer && (
