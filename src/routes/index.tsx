@@ -234,6 +234,101 @@ function Index() {
   );
 }
 
+function DamagePhotoPanel({ claim }: { claim: Claim }) {
+  const score = claim.trustScore;
+  const trustColor =
+    score > 80 ? COLORS.green : score >= 60 ? COLORS.amber : "#DC2626";
+  const trustBg =
+    score > 80 ? COLORS.greenBg : score >= 60 ? COLORS.amberBg : "#FEF2F2";
+
+  const riskMap: Record<Claim["riskLevel"], { bg: string; fg: string; border: string; dot: string }> = {
+    LOW: { bg: COLORS.greenBg, fg: COLORS.greenText, border: "#BBF7D0", dot: COLORS.green },
+    MEDIUM: { bg: COLORS.amberBg, fg: COLORS.amberText, border: COLORS.amberBorder, dot: COLORS.amber },
+    HIGH: { bg: "#FEF2F2", fg: "#B91C1C", border: "#FECACA", dot: "#DC2626" },
+  };
+  const risk = riskMap[claim.riskLevel];
+
+  return (
+    <div className="flex flex-col h-full gap-4">
+      {/* Image area */}
+      <div
+        className="relative flex items-center justify-center flex-1 rounded-md min-h-0 overflow-hidden"
+        style={{ backgroundColor: "#E5E7EB", border: `1px solid ${COLORS.border}` }}
+      >
+        <div className="text-center px-4">
+          <div className="font-medium text-sm" style={{ color: "#475569" }}>
+            {claim.imagePlaceholder}
+          </div>
+          <div className="text-xs mt-1" style={{ color: "#94A3B8" }}>
+            Claim {claim.id}
+          </div>
+        </div>
+
+        {claim.visionState === "CHALLENGE" && (
+          <div
+            className="absolute top-3 right-3 w-1/3 min-w-[140px] rounded-sm px-2 py-2 text-[11px] font-semibold leading-tight"
+            style={{
+              backgroundColor: "rgba(245, 158, 11, 0.25)",
+              border: "2px solid #F59E0B",
+              color: "#92400E",
+            }}
+          >
+            ⚠ Uncertain Zone — Possible Structural Damage
+          </div>
+        )}
+
+        {claim.visionState === "GHOST" && (
+          <div
+            className="absolute left-1/2 -translate-x-1/2 bottom-4 rounded-sm px-2 py-1 text-[11px] font-semibold"
+            style={{
+              backgroundColor: "rgba(34, 197, 94, 0.15)",
+              border: "1.5px solid #22C55E",
+              color: COLORS.greenText,
+            }}
+          >
+            ● Bumper Cover
+          </div>
+        )}
+      </div>
+
+      {/* Trust Score */}
+      <div className="shrink-0">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>
+            Trust Score
+          </span>
+          <span className="text-sm font-semibold" style={{ color: trustColor }}>
+            {score}%
+          </span>
+        </div>
+        <div
+          className="h-2 w-full rounded-full overflow-hidden"
+          style={{ backgroundColor: trustBg }}
+        >
+          <div
+            className="h-full rounded-full transition-all"
+            style={{ width: `${score}%`, backgroundColor: trustColor }}
+          />
+        </div>
+      </div>
+
+      {/* Risk Level */}
+      <div className="shrink-0 flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>
+          Risk Level
+        </span>
+        <div
+          className="inline-flex items-center gap-2 rounded-md px-2.5 py-1 text-xs font-semibold"
+          style={{ backgroundColor: risk.bg, color: risk.fg, border: `1px solid ${risk.border}` }}
+        >
+          <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: risk.dot }} />
+          {claim.riskLevel}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function EstimaticsPanel({ claim, isFastTrack }: { claim: Claim; isFastTrack: boolean }) {
   const [checks, setChecks] = useState<[boolean, boolean, boolean]>([false, false, false]);
   const allChecked = checks.every(Boolean);
