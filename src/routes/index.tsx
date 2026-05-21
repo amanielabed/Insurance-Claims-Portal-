@@ -81,6 +81,15 @@ const claimData: Claim[] = [
         flagged: true,
       },
     ],
+    verificationConcerns: [
+      "Low resolution detected on rear quarter panel",
+      "Labor estimate range indicates possible structural uncertainty",
+      "Frame damage cannot be verified from available angles",
+    ],
+    recommendedReviewer: {
+      title: "Recommended Reviewer",
+      description: "This claim may involve structural damage. Recommended reviewer: Structural damage specialist.",
+    },
   },
 ];
 
