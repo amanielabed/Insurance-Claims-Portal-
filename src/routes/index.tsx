@@ -56,8 +56,10 @@ const claimData: Claim[] = [
     id: "2026-002",
     type: "Rear Collision",
     delegationState: "MANUAL_REVIEW",
+    visionState: "CHALLENGE",
     reviewConfidence: "Moderate",
-    riskLevel: "High",
+    riskLevel: "HIGH",
+    trustScore: 61,
     estimatedCost: 1240,
     confidenceLabel:
       "Low resolution on rear quarter panel. Possible hidden structural damage behind deformation.",
