@@ -688,18 +688,6 @@ interface ClaimForm {
   dateOfLoss: string;
   contactPhone: string;
   incidentType: string;
-  description: string;
-  location: string;
-  injured: boolean;
-  year: string;
-  make: string;
-  model: string;
-interface ClaimForm {
-  policyNumber: string;
-  fullName: string;
-  dateOfLoss: string;
-  contactPhone: string;
-  incidentType: string;
   incidentTypeOther: string;
   description: string;
   location: string;
