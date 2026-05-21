@@ -1561,6 +1561,11 @@ function EstimateReviewPanel({
     claim.parts.map((p) => p.draftEstimate.toFixed(2)),
   );
   const [log, setLog] = useState<LogEntry[]>([]);
+  const [expanded, setExpanded] = useState<{ row: number; source: SourceKey } | null>(null);
+  const toggleSource = (row: number, source: SourceKey) =>
+    setExpanded((prev) =>
+      prev && prev.row === row && prev.source === source ? null : { row, source },
+    );
   const [checks, setChecks] = useState<[boolean, boolean, boolean]>([false, false, false]);
   const allChecked = checks.every(Boolean);
   const toggle = (i: number) =>
