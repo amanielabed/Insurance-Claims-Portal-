@@ -25,6 +25,7 @@ interface Claim {
   confidenceLabel: string;
   actionMessage: string;
   imagePlaceholder: string;
+  imageUrl?: string;
   parts: Part[];
   verificationConcerns?: string[];
   recommendedReviewer?: {
