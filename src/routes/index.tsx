@@ -121,6 +121,13 @@ function Index() {
     [selectedId],
   );
 
+  const [seniorReview, setSeniorReview] = useState(false);
+
+  // Reset escalation when switching claims
+  useEffect(() => {
+    setSeniorReview(false);
+  }, [selectedId]);
+
   const isFastTrack = claim.delegationState === "FAST_TRACK";
 
   return (
@@ -165,24 +172,43 @@ function Index() {
         </div>
       </header>
 
-      {/* Manual review banner */}
-      {!isFastTrack && (
+      {/* Escalation banner */}
+      {seniorReview ? (
         <div
           className="flex items-start gap-3 px-6 py-3 border-b shrink-0"
           style={{
-            backgroundColor: COLORS.amberBg,
-            borderColor: COLORS.amberBorder,
-            color: COLORS.amberText,
+            backgroundColor: "#FEF2F2",
+            borderColor: "#FECACA",
+            color: "#991B1B",
           }}
         >
-          <span className="text-base leading-5">⚠</span>
+          <span className="text-base leading-5">●</span>
           <div>
-            <div className="text-sm font-semibold">Manual Review Required</div>
-            <div className="text-xs mt-0.5" style={{ color: "#92400E" }}>
-              Possible structural damage detected. Please verify before approval.
+            <div className="text-sm font-semibold">Senior Review Required</div>
+            <div className="text-xs mt-0.5" style={{ color: "#B91C1C" }}>
+              This claim requires authorization before submission.
             </div>
           </div>
         </div>
+      ) : (
+        !isFastTrack && (
+          <div
+            className="flex items-start gap-3 px-6 py-3 border-b shrink-0"
+            style={{
+              backgroundColor: COLORS.amberBg,
+              borderColor: COLORS.amberBorder,
+              color: COLORS.amberText,
+            }}
+          >
+            <span className="text-base leading-5">⚠</span>
+            <div>
+              <div className="text-sm font-semibold">Manual Review Required</div>
+              <div className="text-xs mt-0.5" style={{ color: "#92400E" }}>
+                Possible structural damage detected. Please verify before approval.
+              </div>
+            </div>
+          </div>
+        )
       )}
 
       <main className="flex-1 min-h-0 grid grid-cols-3 gap-4 p-4">
@@ -198,7 +224,13 @@ function Index() {
 
         {/* Right: Estimate Review */}
         <Panel title="Estimate Review">
-          <EstimateReviewPanel key={claim.id} claim={claim} isFastTrack={isFastTrack} />
+          <EstimateReviewPanel
+            key={claim.id}
+            claim={claim}
+            isFastTrack={isFastTrack}
+            seniorReview={seniorReview}
+            onTriggerSeniorReview={() => setSeniorReview(true)}
+          />
         </Panel>
       </main>
     </div>
