@@ -463,14 +463,23 @@ function DamagePhotoPanel({ claim }: { claim: Claim }) {
         className="relative flex items-center justify-center flex-1 rounded-md min-h-0 overflow-hidden"
         style={{ backgroundColor: "#E5E7EB", border: `1px solid ${COLORS.border}` }}
       >
-        <div className="text-center px-4">
-          <div className="font-medium text-sm" style={{ color: "#475569" }}>
-            {claim.imagePlaceholder}
+        {claim.imageUrl ? (
+          <img
+            src={claim.imageUrl}
+            alt={claim.imagePlaceholder}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <div className="text-center px-4">
+            <div className="font-medium text-sm" style={{ color: "#475569" }}>
+              {claim.imagePlaceholder}
+            </div>
+            <div className="text-xs mt-1" style={{ color: "#94A3B8" }}>
+              Claim {claim.id}
+            </div>
           </div>
-          <div className="text-xs mt-1" style={{ color: "#94A3B8" }}>
-            Claim {claim.id}
-          </div>
-        </div>
+        )}
+
 
         {isFastTrack ? (
           <div
