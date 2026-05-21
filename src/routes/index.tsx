@@ -1596,6 +1596,7 @@ function ReviewEstimateStep({
           <EstimateReviewPanel
             key={claim.id}
             claim={claim}
+            claimForm={claimForm}
             isFastTrack={isFastTrack}
             seniorReview={seniorReview}
             onTriggerSeniorReview={() => setSeniorReview(true)}
