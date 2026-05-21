@@ -829,6 +829,11 @@ function EstimateReviewPanel({
       ) : isFastTrack ? (
         <div className="shrink-0 flex flex-col gap-2">
           <button
+            onClick={() =>
+              toast.success(`Claim #${claim.id} approved and routed for processing`, {
+                description: "Estimated handling time: 23 seconds",
+              })
+            }
             className="w-full rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
             style={{ backgroundColor: COLORS.blue }}
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
