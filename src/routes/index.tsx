@@ -964,6 +964,8 @@ function lookupPolicy(policyNumber: string): PolicyLookup | null {
   return null;
 }
 
+type PoliceReportStatus = "uploaded" | "pending" | "not_available" | "";
+
 interface ClaimForm {
   policyNumber: string;
   fullName: string;
@@ -978,6 +980,7 @@ interface ClaimForm {
   model: string;
   vin: string;
   vehicleAutoFilled: boolean;
+  policeReport: PoliceReportStatus;
 }
 
 const emptyForm = (): ClaimForm => ({
@@ -994,7 +997,9 @@ const emptyForm = (): ClaimForm => ({
   model: "",
   vin: "",
   vehicleAutoFilled: false,
+  policeReport: "",
 });
+
 
 const demoForm = (): ClaimForm => {
   const policyNumber = "POL-2026-48201";
