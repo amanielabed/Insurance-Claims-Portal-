@@ -46,6 +46,7 @@ const claimData: Claim[] = [
     actionMessage:
       "Auto-route eligible. This claim can move through a lightweight confirmation flow.",
     imagePlaceholder: "Simple bumper scratch",
+    imageUrl: claimSimpleImage,
     parts: [
       {
         name: "Rear bumper cover repair",
