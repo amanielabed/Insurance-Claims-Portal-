@@ -1028,6 +1028,47 @@ function InitiateClaimStep({
   const [errors, setErrors] = useState<Partial<Record<keyof ClaimForm, string>>>({});
   const [policyMsg, setPolicyMsg] = useState<string | null>(null);
 
+  // Coverage Eligibility Check (gates the intake form)
+  type Coverage = "third_party" | "full" | "unsure" | "";
+  type Fault = "policyholder" | "other" | "unclear" | "single_vehicle" | "";
+  const [coverage, setCoverage] = useState<Coverage>("");
+  const [fault, setFault] = useState<Fault>("");
+  const [deductible, setDeductible] = useState("");
+  const [eligibilityPassed, setEligibilityPassed] = useState(false);
+
+  const eligibility = (() => {
+    if (!coverage || !fault) return null;
+    if (coverage === "third_party" && fault === "single_vehicle") {
+      return { tone: "red" as const, title: "Coverage not available for this incident type under the current policy.", body: "", action: "Exit Claim", canContinue: false };
+    }
+    if (coverage === "third_party" && fault === "policyholder") {
+      return { tone: "amber" as const, title: "Limited coverage detected.", body: "This policy may not cover repairs to the policyholder's vehicle under the current fault assessment.", action: "Continue Documentation", note: "Damage details may still be collected for claim records.", canContinue: true };
+    }
+    if (coverage === "third_party" && fault === "other") {
+      return { tone: "blue" as const, title: "External insurer workflow likely required.", body: "Damage documentation may be used to support coordination with the other party's insurer.", action: "Continue Documentation", canContinue: true };
+    }
+    if (coverage === "third_party" && fault === "unclear") {
+      return { tone: "amber" as const, title: "Limited coverage — pending fault outcome.", body: "Documentation may proceed; final eligibility depends on the fault investigation.", action: "Continue Documentation", canContinue: true };
+    }
+    if (coverage === "full" && fault === "policyholder") {
+      return { tone: "green" as const, title: "Coverage confirmed.", body: "This policy includes coverage for the reported vehicle damage.", action: "Continue Claim Review", showDeductible: true, canContinue: true };
+    }
+    if (coverage === "full" && fault === "other") {
+      return { tone: "green" as const, title: "Coverage confirmed.", body: "Vehicle damage is eligible for claim processing under this policy.", action: "Continue Claim Review", canContinue: true };
+    }
+    if (coverage === "full" && fault === "unclear") {
+      return { tone: "amber" as const, title: "Claim eligible for review.", body: "Final authorization may depend on the outcome of the fault investigation.", action: "Continue Claim Review", canContinue: true };
+    }
+    if (coverage === "full" && fault === "single_vehicle") {
+      return { tone: "green" as const, title: "Coverage confirmed.", body: "Single-vehicle incidents are eligible for claim processing under this policy.", action: "Continue Claim Review", canContinue: true };
+    }
+    if (coverage === "unsure") {
+      return { tone: "blue" as const, title: "Coverage type pending confirmation.", body: "Coverage type may be confirmed using the policy number lookup during intake.", action: "Continue Documentation", canContinue: true };
+    }
+    return null;
+  })();
+
+
   const update = <K extends keyof ClaimForm>(key: K, value: ClaimForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }));
