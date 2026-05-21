@@ -17,8 +17,10 @@ interface Claim {
   id: string;
   type: string;
   delegationState: "FAST_TRACK" | "MANUAL_REVIEW";
+  visionState: "GHOST" | "CHALLENGE";
   reviewConfidence: string;
-  riskLevel: string;
+  riskLevel: "LOW" | "MEDIUM" | "HIGH";
+  trustScore: number;
   estimatedCost: number;
   confidenceLabel: string;
   actionMessage: string;
