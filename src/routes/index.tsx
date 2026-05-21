@@ -2142,6 +2142,11 @@ function EstimateReviewPanel({
     }, 700);
   };
 
+  const [editMode, setEditMode] = useState(false);
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+
+
 
   // Auto-escalate: variance >15% on any high-risk (flagged) line item
   useEffect(() => {
