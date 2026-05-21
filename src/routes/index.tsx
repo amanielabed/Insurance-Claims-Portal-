@@ -2111,6 +2111,29 @@ function EstimateReviewPanel({
       return next;
     });
 
+  const NOTES_LIMIT = 500;
+  const [adjusterNotes, setAdjusterNotes] = useState("");
+  const [notesSavedVisible, setNotesSavedVisible] = useState(false);
+  const notesSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notesHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (notesSaveTimer.current) clearTimeout(notesSaveTimer.current);
+      if (notesHideTimer.current) clearTimeout(notesHideTimer.current);
+    };
+  }, []);
+  const handleNotesChange = (value: string) => {
+    const next = value.slice(0, NOTES_LIMIT);
+    setAdjusterNotes(next);
+    if (notesSaveTimer.current) clearTimeout(notesSaveTimer.current);
+    if (notesHideTimer.current) clearTimeout(notesHideTimer.current);
+    notesSaveTimer.current = setTimeout(() => {
+      setNotesSavedVisible(true);
+      notesHideTimer.current = setTimeout(() => setNotesSavedVisible(false), 2000);
+    }, 700);
+  };
+
+
   // Auto-escalate: variance >15% on any high-risk (flagged) line item
   useEffect(() => {
     if (seniorReview) return;
@@ -2408,7 +2431,47 @@ function EstimateReviewPanel({
         Draft estimates are generated using standardized repair references and require adjuster review before final authorization.
       </p>
 
+      {/* Adjuster Notes */}
+      <div className="shrink-0 flex flex-col gap-1.5">
+        <div className="flex items-center justify-between">
+          <Label>Adjuster Notes</Label>
+          <span
+            className="text-[11px] transition-opacity duration-300"
+            style={{
+              color: COLORS.greenText,
+              opacity: notesSavedVisible ? 1 : 0,
+            }}
+            aria-live="polite"
+          >
+            ✓ Notes saved
+          </span>
+        </div>
+        <p className="text-[11px] leading-snug" style={{ color: COLORS.muted }}>
+          Optional. Add observations, verification details, repair rationale, or claim-specific notes.
+        </p>
+        <textarea
+          value={adjusterNotes}
+          onChange={(e) => handleNotesChange(e.target.value)}
+          maxLength={NOTES_LIMIT}
+          rows={4}
+          placeholder={`Example:\nConfirmed bumper damage visible across two angles.\nNo visible frame involvement detected.\nRepair scope aligns with submitted photos.`}
+          className="w-full rounded-md border px-3 py-2 text-sm leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+          style={{
+            borderColor: COLORS.border,
+            backgroundColor: COLORS.surface,
+            color: COLORS.text,
+            minHeight: "5.5rem",
+          }}
+        />
+        <div className="flex justify-end">
+          <span className="text-[11px] tabular-nums" style={{ color: COLORS.muted }}>
+            {adjusterNotes.length} / {NOTES_LIMIT}
+          </span>
+        </div>
+      </div>
+
       {/* CTA */}
+
       {seniorReview ? (
         <div className="shrink-0 flex flex-col gap-3">
           <div
