@@ -1019,8 +1019,10 @@ const demoForm = (): ClaimForm => {
     model: lookup.model,
     vin: "4T1G11AK5NU712398",
     vehicleAutoFilled: true,
+    policeReport: "uploaded",
   };
 };
+
 
 function InitiateClaimStep({
   initial,
