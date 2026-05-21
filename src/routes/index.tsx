@@ -336,12 +336,21 @@ const STEPS = [
   "Review Estimate",
 ] as const;
 
+export interface UploadedPhoto {
+  slotId: string;
+  name: string;
+  url: string;
+  uploadedAt: number;
+}
+
 function Index() {
   const [step, setStep] = useState(1);
   const [claimForm, setClaimForm] = useState<ClaimForm | null>(null);
+  const [uploadedPhotos, setUploadedPhotos] = useState<UploadedPhoto[]>([]);
 
   const reset = () => {
     setClaimForm(null);
+    setUploadedPhotos([]);
     setStep(1);
   };
 
@@ -363,12 +372,22 @@ function Index() {
         )}
         {step === 2 && (
           <UploadPhotosStep
-            onContinue={() => setStep(3)}
+            initialPhotos={uploadedPhotos}
+            onContinue={(photos) => {
+              setUploadedPhotos(photos);
+              setStep(3);
+            }}
             onBack={() => setStep(1)}
           />
         )}
         {step === 3 && <DraftAssessmentStep onComplete={() => setStep(4)} />}
-        {step === 4 && <ReviewEstimateStep claimForm={claimForm} onReset={reset} />}
+        {step === 4 && (
+          <ReviewEstimateStep
+            claimForm={claimForm}
+            uploadedPhotos={uploadedPhotos}
+            onReset={reset}
+          />
+        )}
       </div>
     </div>
   );
