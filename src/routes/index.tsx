@@ -1352,8 +1352,8 @@ function InitiateClaimStep({
 }
 
 
-type CoverageVal = "third_party" | "full" | "unsure" | "";
 type FaultVal = "policyholder" | "other" | "unclear" | "single_vehicle" | "";
+type ValidatedPolicy = { policyNumber: string; year: string; make: string; model: string; holderName: string; coverage: "full" | "third_party" };
 interface EligibilityResult {
   tone: "amber" | "blue" | "green" | "red";
   title: string;
@@ -1365,28 +1365,27 @@ interface EligibilityResult {
 }
 
 function EligibilityCheck({
-  coverage, setCoverage, fault, setFault, deductible, setDeductible, eligibility, onContinue,
+  policyNumber, setPolicyNumber, fault, setFault, deductible, setDeductible, validated, setValidated, eligibility, onContinue,
 }: {
-  coverage: CoverageVal;
-  setCoverage: (v: CoverageVal) => void;
+  policyNumber: string;
+  setPolicyNumber: (v: string) => void;
   fault: FaultVal;
   setFault: (v: FaultVal) => void;
   deductible: string;
   setDeductible: (v: string) => void;
+  validated: ValidatedPolicy | null;
+  setValidated: (v: ValidatedPolicy | null) => void;
   eligibility: EligibilityResult | null;
   onContinue: () => void;
 }) {
+  const [validating, setValidating] = useState(false);
+  const [lookupError, setLookupError] = useState<string | null>(null);
   const toneStyles: Record<string, { bg: string; border: string; text: string }> = {
     amber: { bg: "#FFFBEB", border: "#FCD34D", text: "#92400E" },
     blue: { bg: "#EFF6FF", border: "#BFDBFE", text: "#1D4ED8" },
     green: { bg: "#F0FDF4", border: "#BBF7D0", text: "#15803D" },
     red: { bg: "#FEF2F2", border: "#FECACA", text: "#B91C1C" },
   };
-  const coverageOptions: { value: CoverageVal; label: string }[] = [
-    { value: "third_party", label: "Third-party only" },
-    { value: "full", label: "Full coverage (comprehensive)" },
-    { value: "unsure", label: "I'm not sure" },
-  ];
   const faultOptions: { value: FaultVal; label: string }[] = [
     { value: "policyholder", label: "Policyholder at fault" },
     { value: "other", label: "Other party at fault" },
@@ -1408,6 +1407,33 @@ function EligibilityCheck({
     </label>
   );
 
+  const handleValidate = () => {
+    const v = policyNumber.trim();
+    if (!v) { setLookupError("Policy number is required."); return; }
+    setLookupError(null);
+    setValidating(true);
+    setValidated(null);
+    window.setTimeout(() => {
+      const result = lookupPolicy(v);
+      if (!result) {
+        setValidating(false);
+        setLookupError("Policy not found. Please check the number and try again.");
+        return;
+      }
+      const upper = v.toUpperCase();
+      const coverage: "full" | "third_party" = upper.startsWith("POL-2025") ? "third_party" : "full";
+      const holderName = upper.startsWith("POL-2025") ? "Alex R. Morgan" : "Jordan M. Whitaker";
+      setValidated({ policyNumber: v, ...result, holderName, coverage });
+      setValidating(false);
+    }, 700);
+  };
+
+  const handlePolicyChange = (v: string) => {
+    setPolicyNumber(v);
+    if (validated) setValidated(null);
+    if (lookupError) setLookupError(null);
+  };
+
   return (
     <div>
       <div className="mb-6">
@@ -1417,21 +1443,39 @@ function EligibilityCheck({
         </p>
       </div>
 
-      <FormSection title="Coverage Type">
+      <FormSection title="Policy Number">
         <div className="md:col-span-2">
-          <p className="text-sm font-medium mb-2" style={{ color: COLORS.text }}>
-            What type of coverage does this policy include?
-          </p>
-          <div>
-            {coverageOptions.map((o) => (
-              <Radio key={o.value} checked={coverage === o.value} onChange={() => setCoverage(o.value)} label={o.label} />
-            ))}
+          <label className="text-xs font-medium block mb-1.5" style={{ color: COLORS.text }}>
+            Enter the policy number
+          </label>
+          <div className="flex flex-col sm:flex-row gap-2 max-w-md">
+            <div className="flex-1">
+              <TextInput
+                value={policyNumber}
+                onChange={handlePolicyChange}
+                placeholder="POL-2026-XXXXX"
+                invalid={!!lookupError}
+              />
+            </div>
+            <button
+              onClick={handleValidate}
+              disabled={validating || !policyNumber.trim()}
+              className="text-sm font-medium px-4 py-2 rounded-md whitespace-nowrap transition-colors"
+              style={{
+                backgroundColor: validating || !policyNumber.trim() ? "#E5E7EB" : COLORS.blue,
+                color: validating || !policyNumber.trim() ? COLORS.muted : "#FFFFFF",
+                cursor: validating || !policyNumber.trim() ? "not-allowed" : "pointer",
+              }}
+            >
+              {validating ? "Validating…" : validated ? "Re-validate" : "Validate Policy"}
+            </button>
           </div>
-          {coverage === "unsure" && (
-            <p className="text-[11px] mt-2" style={{ color: COLORS.muted }}>
-              Coverage type may be confirmed using the policy number lookup.
-            </p>
+          {lookupError && (
+            <div className="text-[11px] mt-2" style={{ color: "#DC2626" }}>{lookupError}</div>
           )}
+          <p className="text-[11px] mt-2" style={{ color: COLORS.muted }}>
+            Try POL-2026-48201 (Full Coverage) or POL-2025-77310 (Third-Party).
+          </p>
         </div>
       </FormSection>
 
@@ -1450,6 +1494,46 @@ function EligibilityCheck({
           </p>
         </div>
       </FormSection>
+
+      {validated && (
+        <div
+          className="rounded-lg border p-5 mb-4 animate-fade-in"
+          style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <span
+              className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold"
+              style={{ backgroundColor: "#DCFCE7", color: "#15803D" }}
+            >
+              ✓
+            </span>
+            <h3 className="text-sm font-semibold" style={{ color: COLORS.text }}>
+              Policy Validated
+            </h3>
+            <span className="text-[10px] uppercase ml-auto" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+              Retrieved from policy record
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <div className="text-[10px] uppercase mb-1" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>Coverage Type</div>
+              <div className="text-sm font-medium" style={{ color: COLORS.text }}>
+                {validated.coverage === "full" ? "Full Coverage (Comprehensive)" : "Third-Party Coverage"}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase mb-1" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>Policyholder</div>
+              <div className="text-sm font-medium" style={{ color: COLORS.text }}>{validated.holderName}</div>
+            </div>
+            <div className="sm:col-span-2">
+              <div className="text-[10px] uppercase mb-1" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>Vehicle</div>
+              <div className="text-sm font-medium" style={{ color: COLORS.text }}>
+                {validated.year} {validated.make} {validated.model}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {eligibility && (
         <div
