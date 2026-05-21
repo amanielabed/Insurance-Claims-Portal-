@@ -1007,26 +1007,31 @@ function Field({
 function TextInput({
   value,
   onChange,
+  onBlur,
   placeholder,
   type = "text",
   invalid,
+  highlight,
 }: {
   value: string;
   onChange: (v: string) => void;
+  onBlur?: () => void;
   placeholder?: string;
   type?: string;
   invalid?: boolean;
+  highlight?: boolean;
 }) {
   return (
     <input
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      onBlur={onBlur}
       placeholder={placeholder}
       className="w-full h-10 rounded-md border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
       style={{
-        borderColor: invalid ? "#DC2626" : "#D1D5DB",
-        backgroundColor: COLORS.surface,
+        borderColor: invalid ? "#DC2626" : highlight ? "#BFDBFE" : "#D1D5DB",
+        backgroundColor: highlight ? "#EFF6FF" : COLORS.surface,
         color: COLORS.text,
       }}
     />
