@@ -70,6 +70,7 @@ const claimData: Claim[] = [
     actionMessage:
       "Manual review required. Payment should remain paused until verification is complete.",
     imagePlaceholder: "Rear collision damage",
+    imageUrl: claimComplexImage,
     parts: [
       {
         name: "Rear quarter panel skin",
