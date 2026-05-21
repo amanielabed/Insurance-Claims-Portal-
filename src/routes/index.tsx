@@ -1028,6 +1028,47 @@ function InitiateClaimStep({
   const [errors, setErrors] = useState<Partial<Record<keyof ClaimForm, string>>>({});
   const [policyMsg, setPolicyMsg] = useState<string | null>(null);
 
+  // Coverage Eligibility Check (gates the intake form)
+  type Coverage = "third_party" | "full" | "unsure" | "";
+  type Fault = "policyholder" | "other" | "unclear" | "single_vehicle" | "";
+  const [coverage, setCoverage] = useState<Coverage>("");
+  const [fault, setFault] = useState<Fault>("");
+  const [deductible, setDeductible] = useState("");
+  const [eligibilityPassed, setEligibilityPassed] = useState(false);
+
+  const eligibility = (() => {
+    if (!coverage || !fault) return null;
+    if (coverage === "third_party" && fault === "single_vehicle") {
+      return { tone: "red" as const, title: "Coverage not available for this incident type under the current policy.", body: "", action: "Exit Claim", canContinue: false };
+    }
+    if (coverage === "third_party" && fault === "policyholder") {
+      return { tone: "amber" as const, title: "Limited coverage detected.", body: "This policy may not cover repairs to the policyholder's vehicle under the current fault assessment.", action: "Continue Documentation", note: "Damage details may still be collected for claim records.", canContinue: true };
+    }
+    if (coverage === "third_party" && fault === "other") {
+      return { tone: "blue" as const, title: "External insurer workflow likely required.", body: "Damage documentation may be used to support coordination with the other party's insurer.", action: "Continue Documentation", canContinue: true };
+    }
+    if (coverage === "third_party" && fault === "unclear") {
+      return { tone: "amber" as const, title: "Limited coverage — pending fault outcome.", body: "Documentation may proceed; final eligibility depends on the fault investigation.", action: "Continue Documentation", canContinue: true };
+    }
+    if (coverage === "full" && fault === "policyholder") {
+      return { tone: "green" as const, title: "Coverage confirmed.", body: "This policy includes coverage for the reported vehicle damage.", action: "Continue Claim Review", showDeductible: true, canContinue: true };
+    }
+    if (coverage === "full" && fault === "other") {
+      return { tone: "green" as const, title: "Coverage confirmed.", body: "Vehicle damage is eligible for claim processing under this policy.", action: "Continue Claim Review", canContinue: true };
+    }
+    if (coverage === "full" && fault === "unclear") {
+      return { tone: "amber" as const, title: "Claim eligible for review.", body: "Final authorization may depend on the outcome of the fault investigation.", action: "Continue Claim Review", canContinue: true };
+    }
+    if (coverage === "full" && fault === "single_vehicle") {
+      return { tone: "green" as const, title: "Coverage confirmed.", body: "Single-vehicle incidents are eligible for claim processing under this policy.", action: "Continue Claim Review", canContinue: true };
+    }
+    if (coverage === "unsure") {
+      return { tone: "blue" as const, title: "Coverage type pending confirmation.", body: "Coverage type may be confirmed using the policy number lookup during intake.", action: "Continue Documentation", canContinue: true };
+    }
+    return null;
+  })();
+
+
   const update = <K extends keyof ClaimForm>(key: K, value: ClaimForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }));
@@ -1085,6 +1126,19 @@ function InitiateClaimStep({
   return (
     <div className="flex-1 overflow-auto">
       <div className="max-w-3xl mx-auto px-6 py-8">
+        {!eligibilityPassed ? (
+          <EligibilityCheck
+            coverage={coverage}
+            setCoverage={(v) => { setCoverage(v); }}
+            fault={fault}
+            setFault={(v) => { setFault(v); }}
+            deductible={deductible}
+            setDeductible={setDeductible}
+            eligibility={eligibility}
+            onContinue={() => setEligibilityPassed(true)}
+          />
+        ) : (
+        <>
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
             <h2 className="text-xl font-semibold tracking-tight">Initiate Claim</h2>
@@ -1103,6 +1157,7 @@ function InitiateClaimStep({
             Use Demo Claim
           </button>
         </div>
+
 
         <FormSection title="Policyholder Information">
           <Field label="Policy Number" required error={errors.policyNumber}>
@@ -1274,12 +1329,172 @@ function InitiateClaimStep({
             Begin Photo Submission →
           </button>
         </div>
+        </>
+        )}
       </div>
     </div>
   );
 }
 
+
+type CoverageVal = "third_party" | "full" | "unsure" | "";
+type FaultVal = "policyholder" | "other" | "unclear" | "single_vehicle" | "";
+interface EligibilityResult {
+  tone: "amber" | "blue" | "green" | "red";
+  title: string;
+  body: string;
+  action: string;
+  note?: string;
+  showDeductible?: boolean;
+  canContinue: boolean;
+}
+
+function EligibilityCheck({
+  coverage, setCoverage, fault, setFault, deductible, setDeductible, eligibility, onContinue,
+}: {
+  coverage: CoverageVal;
+  setCoverage: (v: CoverageVal) => void;
+  fault: FaultVal;
+  setFault: (v: FaultVal) => void;
+  deductible: string;
+  setDeductible: (v: string) => void;
+  eligibility: EligibilityResult | null;
+  onContinue: () => void;
+}) {
+  const toneStyles: Record<string, { bg: string; border: string; text: string }> = {
+    amber: { bg: "#FFFBEB", border: "#FCD34D", text: "#92400E" },
+    blue: { bg: "#EFF6FF", border: "#BFDBFE", text: "#1D4ED8" },
+    green: { bg: "#F0FDF4", border: "#BBF7D0", text: "#15803D" },
+    red: { bg: "#FEF2F2", border: "#FECACA", text: "#B91C1C" },
+  };
+  const coverageOptions: { value: CoverageVal; label: string }[] = [
+    { value: "third_party", label: "Third-party only" },
+    { value: "full", label: "Full coverage (comprehensive)" },
+    { value: "unsure", label: "I'm not sure" },
+  ];
+  const faultOptions: { value: FaultVal; label: string }[] = [
+    { value: "policyholder", label: "Policyholder at fault" },
+    { value: "other", label: "Other party at fault" },
+    { value: "unclear", label: "Fault unclear or disputed" },
+    { value: "single_vehicle", label: "Single-vehicle incident" },
+  ];
+
+  const Radio = ({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) => (
+    <label className="flex items-center gap-2.5 py-2 cursor-pointer text-sm" style={{ color: COLORS.text }}>
+      <span
+        onClick={onChange}
+        className="w-4 h-4 rounded-full border flex items-center justify-center shrink-0"
+        style={{ borderColor: checked ? COLORS.blue : "#D1D5DB", backgroundColor: COLORS.surface }}
+      >
+        {checked && <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.blue }} />}
+      </span>
+      <input type="radio" checked={checked} onChange={onChange} className="sr-only" />
+      <span onClick={onChange}>{label}</span>
+    </label>
+  );
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold tracking-tight">Coverage Eligibility Check</h2>
+        <p className="text-sm mt-1" style={{ color: COLORS.muted }}>
+          We need a few details before beginning the claim review.
+        </p>
+      </div>
+
+      <FormSection title="Coverage Type">
+        <div className="md:col-span-2">
+          <p className="text-sm font-medium mb-2" style={{ color: COLORS.text }}>
+            What type of coverage does this policy include?
+          </p>
+          <div>
+            {coverageOptions.map((o) => (
+              <Radio key={o.value} checked={coverage === o.value} onChange={() => setCoverage(o.value)} label={o.label} />
+            ))}
+          </div>
+          {coverage === "unsure" && (
+            <p className="text-[11px] mt-2" style={{ color: COLORS.muted }}>
+              Coverage type may be confirmed using the policy number lookup.
+            </p>
+          )}
+        </div>
+      </FormSection>
+
+      <FormSection title="Preliminary Fault Assessment">
+        <div className="md:col-span-2">
+          <p className="text-sm font-medium mb-2" style={{ color: COLORS.text }}>
+            What is the current understanding of fault?
+          </p>
+          <div>
+            {faultOptions.map((o) => (
+              <Radio key={o.value} checked={fault === o.value} onChange={() => setFault(o.value)} label={o.label} />
+            ))}
+          </div>
+          <p className="text-[11px] mt-2" style={{ color: COLORS.muted }}>
+            This is a preliminary operational assessment and may change during formal review.
+          </p>
+        </div>
+      </FormSection>
+
+      {eligibility && (
+        <div
+          className="rounded-lg border p-5 mb-4 animate-fade-in"
+          style={{
+            backgroundColor: toneStyles[eligibility.tone].bg,
+            borderColor: toneStyles[eligibility.tone].border,
+          }}
+        >
+          <h3 className="text-sm font-semibold mb-1" style={{ color: toneStyles[eligibility.tone].text }}>
+            {eligibility.title}
+          </h3>
+          {eligibility.body && (
+            <p className="text-sm" style={{ color: COLORS.text }}>
+              {eligibility.body}
+            </p>
+          )}
+          {eligibility.note && (
+            <p className="text-[12px] mt-2" style={{ color: COLORS.muted }}>
+              {eligibility.note}
+            </p>
+          )}
+          {eligibility.showDeductible && (
+            <div className="mt-4 max-w-xs">
+              <label className="text-xs font-medium block mb-1.5" style={{ color: COLORS.text }}>
+                Deductible amount (optional)
+              </label>
+              <TextInput
+                type="number"
+                value={deductible}
+                onChange={setDeductible}
+                placeholder="$0"
+              />
+            </div>
+          )}
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => {
+                if (!eligibility.canContinue) return;
+                onContinue();
+              }}
+              disabled={!eligibility.canContinue}
+              className="text-sm font-semibold px-5 py-2.5 rounded-md transition-colors"
+              style={{
+                backgroundColor: eligibility.canContinue ? COLORS.blue : "#E5E7EB",
+                color: eligibility.canContinue ? "#FFFFFF" : COLORS.muted,
+                cursor: eligibility.canContinue ? "pointer" : "not-allowed",
+              }}
+            >
+              {eligibility.action}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
+
   return (
     <section
       className="rounded-lg border p-5 mb-4"
