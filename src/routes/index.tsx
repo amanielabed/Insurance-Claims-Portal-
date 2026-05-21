@@ -134,6 +134,12 @@ const STEPS = [
 
 function Index() {
   const [step, setStep] = useState(1);
+  const [claimForm, setClaimForm] = useState<ClaimForm | null>(null);
+
+  const reset = () => {
+    setClaimForm(null);
+    setStep(1);
+  };
 
   return (
     <div
@@ -142,7 +148,15 @@ function Index() {
     >
       <StepIndicator current={step} />
       <div key={step} className="flex-1 min-h-0 flex flex-col animate-fade-in">
-        {step === 1 && <InitiateClaimStep onContinue={() => setStep(2)} />}
+        {step === 1 && (
+          <InitiateClaimStep
+            initial={claimForm}
+            onContinue={(data) => {
+              setClaimForm(data);
+              setStep(2);
+            }}
+          />
+        )}
         {step === 2 && (
           <UploadPhotosStep
             onContinue={() => setStep(3)}
@@ -150,11 +164,12 @@ function Index() {
           />
         )}
         {step === 3 && <DraftAssessmentStep onComplete={() => setStep(4)} />}
-        {step === 4 && <ReviewEstimateStep />}
+        {step === 4 && <ReviewEstimateStep claimForm={claimForm} onReset={reset} />}
       </div>
     </div>
   );
 }
+
 
 function StepIndicator({ current }: { current: number }) {
   return (
@@ -703,8 +718,14 @@ const demoForm = (): ClaimForm => ({
   vin: "4T1G11AK5NU712398",
 });
 
-function InitiateClaimStep({ onContinue }: { onContinue: () => void }) {
-  const [form, setForm] = useState<ClaimForm>(emptyForm);
+function InitiateClaimStep({
+  initial,
+  onContinue,
+}: {
+  initial: ClaimForm | null;
+  onContinue: (data: ClaimForm) => void;
+}) {
+  const [form, setForm] = useState<ClaimForm>(() => initial ?? emptyForm());
   const [errors, setErrors] = useState<Partial<Record<keyof ClaimForm, string>>>({});
 
   const update = <K extends keyof ClaimForm>(key: K, value: ClaimForm[K]) => {
@@ -724,8 +745,9 @@ function InitiateClaimStep({ onContinue }: { onContinue: () => void }) {
   };
 
   const handleSubmit = () => {
-    if (validate()) onContinue();
+    if (validate()) onContinue(form);
   };
+
 
   const charCount = form.description.length;
 
@@ -993,7 +1015,13 @@ function TextInput({
   );
 }
 
-function ReviewEstimateStep() {
+function ReviewEstimateStep({
+  claimForm,
+  onReset,
+}: {
+  claimForm: ClaimForm | null;
+  onReset: () => void;
+}) {
   const [selectedId, setSelectedId] = useState(claimData[0].id);
   const claim = useMemo(
     () => claimData.find((c) => c.id === selectedId) ?? claimData[0],
@@ -1050,21 +1078,44 @@ function ReviewEstimateStep() {
 
       {/* Header */}
       <header
-        className="flex items-center justify-between px-6 h-14 border-b shrink-0"
+        className="flex items-center justify-between gap-4 px-6 h-16 border-b shrink-0"
         style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
       >
-        <div className="flex items-center gap-2">
-          <span
-            className="inline-block w-2 h-2 rounded-sm"
-            style={{ backgroundColor: COLORS.blue }}
-          />
-          <h1 className="text-sm font-semibold tracking-tight">
-            Claims Delegation Cockpit
-          </h1>
+        <div className="flex items-center gap-4 min-w-0">
+          <button
+            onClick={onReset}
+            className="text-xs font-medium hover:underline underline-offset-2 shrink-0"
+            style={{ color: COLORS.muted }}
+          >
+            ← Start New Claim
+          </button>
+          <div className="h-6 w-px shrink-0" style={{ backgroundColor: COLORS.border }} />
+          <div className="flex items-center gap-2 min-w-0">
+            <span
+              className="inline-block w-2 h-2 rounded-sm shrink-0"
+              style={{ backgroundColor: COLORS.blue }}
+            />
+            <div className="min-w-0">
+              {claimForm ? (
+                <>
+                  <div className="text-sm font-semibold tracking-tight truncate">
+                    Reviewing Claim for: {claimForm.fullName}
+                  </div>
+                  <div className="text-[11px] truncate" style={{ color: COLORS.muted }}>
+                    Policy: {claimForm.policyNumber}
+                  </div>
+                </>
+              ) : (
+                <h1 className="text-sm font-semibold tracking-tight">
+                  Claims Review Cockpit
+                </h1>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <label className="text-xs font-medium" style={{ color: COLORS.muted }}>
-            Active claim
+            Scenario
           </label>
           <select
             value={selectedId}
@@ -1076,11 +1127,8 @@ function ReviewEstimateStep() {
               borderColor: "#D1D5DB",
             }}
           >
-            {claimData.map((c) => (
-              <option key={c.id} value={c.id}>
-                Claim #{c.id} — {c.type}
-              </option>
-            ))}
+            <option value="2026-001">Simple Claim (Demo) — Fast-Track</option>
+            <option value="2026-002">Complex Claim (Demo) — Manual Review</option>
           </select>
         </div>
       </header>
