@@ -2323,6 +2323,7 @@ function EstimateReviewPanel({
                       type="number"
                       step="0.01"
                       value={drafts[i]}
+                      readOnly={!editMode}
                       onChange={(e) =>
                         setDrafts((prev) => {
                           const n = [...prev];
@@ -2336,11 +2337,13 @@ function EstimateReviewPanel({
                       }}
                       className="w-24 text-right tabular-nums rounded border px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       style={{
-                        borderColor: "#D1D5DB",
-                        backgroundColor: COLORS.surface,
-                        color: COLORS.text,
+                        borderColor: editMode ? "#93C5FD" : "#D1D5DB",
+                        backgroundColor: editMode ? COLORS.surface : "#F9FAFB",
+                        color: editMode ? COLORS.text : COLORS.muted,
+                        cursor: editMode ? "text" : "not-allowed",
                       }}
                     />
+
                   </td>
                   <td
                     className="py-2.5 pl-2 text-right align-top tabular-nums font-medium"
