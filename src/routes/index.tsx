@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import claimSimpleImage from "@/assets/claim-simple.jpg";
 import claimComplexImage from "@/assets/claim-complex.jpg";
@@ -8,12 +8,15 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
+type SourceKey = "mitchell" | "ccc" | "oem" | "verify";
+
 interface Part {
   name: string;
   suggestedRepairScope: string;
   draftEstimate: number;
   laborHours: number;
   flagged: boolean;
+  sources: SourceKey[];
 }
 
 interface Claim {
@@ -55,6 +58,7 @@ const claimData: Claim[] = [
         draftEstimate: 187.5,
         laborHours: 1.5,
         flagged: false,
+        sources: ["mitchell", "ccc", "oem"],
       },
     ],
   },
@@ -78,6 +82,7 @@ const claimData: Claim[] = [
         draftEstimate: 380,
         laborHours: 3.5,
         flagged: false,
+        sources: ["mitchell", "ccc"],
       },
       {
         name: "Frame rail inspection",
@@ -85,6 +90,7 @@ const claimData: Claim[] = [
         draftEstimate: 860,
         laborHours: 3.0,
         flagged: true,
+        sources: ["oem", "verify"],
       },
     ],
     verificationConcerns: [
@@ -1439,6 +1445,104 @@ interface LogEntry {
   to: number;
 }
 
+const SOURCE_META: Record<
+  SourceKey,
+  { short: string; label: string; bg: string; fg: string; border: string }
+> = {
+  mitchell: {
+    short: "Mitchell",
+    label: "Mitchell RepairCenter",
+    bg: "#EFF6FF",
+    fg: "#1D4ED8",
+    border: "#BFDBFE",
+  },
+  ccc: {
+    short: "CCC",
+    label: "CCC Intelligent Solutions",
+    bg: "#F5F3FF",
+    fg: "#6D28D9",
+    border: "#DDD6FE",
+  },
+  oem: {
+    short: "OEM",
+    label: "OEM Repair Guidelines",
+    bg: "#F3F4F6",
+    fg: "#374151",
+    border: "#E5E7EB",
+  },
+  verify: {
+    short: "Verify",
+    label: "Verification Required",
+    bg: COLORS.amberBg,
+    fg: COLORS.amberText,
+    border: COLORS.amberBorder,
+  },
+};
+
+function SourceDetail({ source }: { source: SourceKey }) {
+  const meta = SOURCE_META[source];
+  const content: Record<SourceKey, React.ReactNode> = {
+    mitchell: (
+      <>
+        <DetailRow label="Labor benchmark" value="$95/hr regional labor average" />
+        <DetailRow label="Estimated repair time" value="1.5 hours for comparable bumper damage" />
+        <DetailRow label="Last updated" value="March 2026" />
+        <DetailRow label="Reference quality" value="High match confidence for this vehicle category." />
+      </>
+    ),
+    ccc: (
+      <>
+        <DetailRow label="Part reference" value="Rear bumper cover" />
+        <DetailRow label="OEM price" value="$340" />
+        <DetailRow label="Aftermarket option" value="$187" />
+        <DetailRow label="Suggested repair scope" value="Aftermarket replacement meets cosmetic repair standards" />
+        <DetailRow label="Supplier availability" value="Available through approved regional suppliers." />
+      </>
+    ),
+    oem: (
+      <>
+        <DetailRow label="Reference" value="Toyota Structural Repair Manual (2024 revision)" />
+        <DetailRow label="Procedure reference" value="Bumper repair and paint calibration guidance" />
+        <DetailRow label="Additional note" value="Paint calibration may be required for metallic finishes." />
+      </>
+    ),
+    verify: (
+      <>
+        <p className="text-xs leading-relaxed" style={{ color: COLORS.text }}>
+          A direct database match was not identified for this damage pattern.
+        </p>
+        <p className="text-xs leading-relaxed mt-1.5" style={{ color: COLORS.text }}>
+          The estimate was generated using comparable repair scenarios and regional pricing references.
+        </p>
+        <p className="text-xs leading-relaxed mt-1.5 font-medium" style={{ color: meta.fg }}>
+          Additional adjuster verification is recommended before authorization.
+        </p>
+      </>
+    ),
+  };
+  return (
+    <div
+      className="rounded-md border p-3 animate-fade-in"
+      style={{ backgroundColor: meta.bg, borderColor: meta.border }}
+    >
+      <div className="text-xs font-semibold mb-1.5" style={{ color: meta.fg }}>
+        {source === "oem" ? "Manufacturer Repair Guidelines" : meta.label}
+      </div>
+      <div className="flex flex-col gap-1">{content[source]}</div>
+    </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="text-xs leading-snug">
+      <span className="font-medium" style={{ color: COLORS.muted }}>{label}: </span>
+      <span style={{ color: COLORS.text }}>{value}</span>
+    </div>
+  );
+}
+
+
 function EstimateReviewPanel({
   claim,
   isFastTrack,
@@ -1457,6 +1561,11 @@ function EstimateReviewPanel({
     claim.parts.map((p) => p.draftEstimate.toFixed(2)),
   );
   const [log, setLog] = useState<LogEntry[]>([]);
+  const [expanded, setExpanded] = useState<{ row: number; source: SourceKey } | null>(null);
+  const toggleSource = (row: number, source: SourceKey) =>
+    setExpanded((prev) =>
+      prev && prev.row === row && prev.source === source ? null : { row, source },
+    );
   const [checks, setChecks] = useState<[boolean, boolean, boolean]>([false, false, false]);
   const allChecked = checks.every(Boolean);
   const toggle = (i: number) =>
@@ -1535,6 +1644,12 @@ function EstimateReviewPanel({
                 Draft
               </th>
               <th
+                className="text-left font-semibold uppercase tracking-wider text-[10px] pb-2 px-2"
+                style={{ color: COLORS.muted }}
+              >
+                Cost Basis
+              </th>
+              <th
                 className="text-right font-semibold uppercase tracking-wider text-[10px] pb-2 px-2"
                 style={{ color: COLORS.muted }}
               >
@@ -1562,12 +1677,13 @@ function EstimateReviewPanel({
                     ? COLORS.amberText
                     : COLORS.greenText;
               const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
+              const isExpanded = expanded?.row === i;
               return (
+                <Fragment key={i}>
                 <tr
-                  key={i}
                   style={{
                     backgroundColor: variance ? COLORS.amberBg : "transparent",
-                    borderBottom: `1px solid ${COLORS.border}`,
+                    borderBottom: isExpanded ? "none" : `1px solid ${COLORS.border}`,
                   }}
                 >
                   <td className="py-2.5 pr-2 align-top">
@@ -1583,6 +1699,29 @@ function EstimateReviewPanel({
                     style={{ color: COLORS.muted }}
                   >
                     {fmtCurrency(draft)}
+                  </td>
+                  <td className="py-2.5 px-2 align-top">
+                    <div className="flex flex-wrap gap-1">
+                      {part.sources.map((src) => {
+                        const meta = SOURCE_META[src];
+                        const active = expanded?.row === i && expanded.source === src;
+                        return (
+                          <button
+                            key={src}
+                            type="button"
+                            onClick={() => toggleSource(i, src)}
+                            className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border transition-colors"
+                            style={{
+                              backgroundColor: meta.bg,
+                              color: meta.fg,
+                              borderColor: active ? meta.fg : meta.border,
+                            }}
+                          >
+                            {meta.short}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </td>
                   <td className="py-2.5 px-2 text-right align-top">
                     <input
@@ -1617,6 +1756,14 @@ function EstimateReviewPanel({
                       : `${sign}${fmtCurrency(Math.abs(diff))}`}
                   </td>
                 </tr>
+                {isExpanded && (
+                  <tr style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+                    <td colSpan={5} className="px-2 pb-3">
+                      <SourceDetail source={expanded.source} />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               );
             })}
           </tbody>
@@ -1667,6 +1814,36 @@ function EstimateReviewPanel({
           </ul>
         </div>
       )}
+
+      {/* Estimate Sources */}
+      <div
+        className="shrink-0 rounded-md border px-3 py-2.5"
+        style={{ backgroundColor: "#FAFAFA", borderColor: COLORS.border }}
+      >
+        <Label>Estimate Sources</Label>
+        <ul className="mt-1.5 flex flex-col gap-1 text-xs" style={{ color: COLORS.text }}>
+          <li>
+            <span className="font-semibold">Mitchell RepairCenter</span>
+            <span style={{ color: COLORS.muted }}> — labor benchmarks</span>
+          </li>
+          <li>
+            <span className="font-semibold">CCC Intelligent Solutions</span>
+            <span style={{ color: COLORS.muted }}> — parts pricing</span>
+          </li>
+          <li>
+            <span className="font-semibold">OEM Repair Guidelines</span>
+            <span style={{ color: COLORS.muted }}> — repair procedures</span>
+          </li>
+        </ul>
+        <p className="text-[11px] mt-2 leading-snug" style={{ color: COLORS.muted }}>
+          Draft estimates combine repair labor references, parts pricing, and manufacturer repair guidance with regional adjustment factors.
+        </p>
+      </div>
+
+      {/* Disclaimer */}
+      <p className="shrink-0 text-[11px] leading-snug" style={{ color: COLORS.muted }}>
+        Draft estimates are generated using standardized repair references and require adjuster review before final authorization.
+      </p>
 
       {/* CTA */}
       {seniorReview ? (
