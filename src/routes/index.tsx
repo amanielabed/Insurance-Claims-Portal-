@@ -670,7 +670,17 @@ const INCIDENT_TYPES = [
   "Hail / Weather",
   "Vandalism",
   "Single vehicle",
+  "Other",
 ] as const;
+
+type PolicyLookup = { year: string; make: string; model: string };
+
+function lookupPolicy(policyNumber: string): PolicyLookup | null {
+  const p = policyNumber.trim().toUpperCase();
+  if (p.startsWith("POL-2026")) return { year: "2023", make: "Toyota", model: "Camry XSE" };
+  if (p.startsWith("POL-2025")) return { year: "2021", make: "Honda", model: "CR-V EX" };
+  return null;
+}
 
 interface ClaimForm {
   policyNumber: string;
