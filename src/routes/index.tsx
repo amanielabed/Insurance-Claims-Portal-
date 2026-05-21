@@ -311,7 +311,7 @@ function UploadPhotosStep({
   const [photos, setPhotos] = useState<Record<string, string>>({});
   const [extraPhotos, setExtraPhotos] = useState<{ id: string; url: string }[]>([]);
   const [tooltipOpen, setTooltipOpen] = useState(false);
-  const extraInputRef = React.useRef<HTMLInputElement>(null);
+  const extraInputRef = useRef<HTMLInputElement>(null);
 
   const handleSelect = (slotId: string, file: File | undefined) => {
     if (!file) return;
