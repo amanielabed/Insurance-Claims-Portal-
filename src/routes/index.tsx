@@ -1932,7 +1932,7 @@ function ReviewEstimateStep({
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <label className="text-xs font-medium" style={{ color: COLORS.muted }}>
-            Scenario
+            Assessment Outcome
           </label>
           <div className="relative">
             <button
