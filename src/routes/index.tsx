@@ -130,11 +130,45 @@ function Index() {
 
   const isFastTrack = claim.delegationState === "FAST_TRACK";
 
+  const workflowState: "FAST_TRACK" | "MANUAL_REVIEW" | "SENIOR_REVIEW" =
+    seniorReview ? "SENIOR_REVIEW" : isFastTrack ? "FAST_TRACK" : "MANUAL_REVIEW";
+
+  const workflowLabel = {
+    FAST_TRACK: "Fast-Track",
+    MANUAL_REVIEW: "Manual Review",
+    SENIOR_REVIEW: "Senior Review",
+  }[workflowState];
+
+  const workflowStyles = {
+    FAST_TRACK: { bar: COLORS.green, bg: COLORS.greenBg, fg: COLORS.greenText },
+    MANUAL_REVIEW: { bar: COLORS.amber, bg: COLORS.amberBg, fg: COLORS.amberText },
+    SENIOR_REVIEW: { bar: "#DC2626", bg: "#FEF2F2", fg: "#991B1B" },
+  }[workflowState];
+
   return (
     <div
       className="flex flex-col h-screen"
       style={{ backgroundColor: COLORS.bg, color: COLORS.text }}
     >
+      {/* Workflow status indicator bar */}
+      <div
+        key={workflowState}
+        className="flex items-center gap-2 px-6 h-7 border-b shrink-0 transition-colors duration-300 animate-fade-in"
+        style={{
+          backgroundColor: workflowStyles.bg,
+          borderColor: COLORS.border,
+          color: workflowStyles.fg,
+        }}
+      >
+        <span
+          className="inline-block w-1.5 h-1.5 rounded-full"
+          style={{ backgroundColor: workflowStyles.bar }}
+        />
+        <span className="text-[11px] font-semibold uppercase tracking-wider">
+          Workflow Status: {workflowLabel}
+        </span>
+      </div>
+
       {/* Header */}
       <header
         className="flex items-center justify-between px-6 h-14 border-b shrink-0"
@@ -173,45 +207,50 @@ function Index() {
       </header>
 
       {/* Escalation banner */}
-      {seniorReview ? (
-        <div
-          className="flex items-start gap-3 px-6 py-3 border-b shrink-0"
-          style={{
-            backgroundColor: "#FEF2F2",
-            borderColor: "#FECACA",
-            color: "#991B1B",
-          }}
-        >
-          <span className="text-base leading-5">●</span>
-          <div>
-            <div className="text-sm font-semibold">Senior Review Required</div>
-            <div className="text-xs mt-0.5" style={{ color: "#B91C1C" }}>
-              This claim requires authorization before submission.
-            </div>
-          </div>
-        </div>
-      ) : (
-        !isFastTrack && (
+      <div key={workflowState + "-banner"} className="animate-fade-in">
+        {seniorReview ? (
           <div
             className="flex items-start gap-3 px-6 py-3 border-b shrink-0"
             style={{
-              backgroundColor: COLORS.amberBg,
-              borderColor: COLORS.amberBorder,
-              color: COLORS.amberText,
+              backgroundColor: "#FEF2F2",
+              borderColor: "#FECACA",
+              color: "#991B1B",
             }}
           >
-            <span className="text-base leading-5">⚠</span>
+            <span className="text-base leading-5">●</span>
             <div>
-              <div className="text-sm font-semibold">Manual Review Required</div>
-              <div className="text-xs mt-0.5" style={{ color: "#92400E" }}>
-                Possible structural damage detected. Please verify before approval.
+              <div className="text-sm font-semibold">Senior Review Required</div>
+              <div className="text-xs mt-0.5" style={{ color: "#B91C1C" }}>
+                This claim requires authorization before submission.
               </div>
             </div>
           </div>
-        )
-      )}
+        ) : (
+          !isFastTrack && (
+            <div
+              className="flex items-start gap-3 px-6 py-3 border-b shrink-0"
+              style={{
+                backgroundColor: COLORS.amberBg,
+                borderColor: COLORS.amberBorder,
+                color: COLORS.amberText,
+              }}
+            >
+              <span className="text-base leading-5">⚠</span>
+              <div>
+                <div className="text-sm font-semibold">Manual Review Required</div>
+                <div className="text-xs mt-0.5" style={{ color: "#92400E" }}>
+                  Possible structural damage detected. Please verify before approval.
+                </div>
+              </div>
+            </div>
+          )
+        )}
+      </div>
 
-      <main className="flex-1 min-h-0 grid grid-cols-3 gap-4 p-4">
+      <main
+        key={claim.id + workflowState}
+        className="flex-1 min-h-0 grid grid-cols-3 gap-4 p-4 animate-fade-in"
+      >
         {/* Damage Photo */}
         <Panel title="Damage Photo">
           <DamagePhotoPanel claim={claim} />
@@ -233,6 +272,71 @@ function Index() {
           />
         </Panel>
       </main>
+
+      <DemoGuide />
+    </div>
+  );
+}
+
+function DemoGuide() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="fixed bottom-4 right-4 z-50">
+      {open ? (
+        <div
+          className="w-72 rounded-lg border shadow-lg animate-fade-in"
+          style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
+        >
+          <div
+            className="flex items-center justify-between px-3 h-9 border-b"
+            style={{ borderColor: COLORS.border }}
+          >
+            <span
+              className="text-[11px] font-semibold uppercase tracking-wider"
+              style={{ color: COLORS.muted }}
+            >
+              Demo Guide
+            </span>
+            <button
+              onClick={() => setOpen(false)}
+              className="text-xs"
+              style={{ color: COLORS.muted }}
+              aria-label="Close demo guide"
+            >
+              ✕
+            </button>
+          </div>
+          <ol className="px-4 py-3 flex flex-col gap-2 text-xs" style={{ color: COLORS.text }}>
+            <li className="flex gap-2">
+              <span className="font-semibold" style={{ color: COLORS.muted }}>1.</span>
+              <span>Select Claim 001 to demonstrate Fast-Track processing.</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="font-semibold" style={{ color: COLORS.muted }}>2.</span>
+              <span>Select Claim 002 to demonstrate Manual Review workflow.</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="font-semibold" style={{ color: COLORS.muted }}>3.</span>
+              <span>
+                Edit a high-risk estimate significantly or click “Flag for Senior Review”
+                to demonstrate escalation handling.
+              </span>
+            </li>
+          </ol>
+        </div>
+      ) : (
+        <button
+          onClick={() => setOpen(true)}
+          className="rounded-full shadow-md border px-3 py-2 text-xs font-medium transition-colors"
+          style={{
+            backgroundColor: COLORS.surface,
+            borderColor: COLORS.border,
+            color: COLORS.text,
+          }}
+        >
+          Demo Guide
+        </button>
+      )}
     </div>
   );
 }
@@ -725,6 +829,11 @@ function EstimateReviewPanel({
       ) : isFastTrack ? (
         <div className="shrink-0 flex flex-col gap-2">
           <button
+            onClick={() =>
+              toast.success(`Claim #${claim.id} approved and routed for processing`, {
+                description: "Estimated handling time: 23 seconds",
+              })
+            }
             className="w-full rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
             style={{ backgroundColor: COLORS.blue }}
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
