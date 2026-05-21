@@ -2652,7 +2652,10 @@ function EstimateReviewPanel({
         {/* 1. Edit Estimate */}
         <button
           type="button"
-          onClick={() => setEditMode((v) => !v)}
+          onClick={() => {
+            if (editMode) syncDraftValues();
+            setEditMode((v) => !v);
+          }}
           className="flex-1 rounded-md border py-2.5 text-sm font-semibold transition-colors"
           style={{
             borderColor: COLORS.blue,
@@ -2702,20 +2705,7 @@ function EstimateReviewPanel({
         <button
           type="button"
           disabled={isGeneratingReport}
-          onClick={() => {
-            setIsGeneratingReport(true);
-            const tid = toast.loading("Generating claim summary report…", {
-              description:
-                "Includes claim details, photo log, estimate breakdown, cost basis, adjuster notes, verification status & authorization record.",
-            });
-            setTimeout(() => {
-              setIsGeneratingReport(false);
-              toast.success("Report ready", {
-                id: tid,
-                description: `Claim_${claim.id}_Assessment.pdf`,
-              });
-            }, 1500);
-          }}
+          onClick={generateReport}
           className="flex-1 rounded-md border py-2.5 text-sm font-semibold transition-colors"
           style={{
             borderColor: COLORS.border,
