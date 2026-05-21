@@ -3321,10 +3321,19 @@ function EstimateReviewPanel({
                         />
                       )}
                     </div>
+                    {part.flagged && (
+                      <div
+                        className="text-[11px] italic mt-0.5 leading-snug"
+                        style={{ color: "#B45309" }}
+                      >
+                        ⚠ Estimate extrapolated — no direct database match for this damage type on this vehicle. Verify scope before authorizing.
+                      </div>
+                    )}
                     <div className="text-xs mt-0.5" style={{ color: COLORS.muted }}>
                       {part.suggestedRepairScope} · {part.laborHours} hrs
                     </div>
                   </td>
+
                   <td
                     className="py-2.5 px-2 text-right align-top tabular-nums"
                     style={{ color: COLORS.muted }}
