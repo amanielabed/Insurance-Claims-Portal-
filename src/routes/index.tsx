@@ -1479,9 +1479,7 @@ function EligibilityCheck({
     </label>
   );
 
-  const handleValidate = () => {
-    const v = policyNumber.trim();
-    if (!v) { setLookupError("Policy number is required."); return; }
+  const runValidation = (v: string) => {
     setLookupError(null);
     setValidating(true);
     setValidated(null);
@@ -1494,16 +1492,32 @@ function EligibilityCheck({
       }
       const upper = v.toUpperCase();
       const coverage: "full" | "third_party" = upper.startsWith("POL-2025") ? "third_party" : "full";
-      const holderName = upper.startsWith("POL-2025") ? "Alex R. Morgan" : "Jordan M. Whitaker";
+      const holderName = upper.startsWith("POL-2025") ? "Omar Al-Kuwari" : "Sarah Al-Mansouri";
       setValidated({ policyNumber: v, ...result, holderName, coverage });
       setValidating(false);
     }, 700);
+  };
+
+  const handleValidate = () => {
+    const v = policyNumber.trim();
+    if (!v) { setLookupError("Policy number is required."); return; }
+    runValidation(v);
   };
 
   const handlePolicyChange = (v: string) => {
     setPolicyNumber(v);
     if (validated) setValidated(null);
     if (lookupError) setLookupError(null);
+  };
+
+  const loadFullCoverageDemo = () => {
+    handlePolicyChange("POL-2026-48201");
+    runValidation("POL-2026-48201");
+  };
+
+  const loadThirdPartyDemo = () => {
+    handlePolicyChange("POL-2025-77310");
+    runValidation("POL-2025-77310");
   };
 
   return (
@@ -1545,9 +1559,27 @@ function EligibilityCheck({
           {lookupError && (
             <div className="text-[11px] mt-2" style={{ color: "#DC2626" }}>{lookupError}</div>
           )}
-          <p className="text-[11px] mt-2" style={{ color: COLORS.muted }}>
-            Try POL-2026-48201 (Full Coverage) or POL-2025-77310 (Third-Party).
-          </p>
+          <div className="mt-3">
+            <p className="text-[10px] uppercase font-medium mb-1.5" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+              Demo Scenarios
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={loadFullCoverageDemo}
+                className="text-xs font-medium px-3 py-2 rounded-md border transition-colors"
+                style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: COLORS.surface }}
+              >
+                Load Full Coverage Demo
+              </button>
+              <button
+                onClick={loadThirdPartyDemo}
+                className="text-xs font-medium px-3 py-2 rounded-md border transition-colors"
+                style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: COLORS.surface }}
+              >
+                Load Third-Party Demo
+              </button>
+            </div>
+          </div>
         </div>
       </FormSection>
 
