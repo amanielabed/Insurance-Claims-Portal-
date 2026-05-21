@@ -1015,7 +1015,13 @@ function TextInput({
   );
 }
 
-function ReviewEstimateStep() {
+function ReviewEstimateStep({
+  claimForm,
+  onReset,
+}: {
+  claimForm: ClaimForm | null;
+  onReset: () => void;
+}) {
   const [selectedId, setSelectedId] = useState(claimData[0].id);
   const claim = useMemo(
     () => claimData.find((c) => c.id === selectedId) ?? claimData[0],
