@@ -694,7 +694,20 @@ interface ClaimForm {
   year: string;
   make: string;
   model: string;
+interface ClaimForm {
+  policyNumber: string;
+  fullName: string;
+  dateOfLoss: string;
+  contactPhone: string;
+  incidentType: string;
+  incidentTypeOther: string;
+  description: string;
+  location: string;
+  year: string;
+  make: string;
+  model: string;
   vin: string;
+  vehicleAutoFilled: boolean;
 }
 
 const emptyForm = (): ClaimForm => ({
@@ -703,30 +716,36 @@ const emptyForm = (): ClaimForm => ({
   dateOfLoss: new Date().toISOString().slice(0, 10),
   contactPhone: "",
   incidentType: "",
+  incidentTypeOther: "",
   description: "",
   location: "",
-  injured: false,
   year: "",
   make: "",
   model: "",
   vin: "",
+  vehicleAutoFilled: false,
 });
 
-const demoForm = (): ClaimForm => ({
-  policyNumber: "POL-2026-48201",
-  fullName: "Jordan M. Whitaker",
-  dateOfLoss: new Date().toISOString().slice(0, 10),
-  contactPhone: "(415) 555-0142",
-  incidentType: "Rear-end collision",
-  description:
-    "Vehicle was struck from behind at a stoplight on Market St. Visible damage to rear bumper and trunk area. No airbag deployment.",
-  location: "Market St & 5th Ave, San Francisco, CA",
-  injured: false,
-  year: "2022",
-  make: "Toyota",
-  model: "Camry SE",
-  vin: "4T1G11AK5NU712398",
-});
+const demoForm = (): ClaimForm => {
+  const policyNumber = "POL-2026-48201";
+  const lookup = lookupPolicy(policyNumber)!;
+  return {
+    policyNumber,
+    fullName: "Jordan M. Whitaker",
+    dateOfLoss: new Date().toISOString().slice(0, 10),
+    contactPhone: "(415) 555-0142",
+    incidentType: "Rear-end collision",
+    incidentTypeOther: "",
+    description:
+      "Vehicle was struck from behind at a stoplight on Market St. Visible damage to rear bumper and trunk area. No airbag deployment.",
+    location: "Market St & 5th Ave, San Francisco, CA",
+    year: lookup.year,
+    make: lookup.make,
+    model: lookup.model,
+    vin: "4T1G11AK5NU712398",
+    vehicleAutoFilled: true,
+  };
+};
 
 function InitiateClaimStep({
   initial,
@@ -737,6 +756,7 @@ function InitiateClaimStep({
 }) {
   const [form, setForm] = useState<ClaimForm>(() => initial ?? emptyForm());
   const [errors, setErrors] = useState<Partial<Record<keyof ClaimForm, string>>>({});
+  const [policyMsg, setPolicyMsg] = useState<string | null>(null);
 
   const update = <K extends keyof ClaimForm>(key: K, value: ClaimForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
