@@ -1370,25 +1370,88 @@ function ReviewEstimateStep({
           <label className="text-xs font-medium" style={{ color: COLORS.muted }}>
             Scenario
           </label>
-          <select
-            value={selectedId}
-            onChange={(e) => setSelectedId(e.target.value)}
-            className="px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            style={{
-              backgroundColor: COLORS.surface,
-              color: COLORS.text,
-              borderColor: "#D1D5DB",
-            }}
-          >
-            <option value="2026-001">Simple Claim (Demo) — Fast-Track</option>
-            <option value="2026-002">Complex Claim (Demo) — Manual Review</option>
-          </select>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setScenarioOpen((v) => !v)}
+              onBlur={() => setTimeout(() => setScenarioOpen(false), 120)}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[260px]"
+              style={{
+                backgroundColor: COLORS.surface,
+                color: COLORS.text,
+                borderColor: "#D1D5DB",
+              }}
+            >
+              <span
+                className="inline-block w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: STATE_DOT[currentScenario.state] }}
+              />
+              <span className="font-medium truncate">{currentScenario.label}</span>
+              <span className="ml-auto text-xs" style={{ color: COLORS.muted }}>▾</span>
+            </button>
+            {scenarioOpen && (
+              <div
+                className="absolute right-0 mt-1 w-[340px] rounded-md border shadow-lg z-20 overflow-hidden animate-fade-in"
+                style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
+              >
+                {SCENARIOS.map((s) => {
+                  const active = s.id === selectedId;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setSelectedId(s.id);
+                        setScenarioOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2.5 flex items-start gap-3 border-b last:border-b-0 hover:bg-slate-50 transition-colors"
+                      style={{
+                        borderColor: COLORS.border,
+                        backgroundColor: active ? "#F1F5F9" : "transparent",
+                      }}
+                    >
+                      <span
+                        className="inline-block w-2 h-2 rounded-full mt-1.5 shrink-0"
+                        style={{ backgroundColor: STATE_DOT[s.state] }}
+                      />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium" style={{ color: COLORS.text }}>
+                          {s.label}
+                        </div>
+                        <div className="text-xs mt-0.5" style={{ color: COLORS.muted }}>
+                          {s.description}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
       {/* Escalation banner */}
       <div key={workflowState + "-banner"} className="animate-fade-in">
-        {seniorReview ? (
+        {workflowState === "SENIOR_REVIEW" ? (
+          <div
+            className="flex items-start gap-3 px-6 py-3 border-b shrink-0"
+            style={{
+              backgroundColor: "#FEF2F2",
+              borderColor: "#FECACA",
+              color: "#991B1B",
+            }}
+          >
+            <span className="text-base leading-5">●</span>
+            <div>
+              <div className="text-sm font-semibold">Senior Authorization Required</div>
+              <div className="text-xs mt-0.5" style={{ color: "#B91C1C" }}>
+                Estimated repair value exceeds standard adjuster approval threshold. Senior adjuster review is required before authorization.
+              </div>
+            </div>
+          </div>
+        ) : (
           <div
             className="flex items-start gap-3 px-6 py-3 border-b shrink-0"
             style={{
