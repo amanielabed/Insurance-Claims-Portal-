@@ -22,10 +22,11 @@ interface Part {
 interface Claim {
   id: string;
   type: string;
-  delegationState: "FAST_TRACK" | "MANUAL_REVIEW";
+  delegationState: "FAST_TRACK" | "MANUAL_REVIEW" | "SENIOR_REVIEW";
   reviewConfidence: "High" | "Moderate" | "Low";
   riskLevel: "LOW" | "MEDIUM" | "HIGH";
   estimatedCost: number;
+  estimatedCostLabel?: string;
   confidenceLabel: string;
   actionMessage: string;
   imagePlaceholder: string;
@@ -37,6 +38,40 @@ interface Claim {
     description: string;
   };
 }
+
+interface ScenarioMeta {
+  id: string;
+  label: string;
+  description: string;
+  state: "FAST_TRACK" | "MANUAL_REVIEW" | "SENIOR_REVIEW";
+}
+
+const SCENARIOS: ScenarioMeta[] = [
+  {
+    id: "2026-001",
+    label: "Simple Claim (Demo)",
+    description: "Minor cosmetic damage with low review complexity",
+    state: "FAST_TRACK",
+  },
+  {
+    id: "2026-002",
+    label: "Ambiguous Claim (Demo)",
+    description: "Moderate uncertainty requiring manual verification",
+    state: "MANUAL_REVIEW",
+  },
+  {
+    id: "2026-003",
+    label: "Complex Claim (Demo)",
+    description: "High-value structural review requiring senior authorization",
+    state: "SENIOR_REVIEW",
+  },
+];
+
+const STATE_DOT: Record<ScenarioMeta["state"], string> = {
+  FAST_TRACK: "#22C55E",
+  MANUAL_REVIEW: "#F59E0B",
+  SENIOR_REVIEW: "#DC2626",
+};
 
 const claimData: Claim[] = [
   {
