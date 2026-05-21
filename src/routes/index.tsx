@@ -138,10 +138,7 @@ function Index() {
       <div key={step} className="flex-1 min-h-0 flex flex-col animate-fade-in">
         {step === 1 && <InitiateClaimStep onContinue={() => setStep(2)} />}
         {step === 2 && (
-          <SimpleStep
-            title="Upload Photos"
-            description="Attach photos of all visible damage. Multiple angles improve assessment accuracy."
-            ctaLabel="Continue to Draft Assessment →"
+          <UploadPhotosStep
             onContinue={() => setStep(3)}
             onBack={() => setStep(1)}
           />
