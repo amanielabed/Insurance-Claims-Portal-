@@ -2158,17 +2158,34 @@ function EstimateReviewPanel({
                     : COLORS.greenText;
               const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
               const isExpanded = expanded?.row === i;
+              const isHighlighted = highlightedPart === i;
+              const hasOverlay = (OVERLAYS[claim.id] ?? []).some((o) => o.partIndex === i);
               return (
                 <Fragment key={i}>
                 <tr
+                  onClick={() => hasOverlay && onHighlight(i)}
                   style={{
-                    backgroundColor: variance ? COLORS.amberBg : "transparent",
+                    backgroundColor: isHighlighted
+                      ? "#DBEAFE"
+                      : variance
+                        ? COLORS.amberBg
+                        : "transparent",
                     borderBottom: isExpanded ? "none" : `1px solid ${COLORS.border}`,
+                    cursor: hasOverlay ? "pointer" : "default",
+                    boxShadow: isHighlighted ? "inset 3px 0 0 #2563EB" : "none",
+                    transition: "background-color 150ms ease",
                   }}
                 >
                   <td className="py-2.5 pr-2 align-top">
                     <div className="font-medium" style={{ color: COLORS.text }}>
                       {part.name}
+                      {hasOverlay && (
+                        <span
+                          className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full align-middle"
+                          style={{ backgroundColor: "#2563EB" }}
+                          aria-label="Linked to image overlay"
+                        />
+                      )}
                     </div>
                     <div className="text-xs mt-0.5" style={{ color: COLORS.muted }}>
                       {part.suggestedRepairScope} · {part.laborHours} hrs
