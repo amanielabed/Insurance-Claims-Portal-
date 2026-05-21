@@ -1955,68 +1955,124 @@ const SOURCE_META: Record<
   },
 };
 
-function SourceDetail({ source }: { source: SourceKey }) {
+function CostBreakdownPanel({
+  part,
+  source,
+  onClose,
+}: {
+  part: Claim["parts"][number];
+  source: SourceKey;
+  onClose: () => void;
+}) {
   const meta = SOURCE_META[source];
-  const content: Record<SourceKey, React.ReactNode> = {
-    mitchell: (
-      <>
-        <DetailRow label="Labor benchmark" value="$95/hr regional labor average" />
-        <DetailRow label="Estimated repair time" value="1.5 hours for comparable bumper damage" />
-        <DetailRow label="Last updated" value="March 2026" />
-        <DetailRow label="Reference quality" value="High match confidence for this vehicle category." />
-      </>
-    ),
-    ccc: (
-      <>
-        <DetailRow label="Part reference" value="Rear bumper cover" />
-        <DetailRow label="OEM price" value="$340" />
-        <DetailRow label="Aftermarket option" value="$187" />
-        <DetailRow label="Suggested repair scope" value="Aftermarket replacement meets cosmetic repair standards" />
-        <DetailRow label="Supplier availability" value="Available through approved regional suppliers." />
-      </>
-    ),
-    oem: (
-      <>
-        <DetailRow label="Reference" value="Toyota Structural Repair Manual (2024 revision)" />
-        <DetailRow label="Procedure reference" value="Bumper repair and paint calibration guidance" />
-        <DetailRow label="Additional note" value="Paint calibration may be required for metallic finishes." />
-      </>
-    ),
-    verify: (
-      <>
-        <p className="text-xs leading-relaxed" style={{ color: COLORS.text }}>
-          A direct database match was not identified for this damage pattern.
-        </p>
-        <p className="text-xs leading-relaxed mt-1.5" style={{ color: COLORS.text }}>
-          The estimate was generated using comparable repair scenarios and regional pricing references.
-        </p>
-        <p className="text-xs leading-relaxed mt-1.5 font-medium" style={{ color: meta.fg }}>
-          Additional adjuster verification is recommended before authorization.
-        </p>
-      </>
-    ),
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleMouseDown(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (panelRef.current?.contains(target)) return;
+      if (target.closest("[data-source-badge]")) return;
+      onClose();
+    }
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
+  }, [onClose]);
+
+  type Row = { label: string; value: string; emphasis?: boolean };
+  const rows: Row[] =
+    source === "mitchell"
+      ? [
+          { label: "Base labor hours", value: `${part.laborHours} hrs` },
+          { label: "Regional rate", value: "$95/hr" },
+          { label: "Complexity factor", value: "×1.0 (standard)" },
+          { label: "Subtotal", value: fmtCurrency(part.laborHours * 95), emphasis: true },
+        ]
+      : source === "ccc"
+        ? [
+            { label: "OEM part price", value: "$340.00" },
+            { label: "Aftermarket option", value: "$187.00" },
+            { label: "Selected basis", value: "Aftermarket" },
+            { label: "Rationale", value: "Cosmetic damage — aftermarket meets standard" },
+            { label: "Subtotal", value: "$187.00", emphasis: true },
+          ]
+        : source === "oem"
+          ? [
+              { label: "OEM part reference", value: `${part.name} (OEM)` },
+              { label: "Manufacturer guideline", value: "Structural Repair Manual (2024 rev.)" },
+              { label: "Applied procedure", value: "OEM-specified repair & paint calibration" },
+              { label: "Subtotal", value: fmtCurrency(part.draftEstimate), emphasis: true },
+            ]
+          : [
+              { label: "Comparable vehicle", value: "2022 Camry LE" },
+              { label: "Similar damage ref", value: "$820–$1,240" },
+              { label: "Applied estimate", value: "$890 (midpoint)" },
+              { label: "Confidence", value: "Low — verify", emphasis: true },
+            ];
+
+  const sourceReference: Record<SourceKey, string> = {
+    mitchell: "Mitchell RepairCenter | Regional Dataset v2026.1 | Updated March 2026",
+    ccc: "CCC Intelligent Solutions | Parts Pricing v2026.1 | Updated March 2026",
+    oem: "OEM Repair Guidelines | Toyota Structural Manual 2024 | Updated Jan 2026",
+    verify: "Internal Comparables Database | v2026.1 | Updated March 2026",
   };
+
   return (
     <div
-      className="rounded-md border p-3 animate-fade-in"
+      ref={panelRef}
+      className="relative rounded-md border p-3 animate-fade-in"
       style={{ backgroundColor: meta.bg, borderColor: meta.border }}
     >
-      <div className="text-xs font-semibold mb-1.5" style={{ color: meta.fg }}>
-        {source === "oem" ? "Manufacturer Repair Guidelines" : meta.label}
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close breakdown"
+        className="absolute top-2 right-2 text-xs font-medium px-1.5 py-0.5 rounded hover:bg-black/5"
+        style={{ color: meta.fg }}
+      >
+        Close ×
+      </button>
+
+      <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: meta.fg }}>
+        How This Estimate Was Calculated
       </div>
-      <div className="flex flex-col gap-1">{content[source]}</div>
+      <div className="rounded border overflow-hidden mb-3" style={{ borderColor: meta.border, backgroundColor: COLORS.surface }}>
+        <table className="w-full text-xs">
+          <tbody>
+            {rows.map((r, idx) => (
+              <tr
+                key={idx}
+                style={{
+                  borderBottom:
+                    idx === rows.length - 1 ? "none" : `1px solid ${meta.border}`,
+                  backgroundColor: r.emphasis ? meta.bg : "transparent",
+                }}
+              >
+                <td className="py-1.5 px-2.5 align-top" style={{ color: COLORS.muted, width: "45%" }}>
+                  {r.label}
+                </td>
+                <td
+                  className="py-1.5 px-2.5 align-top tabular-nums"
+                  style={{ color: COLORS.text, fontWeight: r.emphasis ? 600 : 400 }}
+                >
+                  {r.value}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: meta.fg }}>
+        Source Reference
+      </div>
+      <div className="text-xs" style={{ color: COLORS.text }}>
+        {sourceReference[source]}
+      </div>
     </div>
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="text-xs leading-snug">
-      <span className="font-medium" style={{ color: COLORS.muted }}>{label}: </span>
-      <span style={{ color: COLORS.text }}>{value}</span>
-    </div>
-  );
-}
+
 
 
 function EstimateReviewPanel({
@@ -2126,9 +2182,11 @@ function EstimateReviewPanel({
               <th
                 className="text-left font-semibold uppercase tracking-wider text-[10px] pb-2 px-2"
                 style={{ color: COLORS.muted }}
+                title="Click any source badge to see the full calculation breakdown for that line item."
               >
-                Cost Basis
+                Cost Basis <span aria-hidden="true">ⓘ</span>
               </th>
+
               <th
                 className="text-right font-semibold uppercase tracking-wider text-[10px] pb-2 px-2"
                 style={{ color: COLORS.muted }}
@@ -2206,8 +2264,9 @@ function EstimateReviewPanel({
                           <button
                             key={src}
                             type="button"
+                            data-source-badge
                             onClick={(e) => { e.stopPropagation(); toggleSource(i, src); }}
-                            className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border transition-colors"
+                            className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border transition-colors cursor-pointer"
                             style={{
                               backgroundColor: meta.bg,
                               color: meta.fg,
@@ -2216,6 +2275,7 @@ function EstimateReviewPanel({
                           >
                             {meta.short}
                           </button>
+
                         );
                       })}
                     </div>
@@ -2257,10 +2317,15 @@ function EstimateReviewPanel({
                 {isExpanded && (
                   <tr style={{ borderBottom: `1px solid ${COLORS.border}` }}>
                     <td colSpan={5} className="px-2 pb-3">
-                      <SourceDetail source={expanded.source} />
+                      <CostBreakdownPanel
+                        part={part}
+                        source={expanded.source}
+                        onClose={() => setExpanded(null)}
+                      />
                     </td>
                   </tr>
                 )}
+
                 </Fragment>
               );
             })}
