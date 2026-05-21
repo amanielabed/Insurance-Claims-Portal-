@@ -2264,8 +2264,9 @@ function EstimateReviewPanel({
                           <button
                             key={src}
                             type="button"
+                            data-source-badge
                             onClick={(e) => { e.stopPropagation(); toggleSource(i, src); }}
-                            className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border transition-colors"
+                            className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border transition-colors cursor-pointer"
                             style={{
                               backgroundColor: meta.bg,
                               color: meta.fg,
@@ -2274,6 +2275,7 @@ function EstimateReviewPanel({
                           >
                             {meta.short}
                           </button>
+
                         );
                       })}
                     </div>
