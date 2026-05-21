@@ -1276,17 +1276,20 @@ function ReviewEstimateStep({
     [selectedId],
   );
 
-  const [seniorReview, setSeniorReview] = useState(false);
+  const [seniorReview, setSeniorReview] = useState(claim.delegationState === "SENIOR_REVIEW");
+  const [scenarioOpen, setScenarioOpen] = useState(false);
 
-  // Reset escalation when switching claims
+  // Sync escalation when switching claims — auto-load senior review for SENIOR_REVIEW scenarios
   useEffect(() => {
-    setSeniorReview(false);
-  }, [selectedId]);
+    setSeniorReview(claim.delegationState === "SENIOR_REVIEW");
+  }, [selectedId, claim.delegationState]);
 
   const isFastTrack = claim.delegationState === "FAST_TRACK";
 
   const workflowState: "FAST_TRACK" | "MANUAL_REVIEW" | "SENIOR_REVIEW" =
-    seniorReview ? "SENIOR_REVIEW" : isFastTrack ? "FAST_TRACK" : "MANUAL_REVIEW";
+    seniorReview || claim.delegationState === "SENIOR_REVIEW"
+      ? "SENIOR_REVIEW"
+      : claim.delegationState;
 
   const workflowLabel = {
     FAST_TRACK: "Fast-Track",
@@ -1299,6 +1302,8 @@ function ReviewEstimateStep({
     MANUAL_REVIEW: { bar: COLORS.amber, bg: COLORS.amberBg, fg: COLORS.amberText },
     SENIOR_REVIEW: { bar: "#DC2626", bg: "#FEF2F2", fg: "#991B1B" },
   }[workflowState];
+
+  const currentScenario = SCENARIOS.find((s) => s.id === selectedId) ?? SCENARIOS[0];
 
   return (
     <div
