@@ -1813,7 +1813,52 @@ function ReviewEstimateStep({
         </span>
       </div>
 
+      {/* Policyholder coverage status bar */}
+      {claimForm && (claimForm.coverage || claimForm.fault) && (() => {
+        const coverageLabel =
+          claimForm.coverage === "full" ? "Full" :
+          claimForm.coverage === "third_party" ? "Third-party" : "—";
+        const faultLabel =
+          claimForm.fault === "policyholder" ? "At fault" :
+          claimForm.fault === "other" ? "Not at fault" :
+          claimForm.fault === "unclear" ? "Disputed" :
+          claimForm.fault === "single_vehicle" ? "Single-vehicle" : "—";
+        const ded = claimForm.deductible?.trim();
+        const deductibleLabel =
+          claimForm.coverage === "full" && claimForm.fault === "policyholder" && ded
+            ? `$${ded}`
+            : "N/A";
+        return (
+          <div
+            className="flex items-center gap-6 px-6 h-8 border-b shrink-0"
+            style={{ backgroundColor: "#F9FAFB", borderColor: COLORS.border }}
+          >
+            <div className="flex items-center gap-2 text-[11px]">
+              <span className="uppercase tracking-wider font-semibold" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+                Coverage type:
+              </span>
+              <span className="font-medium" style={{ color: COLORS.text }}>{coverageLabel}</span>
+            </div>
+            <div className="h-3 w-px" style={{ backgroundColor: COLORS.border }} />
+            <div className="flex items-center gap-2 text-[11px]">
+              <span className="uppercase tracking-wider font-semibold" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+                Fault:
+              </span>
+              <span className="font-medium" style={{ color: COLORS.text }}>{faultLabel}</span>
+            </div>
+            <div className="h-3 w-px" style={{ backgroundColor: COLORS.border }} />
+            <div className="flex items-center gap-2 text-[11px]">
+              <span className="uppercase tracking-wider font-semibold" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+                Deductible:
+              </span>
+              <span className="font-medium tabular-nums" style={{ color: COLORS.text }}>{deductibleLabel}</span>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Header */}
+
       <header
         className="flex items-center justify-between gap-4 px-6 h-16 border-b shrink-0"
         style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
