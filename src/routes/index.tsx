@@ -58,20 +58,23 @@ interface ScenarioMeta {
 const SCENARIOS: ScenarioMeta[] = [
   {
     id: "2026-001",
-    label: "Simple Claim (Demo)",
-    description: "Minor cosmetic damage with low review complexity",
+    label: "Fast-Track Approval (Demo)",
+    description:
+      "Low-complexity cosmetic damage with clear photo evidence and minimal review requirements.",
     state: "FAST_TRACK",
   },
   {
     id: "2026-002",
-    label: "Ambiguous Claim (Demo)",
-    description: "Moderate uncertainty requiring manual verification",
+    label: "Verification Required (Demo)",
+    description:
+      "Moderate uncertainty requiring manual review and additional verification before authorization.",
     state: "MANUAL_REVIEW",
   },
   {
     id: "2026-003",
-    label: "Complex Claim (Demo)",
-    description: "High-value structural review requiring senior authorization",
+    label: "Senior Review Required (Demo)",
+    description:
+      "High-severity or high-value claim requiring escalation and senior adjuster authorization.",
     state: "SENIOR_REVIEW",
   },
 ];
@@ -333,12 +336,21 @@ const STEPS = [
   "Review Estimate",
 ] as const;
 
+export interface UploadedPhoto {
+  slotId: string;
+  name: string;
+  url: string;
+  uploadedAt: number;
+}
+
 function Index() {
   const [step, setStep] = useState(1);
   const [claimForm, setClaimForm] = useState<ClaimForm | null>(null);
+  const [uploadedPhotos, setUploadedPhotos] = useState<UploadedPhoto[]>([]);
 
   const reset = () => {
     setClaimForm(null);
+    setUploadedPhotos([]);
     setStep(1);
   };
 
@@ -360,12 +372,22 @@ function Index() {
         )}
         {step === 2 && (
           <UploadPhotosStep
-            onContinue={() => setStep(3)}
+            initialPhotos={uploadedPhotos}
+            onContinue={(photos) => {
+              setUploadedPhotos(photos);
+              setStep(3);
+            }}
             onBack={() => setStep(1)}
           />
         )}
         {step === 3 && <DraftAssessmentStep onComplete={() => setStep(4)} />}
-        {step === 4 && <ReviewEstimateStep claimForm={claimForm} onReset={reset} />}
+        {step === 4 && (
+          <ReviewEstimateStep
+            claimForm={claimForm}
+            uploadedPhotos={uploadedPhotos}
+            onReset={reset}
+          />
+        )}
       </div>
     </div>
   );
@@ -503,13 +525,28 @@ const PHOTO_SLOTS: PhotoSlot[] = [
 const MIN_REQUIRED = 3;
 
 function UploadPhotosStep({
+  initialPhotos,
   onContinue,
   onBack,
 }: {
-  onContinue: () => void;
+  initialPhotos: UploadedPhoto[];
+  onContinue: (photos: UploadedPhoto[]) => void;
   onBack: () => void;
 }) {
-  const [photos, setPhotos] = useState<Record<string, string>>({});
+  const [photos, setPhotos] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    initialPhotos.forEach((p) => {
+      map[p.slotId] = p.url;
+    });
+    return map;
+  });
+  const [photoTimes, setPhotoTimes] = useState<Record<string, number>>(() => {
+    const map: Record<string, number> = {};
+    initialPhotos.forEach((p) => {
+      map[p.slotId] = p.uploadedAt;
+    });
+    return map;
+  });
   const [extraPhotos, setExtraPhotos] = useState<{ id: string; url: string }[]>([]);
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const extraInputRef = useRef<HTMLInputElement>(null);
@@ -518,6 +555,7 @@ function UploadPhotosStep({
     if (!file) return;
     const url = URL.createObjectURL(file);
     setPhotos((prev) => ({ ...prev, [slotId]: url }));
+    setPhotoTimes((prev) => ({ ...prev, [slotId]: Date.now() }));
   };
 
   const handleExtraSelect = (files: FileList | null) => {
@@ -728,7 +766,15 @@ function UploadPhotosStep({
             ← Back
           </button>
           <button
-            onClick={onContinue}
+            onClick={() => {
+              const out: UploadedPhoto[] = PHOTO_SLOTS.filter((s) => photos[s.id]).map((s) => ({
+                slotId: s.id,
+                name: s.name,
+                url: photos[s.id],
+                uploadedAt: photoTimes[s.id] ?? Date.now(),
+              }));
+              onContinue(out);
+            }}
             disabled={!sufficient}
             className="text-sm font-semibold px-6 py-3 rounded-md transition-colors"
             style={{
@@ -1779,9 +1825,11 @@ function TextInput({
 
 function ReviewEstimateStep({
   claimForm,
+  uploadedPhotos,
   onReset,
 }: {
   claimForm: ClaimForm | null;
+  uploadedPhotos: UploadedPhoto[];
   onReset: () => void;
 }) {
   const [selectedId, setSelectedId] = useState(claimData[0].id);
@@ -1929,7 +1977,7 @@ function ReviewEstimateStep({
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <label className="text-xs font-medium" style={{ color: COLORS.muted }}>
-            Scenario
+            Assessment Outcome
           </label>
           <div className="relative">
             <button
@@ -2060,6 +2108,7 @@ function ReviewEstimateStep({
             key={claim.id}
             claim={claim}
             claimForm={claimForm}
+            uploadedPhotos={uploadedPhotos}
             isFastTrack={isFastTrack}
             seniorReview={seniorReview}
             onTriggerSeniorReview={() => setSeniorReview(true)}
@@ -2633,6 +2682,7 @@ function CostBreakdownPanel({
 function EstimateReviewPanel({
   claim,
   claimForm,
+  uploadedPhotos,
   isFastTrack,
   seniorReview,
   onTriggerSeniorReview,
@@ -2641,6 +2691,7 @@ function EstimateReviewPanel({
 }: {
   claim: Claim;
   claimForm: ClaimForm | null;
+  uploadedPhotos: UploadedPhoto[];
   isFastTrack: boolean;
   seniorReview: boolean;
   onTriggerSeniorReview: () => void;
@@ -2972,31 +3023,100 @@ function EstimateReviewPanel({
         pdf.setLineWidth(0.5);
         pdf.line(M, y, pageW - M, y);
       });
-      // photos row
-      need(64);
-      setText(11, "#6B7280");
-      pdf.text("Photos submitted", labelX, y + 14);
-      const thumbW = 60;
-      const thumbH = 48;
-      for (let i = 0; i < 3; i++) {
-        const tx = valX + i * (thumbW + 10);
-        const ty = y + 4;
-        pdf.setFillColor("#F9FAFB");
-        pdf.setDrawColor("#E5E7EB");
-        pdf.setLineWidth(0.5);
-        pdf.roundedRect(tx, ty, thumbW, thumbH, 3, 3, "FD");
-        // simple camera icon
-        pdf.setFillColor("#D1D5DB");
-        pdf.rect(tx + 18, ty + 14, 24, 16, "F");
-        pdf.setFillColor("#9CA3AF");
-        pdf.circle(tx + 30, ty + 22, 4, "F");
-        setText(8, "#6B7280");
-        pdf.text(`Photo ${i + 1}`, tx + thumbW / 2, ty + thumbH - 4, { align: "center" });
+      // ===== SECTION — UPLOADED DAMAGE PHOTOS =====
+      sectionLabel("Uploaded Damage Photos");
+
+      // Load uploaded photo blob URLs into data URLs for embedding
+      const toDataUrl = (url: string): Promise<{ data: string; w: number; h: number } | null> =>
+        new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => {
+            try {
+              const canvas = document.createElement("canvas");
+              canvas.width = img.naturalWidth;
+              canvas.height = img.naturalHeight;
+              const ctx = canvas.getContext("2d");
+              if (!ctx) return resolve(null);
+              ctx.drawImage(img, 0, 0);
+              resolve({
+                data: canvas.toDataURL("image/jpeg", 0.85),
+                w: img.naturalWidth,
+                h: img.naturalHeight,
+              });
+            } catch {
+              resolve(null);
+            }
+          };
+          img.onerror = () => resolve(null);
+          img.src = url;
+        });
+
+      const photoData = await Promise.all(uploadedPhotos.map((p) => toDataUrl(p.url)));
+
+      if (uploadedPhotos.length === 0) {
+        setText(12, "#6B7280", false, true);
+        pdf.text("No photos were uploaded for this claim.", M, y + 14);
+        y += 24;
+      } else {
+        const photoGap = 12;
+        const photosPerRow = 3;
+        const photoW = (W - photoGap * (photosPerRow - 1)) / photosPerRow;
+        const photoH = photoW * 0.72;
+        const captionH = 44;
+        const blockH = photoH + captionH + 6;
+
+        for (let i = 0; i < uploadedPhotos.length; i++) {
+          const col = i % photosPerRow;
+          if (col === 0) need(blockH + 6);
+          const px = M + col * (photoW + photoGap);
+          const py = y;
+          // frame
+          pdf.setFillColor("#F9FAFB");
+          pdf.setDrawColor("#E5E7EB");
+          pdf.setLineWidth(0.5);
+          pdf.roundedRect(px, py, photoW, photoH, 3, 3, "FD");
+          const pd = photoData[i];
+          if (pd) {
+            // contain image inside frame
+            const ratio = Math.min(photoW / pd.w, photoH / pd.h);
+            const iw = pd.w * ratio;
+            const ih = pd.h * ratio;
+            const ix = px + (photoW - iw) / 2;
+            const iy = py + (photoH - ih) / 2;
+            try {
+              pdf.addImage(pd.data, "JPEG", ix, iy, iw, ih);
+            } catch {
+              setText(9, "#9CA3AF");
+              pdf.text("Image unavailable", px + photoW / 2, py + photoH / 2, { align: "center" });
+            }
+          } else {
+            setText(9, "#9CA3AF");
+            pdf.text("Image unavailable", px + photoW / 2, py + photoH / 2, { align: "center" });
+          }
+
+          // caption
+          const cap = uploadedPhotos[i];
+          const ts = new Date(cap.uploadedAt).toLocaleString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          });
+          setText(10, "#111827", true);
+          pdf.text(cap.name, px, py + photoH + 12);
+          setText(9, "#6B7280");
+          pdf.text(ts, px, py + photoH + 24);
+          // accepted pill
+          drawBadge("Accepted", px, py + photoH + 36, "#DCFCE7", "#15803D");
+
+          if (col === photosPerRow - 1 || i === uploadedPhotos.length - 1) {
+            y += blockH;
+          }
+        }
+        y += 8;
       }
-      y += thumbH + 16;
-      pdf.setDrawColor("#F3F4F6");
-      pdf.setLineWidth(0.5);
-      pdf.line(M, y, pageW - M, y);
 
       // ===== SECTION 2b — COVERAGE SUMMARY =====
       sectionLabel("Coverage Summary");
