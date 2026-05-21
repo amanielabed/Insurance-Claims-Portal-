@@ -2164,6 +2164,19 @@ function EstimateReviewPanel({
 
 
 
+  const getDraftValues = () =>
+    drafts.map((raw, i) => {
+      const parsed = parseFloat(raw);
+      return Number.isFinite(parsed) ? parsed : adjusted[i];
+    });
+
+  const syncDraftValues = () => {
+    const nextAdjusted = getDraftValues();
+    setAdjusted(nextAdjusted);
+    setDrafts(nextAdjusted.map((value) => value.toFixed(2)));
+    return nextAdjusted;
+  };
+
   const draftTotal = claim.parts.reduce((s, p) => s + p.draftEstimate, 0);
   const adjustedTotal = adjusted.reduce((s, n) => s + (isFinite(n) ? n : 0), 0);
 
@@ -2197,11 +2210,143 @@ function EstimateReviewPanel({
     );
   };
 
+  const generateReport = async () => {
+    const reportAdjusted = syncDraftValues();
+    const reportTotal = reportAdjusted.reduce((s, n) => s + (isFinite(n) ? n : 0), 0);
+    const fileName = `Claim_${claim.id}_Assessment.pdf`;
+
+    setIsGeneratingReport(true);
+    const tid = toast.loading("Generating claim summary report…", {
+      description:
+        "Includes claim details, estimate breakdown, cost basis, adjuster notes, verification status & authorization record.",
+    });
+
+    try {
+      const { jsPDF } = await import("jspdf");
+      const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 48;
+      const contentWidth = pageWidth - margin * 2;
+      let y = margin;
+
+      const ensureSpace = (height: number) => {
+        if (y + height > pageHeight - margin) {
+          pdf.addPage();
+          y = margin;
+        }
+      };
+      const drawWrapped = (text: string, x: number, maxWidth: number, size = 9, color = "#374151") => {
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(size);
+        pdf.setTextColor(color);
+        const lines = pdf.splitTextToSize(text, maxWidth) as string[];
+        pdf.text(lines, x, y);
+        y += lines.length * (size + 3);
+      };
+      const section = (title: string) => {
+        ensureSpace(28);
+        y += 10;
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(10);
+        pdf.setTextColor("#111827");
+        pdf.text(title.toUpperCase(), margin, y);
+        y += 9;
+        pdf.setDrawColor("#E5E7EB");
+        pdf.line(margin, y, pageWidth - margin, y);
+        y += 16;
+      };
+      const row = (label: string, value: string) => {
+        ensureSpace(18);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(9);
+        pdf.setTextColor("#6B7280");
+        pdf.text(label, margin, y);
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor("#1F2937");
+        pdf.text(value, margin + 180, y);
+        y += 16;
+      };
+
+      pdf.setFillColor("#F8FAFC");
+      pdf.rect(0, 0, pageWidth, pageHeight, "F");
+      pdf.setFillColor("#FFFFFF");
+      pdf.roundedRect(28, 28, pageWidth - 56, pageHeight - 56, 8, 8, "F");
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(18);
+      pdf.setTextColor("#111827");
+      pdf.text("Claim Assessment Report", margin, y);
+      y += 24;
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(10);
+      pdf.setTextColor("#6B7280");
+      pdf.text(`Claim #${claim.id} · ${claim.type} · ${new Date().toLocaleDateString()}`, margin, y);
+
+      section("Review Summary");
+      row("Workflow State", seniorReview ? "SENIOR_REVIEW" : claim.delegationState);
+      row("Review Confidence", claim.reviewConfidence);
+      row("Risk Level", claim.riskLevel);
+      row("Draft Total", fmtCurrency(draftTotal));
+      row("Adjusted Total", fmtCurrency(reportTotal));
+      drawWrapped(claim.actionMessage, margin, contentWidth);
+
+      section("Estimate Breakdown");
+      claim.parts.forEach((part, i) => {
+        const adjustedValue = reportAdjusted[i];
+        const diff = adjustedValue - part.draftEstimate;
+        ensureSpace(54);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(9);
+        pdf.setTextColor("#111827");
+        pdf.text(part.name, margin, y);
+        y += 14;
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor("#374151");
+        pdf.text(`${part.suggestedRepairScope} · ${part.laborHours} hrs`, margin, y);
+        pdf.text(`Draft: ${fmtCurrency(part.draftEstimate)}`, margin + 170, y);
+        pdf.text(`Adjusted: ${fmtCurrency(adjustedValue)}`, margin + 300, y);
+        pdf.text(`Difference: ${diff === 0 ? "—" : fmtCurrency(diff)}`, margin + 435, y);
+        y += 14;
+        drawWrapped(
+          `Cost basis: ${part.sources.map((src) => SOURCE_META[src].label).join("; ")}`,
+          margin,
+          contentWidth,
+          8,
+          "#6B7280",
+        );
+        y += 3;
+      });
+
+      section("Adjuster Notes");
+      drawWrapped(
+        adjusterNotes.trim() || "No adjuster notes entered for this demo review.",
+        margin,
+        contentWidth,
+      );
+
+      section("Verification & Authorization Record");
+      row("Verification Checks", `${checks.filter(Boolean).length} of ${checks.length} completed`);
+      row("Submission Status", seniorReview ? "Pending senior adjuster authorization" : "Ready for adjuster authorization");
+      row("Report Source", "Generated from Step 4 Estimate Review workspace");
+
+      pdf.save(fileName);
+      toast.success("Report downloaded", { id: tid, description: fileName });
+    } catch (error) {
+      console.error(error);
+      toast.error("Report could not be generated", {
+        id: tid,
+        description: "Please try again after confirming the estimate values.",
+      });
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full gap-4">
+    <div className="flex flex-col min-h-full gap-4">
       {/* Estimate table */}
-      <div className="flex-1 overflow-auto min-h-0">
-        <table className="w-full text-sm border-collapse">
+      <div className="shrink-0 overflow-x-auto">
+        <table className="w-full min-w-[560px] text-sm border-collapse">
           <thead>
             <tr style={{ borderBottom: `1px solid ${COLORS.border}` }}>
               <th
