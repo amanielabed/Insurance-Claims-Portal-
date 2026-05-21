@@ -2182,9 +2182,11 @@ function EstimateReviewPanel({
               <th
                 className="text-left font-semibold uppercase tracking-wider text-[10px] pb-2 px-2"
                 style={{ color: COLORS.muted }}
+                title="Click any source badge to see the full calculation breakdown for that line item."
               >
-                Cost Basis
+                Cost Basis <span aria-hidden="true">ⓘ</span>
               </th>
+
               <th
                 className="text-right font-semibold uppercase tracking-wider text-[10px] pb-2 px-2"
                 style={{ color: COLORS.muted }}
