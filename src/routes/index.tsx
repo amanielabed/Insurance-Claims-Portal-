@@ -2111,6 +2111,29 @@ function EstimateReviewPanel({
       return next;
     });
 
+  const NOTES_LIMIT = 500;
+  const [adjusterNotes, setAdjusterNotes] = useState("");
+  const [notesSavedVisible, setNotesSavedVisible] = useState(false);
+  const notesSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notesHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (notesSaveTimer.current) clearTimeout(notesSaveTimer.current);
+      if (notesHideTimer.current) clearTimeout(notesHideTimer.current);
+    };
+  }, []);
+  const handleNotesChange = (value: string) => {
+    const next = value.slice(0, NOTES_LIMIT);
+    setAdjusterNotes(next);
+    if (notesSaveTimer.current) clearTimeout(notesSaveTimer.current);
+    if (notesHideTimer.current) clearTimeout(notesHideTimer.current);
+    notesSaveTimer.current = setTimeout(() => {
+      setNotesSavedVisible(true);
+      notesHideTimer.current = setTimeout(() => setNotesSavedVisible(false), 2000);
+    }, 700);
+  };
+
+
   // Auto-escalate: variance >15% on any high-risk (flagged) line item
   useEffect(() => {
     if (seniorReview) return;
