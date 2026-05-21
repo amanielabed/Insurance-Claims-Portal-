@@ -134,6 +134,12 @@ const STEPS = [
 
 function Index() {
   const [step, setStep] = useState(1);
+  const [claimForm, setClaimForm] = useState<ClaimForm | null>(null);
+
+  const reset = () => {
+    setClaimForm(null);
+    setStep(1);
+  };
 
   return (
     <div
@@ -142,7 +148,15 @@ function Index() {
     >
       <StepIndicator current={step} />
       <div key={step} className="flex-1 min-h-0 flex flex-col animate-fade-in">
-        {step === 1 && <InitiateClaimStep onContinue={() => setStep(2)} />}
+        {step === 1 && (
+          <InitiateClaimStep
+            initial={claimForm}
+            onContinue={(data) => {
+              setClaimForm(data);
+              setStep(2);
+            }}
+          />
+        )}
         {step === 2 && (
           <UploadPhotosStep
             onContinue={() => setStep(3)}
@@ -150,11 +164,12 @@ function Index() {
           />
         )}
         {step === 3 && <DraftAssessmentStep onComplete={() => setStep(4)} />}
-        {step === 4 && <ReviewEstimateStep />}
+        {step === 4 && <ReviewEstimateStep claimForm={claimForm} onReset={reset} />}
       </div>
     </div>
   );
 }
+
 
 function StepIndicator({ current }: { current: number }) {
   return (
