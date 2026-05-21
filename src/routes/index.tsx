@@ -197,7 +197,7 @@ function Index() {
 
         {/* Right: Estimate Review */}
         <Panel title="Estimate Review">
-          <EstimateReviewPanel claim={claim} isFastTrack={isFastTrack} />
+          <EstimateReviewPanel key={claim.id} claim={claim} isFastTrack={isFastTrack} />
         </Panel>
       </main>
     </div>
