@@ -453,7 +453,17 @@ interface LogEntry {
   to: number;
 }
 
-function EstimateReviewPanel({ claim, isFastTrack }: { claim: Claim; isFastTrack: boolean }) {
+function EstimateReviewPanel({
+  claim,
+  isFastTrack,
+  seniorReview,
+  onTriggerSeniorReview,
+}: {
+  claim: Claim;
+  isFastTrack: boolean;
+  seniorReview: boolean;
+  onTriggerSeniorReview: () => void;
+}) {
   const [adjusted, setAdjusted] = useState<number[]>(() =>
     claim.parts.map((p) => p.draftEstimate),
   );
@@ -469,6 +479,19 @@ function EstimateReviewPanel({ claim, isFastTrack }: { claim: Claim; isFastTrack
       next[i] = !next[i];
       return next;
     });
+
+  // Auto-escalate: variance >15% on any high-risk (flagged) line item
+  useEffect(() => {
+    if (seniorReview) return;
+    const triggered = claim.parts.some((part, i) => {
+      if (!part.flagged) return false;
+      const draft = part.draftEstimate;
+      if (draft === 0) return false;
+      return Math.abs(adjusted[i] - draft) / draft > 0.15;
+    });
+    if (triggered) onTriggerSeniorReview();
+  }, [adjusted, claim.parts, seniorReview, onTriggerSeniorReview]);
+
 
 
 
