@@ -1479,9 +1479,7 @@ function EligibilityCheck({
     </label>
   );
 
-  const handleValidate = () => {
-    const v = policyNumber.trim();
-    if (!v) { setLookupError("Policy number is required."); return; }
+  const runValidation = (v: string) => {
     setLookupError(null);
     setValidating(true);
     setValidated(null);
@@ -1494,16 +1492,32 @@ function EligibilityCheck({
       }
       const upper = v.toUpperCase();
       const coverage: "full" | "third_party" = upper.startsWith("POL-2025") ? "third_party" : "full";
-      const holderName = upper.startsWith("POL-2025") ? "Alex R. Morgan" : "Jordan M. Whitaker";
+      const holderName = upper.startsWith("POL-2025") ? "Omar Al-Kuwari" : "Sarah Al-Mansouri";
       setValidated({ policyNumber: v, ...result, holderName, coverage });
       setValidating(false);
     }, 700);
+  };
+
+  const handleValidate = () => {
+    const v = policyNumber.trim();
+    if (!v) { setLookupError("Policy number is required."); return; }
+    runValidation(v);
   };
 
   const handlePolicyChange = (v: string) => {
     setPolicyNumber(v);
     if (validated) setValidated(null);
     if (lookupError) setLookupError(null);
+  };
+
+  const loadFullCoverageDemo = () => {
+    handlePolicyChange("POL-2026-48201");
+    runValidation("POL-2026-48201");
+  };
+
+  const loadThirdPartyDemo = () => {
+    handlePolicyChange("POL-2025-77310");
+    runValidation("POL-2025-77310");
   };
 
   return (
