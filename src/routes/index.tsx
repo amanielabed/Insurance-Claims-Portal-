@@ -1811,34 +1811,56 @@ function DamagePhotoPanel({
         )}
 
 
-        {isFastTrack ? (
-          <div
-            className="absolute left-1/2 -translate-x-1/2 bottom-4 rounded-sm px-2.5 py-1 text-[11px] font-medium"
-            style={{
-              backgroundColor: "rgba(34, 197, 94, 0.10)",
-              border: "1px solid rgba(34, 197, 94, 0.35)",
-              color: COLORS.greenText,
-            }}
-          >
-            <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5" style={{ backgroundColor: COLORS.green }} />
-            Bumper Cover
-          </div>
-        ) : (
-          <div
-            className="absolute top-3 right-3 min-w-[140px] max-w-[45%] rounded-sm px-3 py-2"
-            style={{
-              backgroundColor: "rgba(245, 158, 11, 0.10)",
-              border: "1px solid rgba(245, 158, 11, 0.35)",
-            }}
-          >
-            <div className="text-[11px] font-semibold" style={{ color: COLORS.amberText }}>
-              ⚠ Verification Required
-            </div>
-            <div className="text-[11px] mt-0.5" style={{ color: "#92400E" }}>
-              Possible structural damage detected.
-            </div>
-          </div>
-        )}
+        {(OVERLAYS[claim.id] ?? []).map((ov, i) => {
+          const colors = OVERLAY_COLORS[ov.severity];
+          const active = highlightedPart === ov.partIndex;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onHighlight(ov.partIndex)}
+              className="absolute text-left rounded-md transition-all duration-200 focus:outline-none"
+              style={{
+                left: `${ov.x}%`,
+                top: `${ov.y}%`,
+                width: `${ov.w}%`,
+                height: `${ov.h}%`,
+                backgroundColor: colors.fill,
+                border: `2px ${ov.dashed ? "dashed" : "solid"} ${colors.border}`,
+                boxShadow: active
+                  ? `0 0 0 2px #FFF, 0 0 0 4px ${colors.border}, 0 4px 12px rgba(0,0,0,0.15)`
+                  : "0 1px 3px rgba(0,0,0,0.12)",
+                transform: active ? "scale(1.02)" : "scale(1)",
+                zIndex: active ? 5 : 1,
+              }}
+              aria-label={`${ov.label} — ${ov.sub}`}
+            >
+              <div
+                className="absolute -top-2 left-2 inline-flex flex-col rounded-md shadow-sm"
+                style={{
+                  backgroundColor: colors.pillBg,
+                  border: `1px solid ${colors.border}`,
+                  maxWidth: "calc(100% - 8px)",
+                }}
+              >
+                <span
+                  className="px-2 py-0.5 text-[10px] font-semibold leading-tight"
+                  style={{ color: colors.pillFg }}
+                >
+                  {ov.label}
+                </span>
+                {active && (
+                  <span
+                    className="px-2 pb-1 text-[10px] leading-tight animate-fade-in"
+                    style={{ color: colors.pillFg }}
+                  >
+                    {ov.sub}
+                  </span>
+                )}
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {/* Review Confidence */}
