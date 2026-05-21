@@ -1677,12 +1677,13 @@ function EstimateReviewPanel({
                     ? COLORS.amberText
                     : COLORS.greenText;
               const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
+              const isExpanded = expanded?.row === i;
               return (
+                <React.Fragment key={i}>
                 <tr
-                  key={i}
                   style={{
                     backgroundColor: variance ? COLORS.amberBg : "transparent",
-                    borderBottom: `1px solid ${COLORS.border}`,
+                    borderBottom: isExpanded ? "none" : `1px solid ${COLORS.border}`,
                   }}
                 >
                   <td className="py-2.5 pr-2 align-top">
@@ -1698,6 +1699,29 @@ function EstimateReviewPanel({
                     style={{ color: COLORS.muted }}
                   >
                     {fmtCurrency(draft)}
+                  </td>
+                  <td className="py-2.5 px-2 align-top">
+                    <div className="flex flex-wrap gap-1">
+                      {part.sources.map((src) => {
+                        const meta = SOURCE_META[src];
+                        const active = expanded?.row === i && expanded.source === src;
+                        return (
+                          <button
+                            key={src}
+                            type="button"
+                            onClick={() => toggleSource(i, src)}
+                            className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border transition-colors"
+                            style={{
+                              backgroundColor: meta.bg,
+                              color: meta.fg,
+                              borderColor: active ? meta.fg : meta.border,
+                            }}
+                          >
+                            {meta.short}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </td>
                   <td className="py-2.5 px-2 text-right align-top">
                     <input
@@ -1732,6 +1756,14 @@ function EstimateReviewPanel({
                       : `${sign}${fmtCurrency(Math.abs(diff))}`}
                   </td>
                 </tr>
+                {isExpanded && (
+                  <tr style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+                    <td colSpan={5} className="px-2 pb-3">
+                      <SourceDetail source={expanded.source} />
+                    </td>
+                  </tr>
+                )}
+                </React.Fragment>
               );
             })}
           </tbody>
