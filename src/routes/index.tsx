@@ -1679,7 +1679,7 @@ function EstimateReviewPanel({
               const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
               const isExpanded = expanded?.row === i;
               return (
-                <React.Fragment key={i}>
+                <Fragment key={i}>
                 <tr
                   style={{
                     backgroundColor: variance ? COLORS.amberBg : "transparent",
@@ -1763,7 +1763,7 @@ function EstimateReviewPanel({
                     </td>
                   </tr>
                 )}
-                </React.Fragment>
+                </Fragment>
               );
             })}
           </tbody>
