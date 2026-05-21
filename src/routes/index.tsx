@@ -1825,9 +1825,11 @@ function TextInput({
 
 function ReviewEstimateStep({
   claimForm,
+  uploadedPhotos,
   onReset,
 }: {
   claimForm: ClaimForm | null;
+  uploadedPhotos: UploadedPhoto[];
   onReset: () => void;
 }) {
   const [selectedId, setSelectedId] = useState(claimData[0].id);
