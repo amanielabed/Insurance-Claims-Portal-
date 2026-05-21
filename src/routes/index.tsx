@@ -229,21 +229,32 @@ function Index() {
 }
 
 function DamagePhotoPanel({ claim }: { claim: Claim }) {
-  const score = claim.trustScore;
-  const trustColor =
-    score > 80 ? COLORS.green : score >= 60 ? COLORS.amber : "#DC2626";
-  const trustBg =
-    score > 80 ? COLORS.greenBg : score >= 60 ? COLORS.amberBg : "#FEF2F2";
+  const confidence = claim.reviewConfidence;
 
-  const riskMap: Record<Claim["riskLevel"], { bg: string; fg: string; border: string; dot: string }> = {
+  const confidenceMeta: Record<
+    Claim["reviewConfidence"],
+    { color: string; bg: string; fill: string; width: string }
+  > = {
+    High: { color: COLORS.green, bg: COLORS.greenBg, fill: COLORS.green, width: "92%" },
+    Moderate: { color: COLORS.amber, bg: COLORS.amberBg, fill: COLORS.amber, width: "58%" },
+    Low: { color: "#DC2626", bg: "#FEF2F2", fill: "#DC2626", width: "32%" },
+  };
+  const c = confidenceMeta[confidence];
+
+  const riskMap: Record<
+    Claim["riskLevel"],
+    { bg: string; fg: string; border: string; dot: string }
+  > = {
     LOW: { bg: COLORS.greenBg, fg: COLORS.greenText, border: "#BBF7D0", dot: COLORS.green },
     MEDIUM: { bg: COLORS.amberBg, fg: COLORS.amberText, border: COLORS.amberBorder, dot: COLORS.amber },
     HIGH: { bg: "#FEF2F2", fg: "#B91C1C", border: "#FECACA", dot: "#DC2626" },
   };
   const risk = riskMap[claim.riskLevel];
 
+  const isFastTrack = claim.delegationState === "FAST_TRACK";
+
   return (
-    <div className="flex flex-col h-full gap-4">
+    <div className="flex flex-col h-full gap-5">
       {/* Image area */}
       <div
         className="relative flex items-center justify-center flex-1 rounded-md min-h-0 overflow-hidden"
@@ -258,64 +269,80 @@ function DamagePhotoPanel({ claim }: { claim: Claim }) {
           </div>
         </div>
 
-        {claim.visionState === "CHALLENGE" && (
+        {isFastTrack ? (
           <div
-            className="absolute top-3 right-3 w-1/3 min-w-[140px] rounded-sm px-2 py-2 text-[11px] font-semibold leading-tight"
+            className="absolute left-1/2 -translate-x-1/2 bottom-4 rounded-sm px-2.5 py-1 text-[11px] font-medium"
             style={{
-              backgroundColor: "rgba(245, 158, 11, 0.25)",
-              border: "2px solid #F59E0B",
-              color: "#92400E",
-            }}
-          >
-            ⚠ Uncertain Zone — Possible Structural Damage
-          </div>
-        )}
-
-        {claim.visionState === "GHOST" && (
-          <div
-            className="absolute left-1/2 -translate-x-1/2 bottom-4 rounded-sm px-2 py-1 text-[11px] font-semibold"
-            style={{
-              backgroundColor: "rgba(34, 197, 94, 0.15)",
-              border: "1.5px solid #22C55E",
+              backgroundColor: "rgba(34, 197, 94, 0.10)",
+              border: "1px solid rgba(34, 197, 94, 0.35)",
               color: COLORS.greenText,
             }}
           >
-            ● Bumper Cover
+            <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5" style={{ backgroundColor: COLORS.green }} />
+            Bumper Cover
+          </div>
+        ) : (
+          <div
+            className="absolute top-3 right-3 min-w-[140px] max-w-[45%] rounded-sm px-3 py-2"
+            style={{
+              backgroundColor: "rgba(245, 158, 11, 0.10)",
+              border: "1px solid rgba(245, 158, 11, 0.35)",
+            }}
+          >
+            <div className="text-[11px] font-semibold" style={{ color: COLORS.amberText }}>
+              ⚠ Verification Required
+            </div>
+            <div className="text-[11px] mt-0.5" style={{ color: "#92400E" }}>
+              Possible structural damage detected.
+            </div>
           </div>
         )}
       </div>
 
-      {/* Trust Score */}
-      <div className="shrink-0">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>
-            Trust Score
+      {/* Review Confidence */}
+      <div className="shrink-1 space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span
+            className="text-xs font-semibold uppercase tracking-wider"
+            style={{ color: COLORS.muted }}
+          >
+            Review Confidence
           </span>
-          <span className="text-sm font-semibold" style={{ color: trustColor }}>
-            {score}%
+          <span className="text-sm font-medium" style={{ color: c.color }}>
+            {confidence}
           </span>
         </div>
         <div
-          className="h-2 w-full rounded-full overflow-hidden"
-          style={{ backgroundColor: trustBg }}
+          className="h-1.5 w-full rounded-full overflow-hidden"
+          style={{ backgroundColor: c.bg }}
         >
           <div
-            className="h-full rounded-full transition-all"
-            style={{ width: `${score}%`, backgroundColor: trustColor }}
+            className="h-full rounded-full transition-all duration-500"
+            style={{ width: c.width, backgroundColor: c.fill }}
           />
         </div>
       </div>
 
       {/* Risk Level */}
       <div className="shrink-0 flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>
+        <span
+          className="text-xs font-semibold uppercase tracking-wider"
+          style={{ color: COLORS.muted }}
+        >
           Risk Level
         </span>
         <div
           className="inline-flex items-center gap-2 rounded-md px-2.5 py-1 text-xs font-semibold"
-          style={{ backgroundColor: risk.bg, color: risk.fg, border: `1px solid ${risk.border}` }}
+          style={{
+            backgroundColor: risk.bg,
+            color: risk.fg,
+            border: `1px solid ${risk.border}`,
+          }}
         >
-          <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: risk.dot }} />
+          <span
+            className="inline-block w-2 h-2 rounded-full"
+            style={{ backgroundColor: risk.dot }}
+          />
           {claim.riskLevel}
         </div>
       </div>
