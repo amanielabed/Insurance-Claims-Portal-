@@ -525,13 +525,28 @@ const PHOTO_SLOTS: PhotoSlot[] = [
 const MIN_REQUIRED = 3;
 
 function UploadPhotosStep({
+  initialPhotos,
   onContinue,
   onBack,
 }: {
-  onContinue: () => void;
+  initialPhotos: UploadedPhoto[];
+  onContinue: (photos: UploadedPhoto[]) => void;
   onBack: () => void;
 }) {
-  const [photos, setPhotos] = useState<Record<string, string>>({});
+  const [photos, setPhotos] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    initialPhotos.forEach((p) => {
+      map[p.slotId] = p.url;
+    });
+    return map;
+  });
+  const [photoTimes, setPhotoTimes] = useState<Record<string, number>>(() => {
+    const map: Record<string, number> = {};
+    initialPhotos.forEach((p) => {
+      map[p.slotId] = p.uploadedAt;
+    });
+    return map;
+  });
   const [extraPhotos, setExtraPhotos] = useState<{ id: string; url: string }[]>([]);
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const extraInputRef = useRef<HTMLInputElement>(null);
@@ -540,6 +555,7 @@ function UploadPhotosStep({
     if (!file) return;
     const url = URL.createObjectURL(file);
     setPhotos((prev) => ({ ...prev, [slotId]: url }));
+    setPhotoTimes((prev) => ({ ...prev, [slotId]: Date.now() }));
   };
 
   const handleExtraSelect = (files: FileList | null) => {
