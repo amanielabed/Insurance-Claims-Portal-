@@ -48,7 +48,7 @@ const claimData: Claim[] = [
       {
         name: "Rear bumper cover repair",
         suggestedRepairScope: "Repair",
-        draftEstimate: 142.5,
+        draftEstimate: 187.5,
         laborHours: 1.5,
         flagged: false,
       },
