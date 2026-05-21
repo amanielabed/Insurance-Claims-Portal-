@@ -1596,6 +1596,7 @@ function ReviewEstimateStep({
           <EstimateReviewPanel
             key={claim.id}
             claim={claim}
+            claimForm={claimForm}
             isFastTrack={isFastTrack}
             seniorReview={seniorReview}
             onTriggerSeniorReview={() => setSeniorReview(true)}
@@ -2086,6 +2087,7 @@ function CostBreakdownPanel({
 
 function EstimateReviewPanel({
   claim,
+  claimForm,
   isFastTrack,
   seniorReview,
   onTriggerSeniorReview,
@@ -2093,6 +2095,7 @@ function EstimateReviewPanel({
   onHighlight,
 }: {
   claim: Claim;
+  claimForm: ClaimForm | null;
   isFastTrack: boolean;
   seniorReview: boolean;
   onTriggerSeniorReview: () => void;
@@ -2215,119 +2218,436 @@ function EstimateReviewPanel({
     const reportTotal = reportAdjusted.reduce((s, n) => s + (isFinite(n) ? n : 0), 0);
     const fileName = `Claim_${claim.id}_Assessment.pdf`;
 
+    const workflowState: "FAST_TRACK" | "MANUAL_REVIEW" | "SENIOR_REVIEW" =
+      seniorReview || claim.delegationState === "SENIOR_REVIEW"
+        ? "SENIOR_REVIEW"
+        : claim.delegationState;
+    const stateLabel = {
+      FAST_TRACK: "Fast-Track",
+      MANUAL_REVIEW: "Manual Review",
+      SENIOR_REVIEW: "Senior Review",
+    }[workflowState];
+    const stateBadge = {
+      FAST_TRACK: { bg: "#DCFCE7", fg: "#15803D" },
+      MANUAL_REVIEW: { bg: "#FEF3C7", fg: "#B45309" },
+      SENIOR_REVIEW: { bg: "#FEE2E2", fg: "#B91C1C" },
+    }[workflowState];
+
     setIsGeneratingReport(true);
-    const tid = toast.loading("Generating claim summary report…", {
-      description:
-        "Includes claim details, estimate breakdown, cost basis, adjuster notes, verification status & authorization record.",
-    });
+    const tid = toast.loading("Generating claim summary report…");
 
     try {
       const { jsPDF } = await import("jspdf");
       const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 48;
-      const contentWidth = pageWidth - margin * 2;
-      let y = margin;
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const M = 48;
+      const W = pageW - M * 2;
+      let y = M;
 
-      const ensureSpace = (height: number) => {
-        if (y + height > pageHeight - margin) {
+      const need = (h: number) => {
+        if (y + h > pageH - M - 30) {
           pdf.addPage();
-          y = margin;
+          y = M;
         }
       };
-      const drawWrapped = (text: string, x: number, maxWidth: number, size = 9, color = "#374151") => {
-        pdf.setFont("helvetica", "normal");
+      const setText = (size: number, color = "#111827", bold = false, italic = false) => {
+        const style = bold ? (italic ? "bolditalic" : "bold") : italic ? "italic" : "normal";
+        pdf.setFont("helvetica", style);
         pdf.setFontSize(size);
         pdf.setTextColor(color);
-        const lines = pdf.splitTextToSize(text, maxWidth) as string[];
-        pdf.text(lines, x, y);
-        y += lines.length * (size + 3);
       };
-      const section = (title: string) => {
-        ensureSpace(28);
-        y += 10;
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(10);
-        pdf.setTextColor("#111827");
-        pdf.text(title.toUpperCase(), margin, y);
-        y += 9;
-        pdf.setDrawColor("#E5E7EB");
-        pdf.line(margin, y, pageWidth - margin, y);
-        y += 16;
+      const wrapped = (
+        t: string,
+        x: number,
+        maxW: number,
+        size = 13,
+        color = "#374151",
+        bold = false,
+        italic = false,
+      ) => {
+        setText(size, color, bold, italic);
+        const lh = size * 1.35;
+        const lines = pdf.splitTextToSize(t, maxW) as string[];
+        lines.forEach((ln) => {
+          need(lh);
+          pdf.text(ln, x, y + size);
+          y += lh;
+        });
       };
-      const row = (label: string, value: string) => {
-        ensureSpace(18);
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(9);
-        pdf.setTextColor("#6B7280");
-        pdf.text(label, margin, y);
-        pdf.setFont("helvetica", "normal");
-        pdf.setTextColor("#1F2937");
-        pdf.text(value, margin + 180, y);
-        y += 16;
+      const sectionLabel = (label: string) => {
+        need(30);
+        y += 8;
+        setText(11, "#6B7280", true);
+        // letter-spacing emulated by adding spaces between chars is ugly; rely on uppercase
+        pdf.text(label.toUpperCase(), M, y + 8);
+        y += 18;
       };
-
-      pdf.setFillColor("#F8FAFC");
-      pdf.rect(0, 0, pageWidth, pageHeight, "F");
-      pdf.setFillColor("#FFFFFF");
-      pdf.roundedRect(28, 28, pageWidth - 56, pageHeight - 56, 8, 8, "F");
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(18);
-      pdf.setTextColor("#111827");
-      pdf.text("Claim Assessment Report", margin, y);
-      y += 24;
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(10);
-      pdf.setTextColor("#6B7280");
-      pdf.text(`Claim #${claim.id} · ${claim.type} · ${new Date().toLocaleDateString()}`, margin, y);
-
-      section("Review Summary");
-      row("Workflow State", seniorReview ? "SENIOR_REVIEW" : claim.delegationState);
-      row("Review Confidence", claim.reviewConfidence);
-      row("Risk Level", claim.riskLevel);
-      row("Draft Total", fmtCurrency(draftTotal));
-      row("Adjusted Total", fmtCurrency(reportTotal));
-      drawWrapped(claim.actionMessage, margin, contentWidth);
-
-      section("Estimate Breakdown");
-      claim.parts.forEach((part, i) => {
-        const adjustedValue = reportAdjusted[i];
-        const diff = adjustedValue - part.draftEstimate;
-        ensureSpace(54);
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(9);
-        pdf.setTextColor("#111827");
-        pdf.text(part.name, margin, y);
-        y += 14;
-        pdf.setFont("helvetica", "normal");
-        pdf.setTextColor("#374151");
-        pdf.text(`${part.suggestedRepairScope} · ${part.laborHours} hrs`, margin, y);
-        pdf.text(`Draft: ${fmtCurrency(part.draftEstimate)}`, margin + 170, y);
-        pdf.text(`Adjusted: ${fmtCurrency(adjustedValue)}`, margin + 300, y);
-        pdf.text(`Difference: ${diff === 0 ? "—" : fmtCurrency(diff)}`, margin + 435, y);
-        y += 14;
-        drawWrapped(
-          `Cost basis: ${part.sources.map((src) => SOURCE_META[src].label).join("; ")}`,
-          margin,
-          contentWidth,
-          8,
-          "#6B7280",
-        );
-        y += 3;
+      const drawBadge = (
+        text: string,
+        x: number,
+        yCenter: number,
+        bg: string,
+        fg: string,
+        border?: string,
+      ) => {
+        setText(11, fg, true);
+        const tw = pdf.getTextWidth(text);
+        const bw = tw + 12;
+        const bh = 16;
+        const by = yCenter - bh / 2;
+        pdf.setFillColor(bg);
+        if (border) {
+          pdf.setDrawColor(border);
+          pdf.setLineWidth(0.5);
+          pdf.roundedRect(x, by, bw, bh, 3, 3, "FD");
+        } else {
+          pdf.roundedRect(x, by, bw, bh, 3, 3, "F");
+        }
+        pdf.setTextColor(fg);
+        pdf.text(text, x + 6, by + 11);
+        return bw;
+      };
+      const dateStr = new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       });
 
-      section("Adjuster Notes");
-      drawWrapped(
-        adjusterNotes.trim() || "No adjuster notes entered for this demo review.",
-        margin,
-        contentWidth,
+      // ===== HEADER =====
+      setText(18, "#111827");
+      // weight 500 ~ normal
+      pdf.text("Claim Assessment Report", M, y + 14);
+      // right badge
+      setText(11, stateBadge.fg, true);
+      const btw = pdf.getTextWidth(stateLabel);
+      const bbw = btw + 18;
+      pdf.setFillColor(stateBadge.bg);
+      pdf.roundedRect(pageW - M - bbw, y + 2, bbw, 20, 4, 4, "F");
+      pdf.setTextColor(stateBadge.fg);
+      pdf.text(stateLabel, pageW - M - bbw + 9, y + 16);
+      y += 26;
+      setText(13, "#6B7280");
+      pdf.text(`Claim #${claim.id} · ${claim.type} · ${dateStr}`, M, y + 10);
+      y += 22;
+      pdf.setDrawColor("#111827");
+      pdf.setLineWidth(1.5);
+      pdf.line(M, y, pageW - M, y);
+      y += 4;
+
+      // ===== SECTION 1 — REVIEW SUMMARY =====
+      sectionLabel("Review Summary");
+      const cardGap = 10;
+      const cardW = (W - 3 * cardGap) / 4;
+      const cardH = 60;
+      const stats = [
+        { label: "Review type", value: stateLabel, color: "#111827" },
+        {
+          label: "Assessment confidence",
+          value: claim.reviewConfidence,
+          color: claim.reviewConfidence === "Low" ? "#B45309" : "#111827",
+        },
+        {
+          label: "Risk level",
+          value: claim.riskLevel.charAt(0) + claim.riskLevel.slice(1).toLowerCase(),
+          color: claim.riskLevel === "HIGH" ? "#B91C1C" : "#111827",
+        },
+        { label: "Draft total", value: fmtCurrency(draftTotal), color: "#111827" },
+      ];
+      need(cardH + 8);
+      stats.forEach((s, i) => {
+        const x = M + i * (cardW + cardGap);
+        pdf.setFillColor("#F3F4F6");
+        pdf.roundedRect(x, y, cardW, cardH, 4, 4, "F");
+        setText(11, "#6B7280", false);
+        pdf.text(s.label.toUpperCase(), x + 12, y + 18);
+        setText(15, s.color, true);
+        pdf.text(s.value, x + 12, y + 44);
+      });
+      y += cardH + 12;
+
+      if (workflowState === "SENIOR_REVIEW") {
+        const alertH = 52;
+        need(alertH + 8);
+        pdf.setFillColor("#FEF2F2");
+        pdf.rect(M, y, W, alertH, "F");
+        pdf.setFillColor("#DC2626");
+        pdf.rect(M, y, 3, alertH, "F");
+        setText(13, "#991B1B", true);
+        pdf.text("Senior authorization required", M + 14, y + 18);
+        setText(11, "#7F1D1D");
+        const msg =
+          "This claim must be reviewed and signed off by a senior adjuster before any repair authorization can be issued.";
+        const lines = pdf.splitTextToSize(msg, W - 28) as string[];
+        lines.forEach((ln, idx) => pdf.text(ln, M + 14, y + 32 + idx * 12));
+        y += alertH + 12;
+      }
+
+      // ===== SECTION 2 — POLICYHOLDER & VEHICLE =====
+      sectionLabel("Policyholder & Vehicle");
+      const cf = claimForm;
+      const labelX = M;
+      const valX = M + 180;
+      const infoRows: [string, string][] = [
+        ["Policyholder name", cf?.fullName?.trim() || "—"],
+        ["Policy number", cf?.policyNumber?.trim() || "—"],
+        [
+          "Vehicle",
+          cf ? [cf.year, cf.make, cf.model].filter(Boolean).join(" ").trim() || "—" : "—",
+        ],
+        [
+          "Incident type",
+          cf
+            ? (cf.incidentType === "Other" ? cf.incidentTypeOther : cf.incidentType) ||
+              claim.type
+            : claim.type,
+        ],
+        ["Date of loss", cf?.dateOfLoss || "—"],
+      ];
+      infoRows.forEach(([label, val]) => {
+        need(24);
+        setText(11, "#6B7280");
+        pdf.text(label, labelX, y + 14);
+        setText(13, "#111827");
+        pdf.text(val, valX, y + 14);
+        y += 22;
+        pdf.setDrawColor("#F3F4F6");
+        pdf.setLineWidth(0.5);
+        pdf.line(M, y, pageW - M, y);
+      });
+      // photos row
+      need(64);
+      setText(11, "#6B7280");
+      pdf.text("Photos submitted", labelX, y + 14);
+      const thumbW = 60;
+      const thumbH = 48;
+      for (let i = 0; i < 3; i++) {
+        const tx = valX + i * (thumbW + 10);
+        const ty = y + 4;
+        pdf.setFillColor("#F9FAFB");
+        pdf.setDrawColor("#E5E7EB");
+        pdf.setLineWidth(0.5);
+        pdf.roundedRect(tx, ty, thumbW, thumbH, 3, 3, "FD");
+        // simple camera icon
+        pdf.setFillColor("#D1D5DB");
+        pdf.rect(tx + 18, ty + 14, 24, 16, "F");
+        pdf.setFillColor("#9CA3AF");
+        pdf.circle(tx + 30, ty + 22, 4, "F");
+        setText(8, "#6B7280");
+        pdf.text(`Photo ${i + 1}`, tx + thumbW / 2, ty + thumbH - 4, { align: "center" });
+      }
+      y += thumbH + 16;
+      pdf.setDrawColor("#F3F4F6");
+      pdf.setLineWidth(0.5);
+      pdf.line(M, y, pageW - M, y);
+
+      // ===== SECTION 3 — ESTIMATE BREAKDOWN =====
+      sectionLabel("Estimate Breakdown");
+      const colItem = M;
+      const colScope = M + 190;
+      const colLabor = M + 260;
+      const colBasis = M + 310;
+      const colEst = pageW - M;
+      need(24);
+      setText(11, "#6B7280", true);
+      pdf.text("LINE ITEM", colItem, y + 10);
+      pdf.text("SCOPE", colScope, y + 10);
+      pdf.text("LABOR", colLabor, y + 10);
+      pdf.text("COST BASIS", colBasis, y + 10);
+      pdf.text("DRAFT ESTIMATE", colEst, y + 10, { align: "right" });
+      y += 18;
+      pdf.setDrawColor("#E5E7EB");
+      pdf.setLineWidth(0.5);
+      pdf.line(M, y, pageW - M, y);
+      y += 6;
+
+      const badgeColors: Record<SourceKey, { bg: string; fg: string; border?: string }> = {
+        mitchell: { bg: "#EFF6FF", fg: "#1D4ED8" },
+        ccc: { bg: "#F5F3FF", fg: "#6D28D9" },
+        oem: { bg: "#FFFFFF", fg: "#374151", border: "#D1D5DB" },
+        verify: { bg: "#FEF3C7", fg: "#B45309" },
+      };
+
+      claim.parts.forEach((part, i) => {
+        const adjVal = reportAdjusted[i];
+        const hasVerify = part.sources.includes("verify");
+        need(28);
+        const rowY = y + 14;
+        setText(13, "#111827");
+        const nameLines = pdf.splitTextToSize(part.name, 180) as string[];
+        pdf.text(nameLines[0], colItem, rowY);
+        setText(13, "#374151");
+        pdf.text(part.suggestedRepairScope, colScope, rowY);
+        pdf.text(`${part.laborHours}h`, colLabor, rowY);
+        let bx = colBasis;
+        part.sources.forEach((src) => {
+          const c = badgeColors[src];
+          const w = drawBadge(SOURCE_META[src].short, bx, rowY - 4, c.bg, c.fg, c.border);
+          bx += w + 4;
+        });
+        // amount (right-aligned)
+        if (hasVerify) {
+          // warning triangle
+          const tri = colEst - pdf.getTextWidth(fmtCurrency(adjVal)) - 14;
+          pdf.setFillColor("#F59E0B");
+          pdf.triangle(tri, rowY - 1, tri + 9, rowY - 1, tri + 4.5, rowY - 9, "F");
+          setText(13, "#B45309", true);
+        } else {
+          setText(13, "#111827");
+        }
+        pdf.text(fmtCurrency(adjVal), colEst, rowY, { align: "right" });
+        y += 24;
+        pdf.setDrawColor("#F3F4F6");
+        pdf.setLineWidth(0.5);
+        pdf.line(M, y, pageW - M, y);
+      });
+
+      // totals row
+      need(36);
+      pdf.setDrawColor("#111827");
+      pdf.setLineWidth(1.5);
+      pdf.line(M, y, pageW - M, y);
+      y += 4;
+      setText(13, "#111827", true);
+      pdf.text("Total", M, y + 16);
+      pdf.text(fmtCurrency(reportTotal), pageW - M, y + 16, { align: "right" });
+      y += 24;
+      wrapped(
+        "Lines marked Verify are extrapolated from comparable claims and require senior adjuster confirmation before authorization.",
+        M,
+        W,
+        11,
+        "#6B7280",
       );
 
-      section("Verification & Authorization Record");
-      row("Verification Checks", `${checks.filter(Boolean).length} of ${checks.length} completed`);
-      row("Submission Status", seniorReview ? "Pending senior adjuster authorization" : "Ready for adjuster authorization");
-      row("Report Source", "Generated from Step 4 Estimate Review workspace");
+      // ===== SECTION 4 — ESTIMATE SOURCES =====
+      sectionLabel("Estimate Sources");
+      const srcRows: { key: SourceKey; desc: string }[] = [
+        { key: "mitchell", desc: "Labor benchmarks" },
+        { key: "ccc", desc: "Parts pricing" },
+        { key: "oem", desc: "Procedure compliance" },
+        { key: "verify", desc: "Extrapolated, verification required" },
+      ];
+      srcRows.forEach((r) => {
+        need(22);
+        const c = badgeColors[r.key];
+        const w = drawBadge(SOURCE_META[r.key].short, M, y + 10, c.bg, c.fg, c.border);
+        setText(13, "#374151");
+        pdf.text(`— ${r.desc}`, M + w + 10, y + 14);
+        y += 22;
+      });
+      y += 4;
+      wrapped(
+        "Methodology: Draft estimates combine third-party labor benchmarks, current parts pricing, and OEM repair procedures. Items lacking sufficient evidence are extrapolated from comparable claims and flagged for human verification.",
+        M,
+        W,
+        12,
+        "#6B7280",
+      );
+
+      // ===== SECTION 5 — ADJUSTER NOTES =====
+      sectionLabel("Adjuster Notes");
+      const notesText = adjusterNotes.trim();
+      setText(13, "#111827");
+      const noteLines = pdf.splitTextToSize(
+        notesText || "No adjuster notes entered for this claim.",
+        W - 24,
+      ) as string[];
+      const boxH = Math.max(44, noteLines.length * 16 + 20);
+      need(boxH + 4);
+      pdf.setFillColor("#F9FAFB");
+      pdf.rect(M, y, W, boxH, "F");
+      if (notesText) {
+        setText(13, "#111827");
+      } else {
+        setText(13, "#9CA3AF", false, true);
+      }
+      noteLines.forEach((ln, idx) => pdf.text(ln, M + 12, y + 20 + idx * 16));
+      y += boxH + 12;
+
+      // ===== SECTION 6 — VERIFICATION & AUTHORIZATION =====
+      sectionLabel("Verification & Authorization Record");
+      let verifyText: string;
+      let authText: string;
+      let authBg = "#F3F4F6";
+      let authFg = "#374151";
+      if (workflowState === "FAST_TRACK") {
+        verifyText = "N/A — automated fast-track, no manual verification required";
+        authText = "Auto-authorized pending confirmation";
+        authBg = "#DCFCE7";
+        authFg = "#15803D";
+      } else if (workflowState === "SENIOR_REVIEW") {
+        verifyText = "N/A — senior review claims bypass standard adjuster verification";
+        authText = "Held — pending senior adjuster sign-off";
+        authBg = "#FEF3C7";
+        authFg = "#B45309";
+      } else {
+        const completed = checks.filter(Boolean).length;
+        verifyText = `${completed} of 3 completed`;
+        if (completed === 3) {
+          authText = "Submitted for authorization";
+          authBg = "#DBEAFE";
+          authFg = "#1D4ED8";
+        } else {
+          authText = "Pending adjuster approval";
+          authBg = "#FEF3C7";
+          authFg = "#B45309";
+        }
+      }
+      const vRows: {
+        label: string;
+        value: string;
+        badge?: { bg: string; fg: string };
+      }[] = [
+        { label: "Review type", value: stateLabel },
+        { label: "Verification checks", value: verifyText },
+        { label: "Authorization status", value: authText, badge: { bg: authBg, fg: authFg } },
+        { label: "Adjusted total", value: fmtCurrency(reportTotal) },
+        {
+          label: "Report generated",
+          value: new Date().toLocaleString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          }),
+        },
+      ];
+      vRows.forEach((r) => {
+        need(26);
+        setText(11, "#6B7280");
+        pdf.text(r.label, M, y + 14);
+        if (r.badge) {
+          drawBadge(r.value, M + 180, y + 12, r.badge.bg, r.badge.fg);
+        } else {
+          setText(13, "#111827");
+          const vLines = pdf.splitTextToSize(r.value, W - 180) as string[];
+          vLines.forEach((ln, idx) => pdf.text(ln, M + 180, y + 14 + idx * 14));
+          if (vLines.length > 1) y += (vLines.length - 1) * 14;
+        }
+        y += 22;
+        pdf.setDrawColor("#F3F4F6");
+        pdf.setLineWidth(0.5);
+        pdf.line(M, y, pageW - M, y);
+      });
+
+      // ===== FOOTER on every page =====
+      const totalPages = pdf.getNumberOfPages();
+      for (let p = 1; p <= totalPages; p++) {
+        pdf.setPage(p);
+        const fy = pageH - 28;
+        pdf.setDrawColor("#E5E7EB");
+        pdf.setLineWidth(0.5);
+        pdf.line(M, fy - 12, pageW - M, fy - 12);
+        setText(11, "#9CA3AF");
+        pdf.text(
+          "Draft assessment generated for review purposes. Not a final repair authorization.",
+          M,
+          fy,
+        );
+        pdf.text(`Claim #${claim.id} · ${dateStr}`, pageW - M, fy, { align: "right" });
+      }
 
       pdf.save(fileName);
       toast.success("Report downloaded", { id: tid, description: fileName });
