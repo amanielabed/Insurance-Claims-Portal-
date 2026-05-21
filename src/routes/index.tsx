@@ -1164,10 +1164,14 @@ function InitiateClaimStep({
                   make: validated.make,
                   model: validated.model,
                   vehicleAutoFilled: true,
+                  coverage: validated.coverage,
+                  fault: fault || "",
+                  deductible: deductible,
                 }));
               }
               setEligibilityPassed(true);
             }}
+
           />
         ) : (
         <div>
