@@ -2884,6 +2884,55 @@ function EstimateReviewPanel({
       pdf.setLineWidth(0.5);
       pdf.line(M, y, pageW - M, y);
 
+      // ===== SECTION 2b — COVERAGE SUMMARY =====
+      sectionLabel("Coverage Summary");
+      const cv = cf?.coverage;
+      const ft = cf?.fault;
+      const coverageTypeText =
+        cv === "full" ? "Full Coverage (Comprehensive)" :
+        cv === "third_party" ? "Third-Party Coverage" : "—";
+      const faultText =
+        ft === "policyholder" ? "Policyholder at fault" :
+        ft === "other" ? "Other party at fault" :
+        ft === "unclear" ? "Fault disputed / unclear" :
+        ft === "single_vehicle" ? "Single-vehicle incident" : "—";
+      const dedVal = cf?.deductible?.trim();
+      const deductibleApplicable =
+        cv === "full" && ft === "policyholder"
+          ? (dedVal ? `Yes — $${dedVal}` : "Yes — amount pending")
+          : cv === "full"
+            ? "No"
+            : cv === "third_party"
+              ? "No — third-party policy"
+              : "Pending";
+      const claimBasis =
+        cv === "full"
+          ? "Own damage — full coverage"
+          : cv === "third_party"
+            ? "Third-party documentation — liability claim"
+            : "—";
+      const covRows: [string, string][] = [
+        ["Coverage type", coverageTypeText],
+        ["Fault determination", faultText],
+        ["Deductible applicable", deductibleApplicable],
+        ["Claim basis", claimBasis],
+      ];
+      covRows.forEach(([label, val]) => {
+        need(24);
+        setText(11, "#6B7280");
+        pdf.text(label, labelX, y + 14);
+        setText(13, "#111827");
+        const wrapped = pdf.splitTextToSize(val, pageW - M - valX) as string[];
+        wrapped.forEach((ln, idx) => pdf.text(ln, valX, y + 14 + idx * 14));
+        y += 22 + Math.max(0, (wrapped.length - 1) * 14);
+        pdf.setDrawColor("#F3F4F6");
+        pdf.setLineWidth(0.5);
+        pdf.line(M, y, pageW - M, y);
+      });
+      y += 4;
+
+
+
       // ===== SECTION 3 — ESTIMATE BREAKDOWN =====
       sectionLabel("Estimate Breakdown");
       const colItem = M;
