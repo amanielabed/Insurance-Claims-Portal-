@@ -1572,8 +1572,8 @@ function ReviewEstimateStep({
       </div>
 
       <main
-        key={claim.id + workflowState}
-        className="flex-1 min-h-0 grid grid-cols-3 gap-4 p-4 animate-fade-in"
+        key={claim.id}
+        className="flex-1 min-h-0 grid grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(420px,1.35fr)] gap-4 p-4 animate-fade-in"
       >
         {/* Damage Photo */}
         <Panel title="Damage Photo">
