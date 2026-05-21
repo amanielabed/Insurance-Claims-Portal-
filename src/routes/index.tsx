@@ -58,20 +58,23 @@ interface ScenarioMeta {
 const SCENARIOS: ScenarioMeta[] = [
   {
     id: "2026-001",
-    label: "Simple Claim (Demo)",
-    description: "Minor cosmetic damage with low review complexity",
+    label: "Fast-Track Approval (Demo)",
+    description:
+      "Low-complexity cosmetic damage with clear photo evidence and minimal review requirements.",
     state: "FAST_TRACK",
   },
   {
     id: "2026-002",
-    label: "Ambiguous Claim (Demo)",
-    description: "Moderate uncertainty requiring manual verification",
+    label: "Verification Required (Demo)",
+    description:
+      "Moderate uncertainty requiring manual review and additional verification before authorization.",
     state: "MANUAL_REVIEW",
   },
   {
     id: "2026-003",
-    label: "Complex Claim (Demo)",
-    description: "High-value structural review requiring senior authorization",
+    label: "Senior Review Required (Demo)",
+    description:
+      "High-severity or high-value claim requiring escalation and senior adjuster authorization.",
     state: "SENIOR_REVIEW",
   },
 ];
