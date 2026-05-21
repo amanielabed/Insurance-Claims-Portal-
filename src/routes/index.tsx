@@ -14,38 +14,55 @@ function Index() {
   const [claim, setClaim] = useState(CLAIMS[0].id);
 
   return (
-    <div className="min-h-screen text-white" style={{ backgroundColor: "#0F1117" }}>
+    <div
+      className="flex flex-col h-screen"
+      style={{ backgroundColor: "#F8FAFC", color: "#1F2937" }}
+    >
       <header
-        className="flex items-center justify-between px-6 py-4 border-b border-white/5"
-        style={{ backgroundColor: "#1A1D27" }}
+        className="flex items-center justify-between px-6 h-14 border-b shrink-0"
+        style={{ backgroundColor: "#FFFFFF", borderColor: "#E5E7EB" }}
       >
-        <h1 className="text-lg font-semibold tracking-tight">
-          Claims Delegation Cockpit
-        </h1>
-        <select
-          value={claim}
-          onChange={(e) => setClaim(e.target.value)}
-          className="px-3 py-2 text-sm rounded-md border border-white/10 focus:outline-none focus:ring-2"
-          style={{
-            backgroundColor: "#0F1117",
-            color: "white",
-            // @ts-expect-error css var
-            "--tw-ring-color": "#4F6EF7",
-          }}
-        >
-          {CLAIMS.map((c) => (
-            <option key={c.id} value={c.id} style={{ backgroundColor: "#1A1D27" }}>
-              {c.label}
-            </option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          <span
+            className="inline-block w-2 h-2 rounded-sm"
+            style={{ backgroundColor: "#2563EB" }}
+          />
+          <h1 className="text-sm font-semibold tracking-tight" style={{ color: "#1F2937" }}>
+            Claims Delegation Cockpit
+          </h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium" style={{ color: "#6B7280" }}>
+            Active claim
+          </label>
+          <select
+            value={claim}
+            onChange={(e) => setClaim(e.target.value)}
+            className="px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-offset-0"
+            style={{
+              backgroundColor: "#FFFFFF",
+              color: "#1F2937",
+              borderColor: "#D1D5DB",
+            }}
+          >
+            {CLAIMS.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </header>
 
-      <main className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6">
+      <main className="flex-1 min-h-0 grid grid-cols-3 gap-4 p-4">
         <Panel title="Damage Photo">
           <div
-            className="flex items-center justify-center h-80 rounded-md border border-dashed border-white/10 text-sm text-white/40"
-            style={{ backgroundColor: "#0F1117" }}
+            className="flex items-center justify-center h-full rounded-md border border-dashed text-sm"
+            style={{
+              backgroundColor: "#F1F5F9",
+              borderColor: "#CBD5E1",
+              color: "#64748B",
+            }}
           >
             Photo placeholder
           </div>
@@ -60,16 +77,21 @@ function Index() {
 function Panel({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
     <section
-      className="p-5 rounded-lg border border-white/5"
-      style={{ backgroundColor: "#1A1D27" }}
+      className="flex flex-col min-h-0 rounded-lg border"
+      style={{ backgroundColor: "#FFFFFF", borderColor: "#E5E7EB" }}
     >
-      <div className="flex items-center gap-2 mb-4">
-        <span className="w-1.5 h-4 rounded-sm" style={{ backgroundColor: "#4F6EF7" }} />
-        <h2 className="text-sm font-medium uppercase tracking-wider text-white/80">
+      <header
+        className="flex items-center justify-between px-4 h-11 border-b shrink-0"
+        style={{ borderColor: "#E5E7EB" }}
+      >
+        <h2
+          className="text-xs font-semibold uppercase tracking-wider"
+          style={{ color: "#6B7280" }}
+        >
           {title}
         </h2>
-      </div>
-      {children}
+      </header>
+      <div className="flex-1 min-h-0 p-4">{children}</div>
     </section>
   );
 }
