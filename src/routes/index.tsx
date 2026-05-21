@@ -179,59 +179,7 @@ function Index() {
       <main className="flex-1 min-h-0 grid grid-cols-3 gap-4 p-4">
         {/* Damage Photo */}
         <Panel title="Damage Photo">
-          <div className="flex flex-col h-full gap-3">
-            <div
-              className="flex items-center justify-center flex-1 rounded-md border-2 text-sm min-h-0"
-              style={{
-                backgroundColor: "#F1F5F9",
-                borderColor: isFastTrack
-                  ? "rgba(34,197,94,0.4)"
-                  : COLORS.amber,
-                borderStyle: isFastTrack ? "dashed" : "solid",
-                color: "#64748B",
-              }}
-            >
-              <div className="text-center px-4">
-                <div className="mb-2 font-medium" style={{ color: "#475569" }}>
-                  {claim.imagePlaceholder}
-                </div>
-                <div className="text-xs" style={{ color: "#94A3B8" }}>
-                  Claim {claim.id}
-                </div>
-              </div>
-            </div>
-            {!isFastTrack && (
-              <div
-                className="text-xs px-3 py-2 rounded-md"
-                style={{
-                  backgroundColor: COLORS.amberBg,
-                  color: COLORS.amberText,
-                  border: `1px solid ${COLORS.amberBorder}`,
-                }}
-              >
-                Review image carefully — structural damage possible
-              </div>
-            )}
-            <div className="shrink-0">
-              {isFastTrack ? (
-                <Badge
-                  dot={COLORS.green}
-                  bg={COLORS.greenBg}
-                  fg={COLORS.greenText}
-                  border="#BBF7D0"
-                  text="Auto-Route Eligible"
-                />
-              ) : (
-                <Badge
-                  dot={COLORS.amber}
-                  bg={COLORS.amberBg}
-                  fg={COLORS.amberText}
-                  border={COLORS.amberBorder}
-                  text="Verification Required"
-                />
-              )}
-            </div>
-          </div>
+          <DamagePhotoPanel claim={claim} />
         </Panel>
 
         {/* Center: Initial Assessment / Review Confidence */}
