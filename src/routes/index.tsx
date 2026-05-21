@@ -2206,7 +2206,7 @@ function EstimateReviewPanel({
                           <button
                             key={src}
                             type="button"
-                            onClick={() => toggleSource(i, src)}
+                            onClick={(e) => { e.stopPropagation(); toggleSource(i, src); }}
                             className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border transition-colors"
                             style={{
                               backgroundColor: meta.bg,
