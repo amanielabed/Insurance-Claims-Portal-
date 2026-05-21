@@ -143,15 +143,7 @@ function Index() {
             onBack={() => setStep(1)}
           />
         )}
-        {step === 3 && (
-          <SimpleStep
-            title="Draft Assessment"
-            description="The system is preparing a draft assessment based on the submitted information and photos."
-            ctaLabel="Continue to Estimate Review →"
-            onContinue={() => setStep(4)}
-            onBack={() => setStep(2)}
-          />
-        )}
+        {step === 3 && <DraftAssessmentStep onComplete={() => setStep(4)} />}
         {step === 4 && <ReviewEstimateStep />}
       </div>
     </div>
