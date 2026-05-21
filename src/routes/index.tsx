@@ -670,7 +670,17 @@ const INCIDENT_TYPES = [
   "Hail / Weather",
   "Vandalism",
   "Single vehicle",
+  "Other",
 ] as const;
+
+type PolicyLookup = { year: string; make: string; model: string };
+
+function lookupPolicy(policyNumber: string): PolicyLookup | null {
+  const p = policyNumber.trim().toUpperCase();
+  if (p.startsWith("POL-2026")) return { year: "2023", make: "Toyota", model: "Camry XSE" };
+  if (p.startsWith("POL-2025")) return { year: "2021", make: "Honda", model: "CR-V EX" };
+  return null;
+}
 
 interface ClaimForm {
   policyNumber: string;
@@ -678,13 +688,14 @@ interface ClaimForm {
   dateOfLoss: string;
   contactPhone: string;
   incidentType: string;
+  incidentTypeOther: string;
   description: string;
   location: string;
-  injured: boolean;
   year: string;
   make: string;
   model: string;
   vin: string;
+  vehicleAutoFilled: boolean;
 }
 
 const emptyForm = (): ClaimForm => ({
@@ -693,30 +704,36 @@ const emptyForm = (): ClaimForm => ({
   dateOfLoss: new Date().toISOString().slice(0, 10),
   contactPhone: "",
   incidentType: "",
+  incidentTypeOther: "",
   description: "",
   location: "",
-  injured: false,
   year: "",
   make: "",
   model: "",
   vin: "",
+  vehicleAutoFilled: false,
 });
 
-const demoForm = (): ClaimForm => ({
-  policyNumber: "POL-2026-48201",
-  fullName: "Jordan M. Whitaker",
-  dateOfLoss: new Date().toISOString().slice(0, 10),
-  contactPhone: "(415) 555-0142",
-  incidentType: "Rear-end collision",
-  description:
-    "Vehicle was struck from behind at a stoplight on Market St. Visible damage to rear bumper and trunk area. No airbag deployment.",
-  location: "Market St & 5th Ave, San Francisco, CA",
-  injured: false,
-  year: "2022",
-  make: "Toyota",
-  model: "Camry SE",
-  vin: "4T1G11AK5NU712398",
-});
+const demoForm = (): ClaimForm => {
+  const policyNumber = "POL-2026-48201";
+  const lookup = lookupPolicy(policyNumber)!;
+  return {
+    policyNumber,
+    fullName: "Jordan M. Whitaker",
+    dateOfLoss: new Date().toISOString().slice(0, 10),
+    contactPhone: "(415) 555-0142",
+    incidentType: "Rear-end collision",
+    incidentTypeOther: "",
+    description:
+      "Vehicle was struck from behind at a stoplight on Market St. Visible damage to rear bumper and trunk area. No airbag deployment.",
+    location: "Market St & 5th Ave, San Francisco, CA",
+    year: lookup.year,
+    make: lookup.make,
+    model: lookup.model,
+    vin: "4T1G11AK5NU712398",
+    vehicleAutoFilled: true,
+  };
+};
 
 function InitiateClaimStep({
   initial,
@@ -727,6 +744,7 @@ function InitiateClaimStep({
 }) {
   const [form, setForm] = useState<ClaimForm>(() => initial ?? emptyForm());
   const [errors, setErrors] = useState<Partial<Record<keyof ClaimForm, string>>>({});
+  const [policyMsg, setPolicyMsg] = useState<string | null>(null);
 
   const update = <K extends keyof ClaimForm>(key: K, value: ClaimForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -739,14 +757,45 @@ function InitiateClaimStep({
     if (!form.fullName.trim()) next.fullName = "Full name is required.";
     if (!form.dateOfLoss) next.dateOfLoss = "Date of loss is required.";
     if (!form.incidentType) next.incidentType = "Select an incident type.";
+    if (form.incidentType === "Other" && !form.incidentTypeOther.trim())
+      next.incidentTypeOther = "Please describe the incident type.";
     if (!form.description.trim()) next.description = "Brief description is required.";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
 
+  const handlePolicyBlur = () => {
+    const value = form.policyNumber.trim();
+    if (!value) {
+      setPolicyMsg(null);
+      return;
+    }
+    const result = lookupPolicy(value);
+    if (result) {
+      setForm((prev) => ({
+        ...prev,
+        year: result.year,
+        make: result.make,
+        model: result.model,
+        vehicleAutoFilled: true,
+      }));
+      setPolicyMsg(null);
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        year: "",
+        make: "",
+        model: "",
+        vehicleAutoFilled: false,
+      }));
+      setPolicyMsg("Policy not found. Please enter vehicle details manually.");
+    }
+  };
+
   const handleSubmit = () => {
     if (validate()) onContinue(form);
   };
+
 
 
   const charCount = form.description.length;
@@ -778,9 +827,15 @@ function InitiateClaimStep({
             <TextInput
               value={form.policyNumber}
               onChange={(v) => update("policyNumber", v)}
+              onBlur={handlePolicyBlur}
               placeholder="POL-2026-XXXXX"
               invalid={!!errors.policyNumber}
             />
+            {policyMsg && (
+              <p className="text-[11px] mt-1" style={{ color: COLORS.amberText }}>
+                {policyMsg}
+              </p>
+            )}
           </Field>
           <Field label="Full Name" required error={errors.fullName}>
             <TextInput
@@ -808,7 +863,7 @@ function InitiateClaimStep({
         </FormSection>
 
         <FormSection title="Incident Details">
-          <Field label="Incident Type" required error={errors.incidentType}>
+          <Field label="Incident Type" required error={errors.incidentType} className="md:col-span-2">
             <select
               value={form.incidentType}
               onChange={(e) => update("incidentType", e.target.value)}
@@ -826,6 +881,25 @@ function InitiateClaimStep({
                 </option>
               ))}
             </select>
+            {form.incidentType === "Other" && (
+              <div className="mt-2 animate-fade-in">
+                <TextInput
+                  value={form.incidentTypeOther}
+                  onChange={(v) => update("incidentTypeOther", v)}
+                  placeholder="Please describe the incident type"
+                  invalid={!!errors.incidentTypeOther}
+                />
+                {errors.incidentTypeOther && (
+                  <p className="text-[11px] mt-1" style={{ color: "#DC2626" }}>
+                    {errors.incidentTypeOther}
+                  </p>
+                )}
+              </div>
+            )}
+            <p className="text-[11px] mt-2" style={{ color: COLORS.muted }}>
+              This form is for own-vehicle damage claims only. For third-party or liability claims,
+              contact your claims supervisor.
+            </p>
           </Field>
           <Field
             label="Brief Description"
@@ -856,73 +930,56 @@ function InitiateClaimStep({
               placeholder="Street, city, state"
             />
           </Field>
-          <Field label="Was anyone injured?" className="md:col-span-2">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                role="switch"
-                aria-checked={form.injured}
-                onClick={() => update("injured", !form.injured)}
-                className="relative inline-flex h-6 w-11 rounded-full transition-colors"
-                style={{
-                  backgroundColor: form.injured ? COLORS.amber : "#D1D5DB",
-                }}
-              >
-                <span
-                  className="inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform"
-                  style={{ transform: form.injured ? "translateX(22px)" : "translateX(2px)", marginTop: 2 }}
-                />
-              </button>
-              <span className="text-sm" style={{ color: COLORS.text }}>
-                {form.injured ? "Yes" : "No"}
-              </span>
-            </div>
-            {form.injured && (
-              <div
-                className="mt-3 rounded-md border px-3 py-2 text-xs animate-fade-in"
-                style={{
-                  backgroundColor: COLORS.amberBg,
-                  borderColor: COLORS.amberBorder,
-                  color: COLORS.amberText,
-                }}
-              >
-                ⚠ Claims involving injuries require senior adjuster review.
-              </div>
-            )}
-          </Field>
         </FormSection>
 
         <FormSection title="Vehicle Information">
-          <Field label="Year">
-            <TextInput
-              type="number"
-              value={form.year}
-              onChange={(v) => update("year", v)}
-              placeholder="2024"
-            />
-          </Field>
-          <Field label="Make">
-            <TextInput
-              value={form.make}
-              onChange={(v) => update("make", v)}
-              placeholder="Toyota"
-            />
-          </Field>
-          <Field label="Model">
-            <TextInput
-              value={form.model}
-              onChange={(v) => update("model", v)}
-              placeholder="Camry"
-            />
-          </Field>
-          <Field label="VIN">
+          {form.vehicleAutoFilled && (
+            <div
+              className="md:col-span-2 -mt-1 mb-1 inline-flex items-center gap-2 text-[11px] font-medium px-2 py-1 rounded"
+              style={{ backgroundColor: "#EFF6FF", color: "#1D4ED8", width: "fit-content" }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#1D4ED8" }} />
+              Retrieved from policy record
+            </div>
+          )}
+          {form.vehicleAutoFilled && (
+            <>
+              <Field label="Year">
+                <TextInput
+                  type="number"
+                  value={form.year}
+                  onChange={(v) => update("year", v)}
+                  placeholder="2024"
+                  highlight
+                />
+              </Field>
+              <Field label="Make">
+                <TextInput
+                  value={form.make}
+                  onChange={(v) => update("make", v)}
+                  placeholder="Toyota"
+                  highlight
+                />
+              </Field>
+              <Field label="Model">
+                <TextInput
+                  value={form.model}
+                  onChange={(v) => update("model", v)}
+                  placeholder="Camry"
+                  highlight
+                />
+              </Field>
+            </>
+          )}
+          <Field label="VIN" className="md:col-span-2">
             <TextInput
               value={form.vin}
               onChange={(v) => update("vin", v)}
-              placeholder="Optional"
+              placeholder="Auto-populated where available"
             />
           </Field>
         </FormSection>
+
 
         <div className="mt-8 flex justify-end">
           <button
@@ -989,26 +1046,31 @@ function Field({
 function TextInput({
   value,
   onChange,
+  onBlur,
   placeholder,
   type = "text",
   invalid,
+  highlight,
 }: {
   value: string;
   onChange: (v: string) => void;
+  onBlur?: () => void;
   placeholder?: string;
   type?: string;
   invalid?: boolean;
+  highlight?: boolean;
 }) {
   return (
     <input
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      onBlur={onBlur}
       placeholder={placeholder}
       className="w-full h-10 rounded-md border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
       style={{
-        borderColor: invalid ? "#DC2626" : "#D1D5DB",
-        backgroundColor: COLORS.surface,
+        borderColor: invalid ? "#DC2626" : highlight ? "#BFDBFE" : "#D1D5DB",
+        backgroundColor: highlight ? "#EFF6FF" : COLORS.surface,
         color: COLORS.text,
       }}
     />
