@@ -139,7 +139,76 @@ const claimData: Claim[] = [
       description: "This claim may involve structural damage. Recommended reviewer: Structural damage specialist.",
     },
   },
+  {
+    id: "2026-003",
+    type: "Multi-Panel Structural",
+    delegationState: "SENIOR_REVIEW",
+    reviewConfidence: "Low",
+    riskLevel: "HIGH",
+    estimatedCost: 8400,
+    estimatedCostLabel: "$8,400+",
+    confidenceLabel:
+      "Multi-panel impact with possible frame involvement. High estimated repair value exceeds standard approval threshold.",
+    actionMessage:
+      "Senior authorization required. This claim must be reviewed by a senior adjuster before authorization.",
+    imagePlaceholder: "Multi-panel structural damage",
+    imageUrl: claimComplexImage,
+    parts: [
+      {
+        name: "Front bumper assembly",
+        suggestedRepairScope: "Replace",
+        draftEstimate: 1450,
+        laborHours: 4.0,
+        flagged: false,
+        sources: ["mitchell", "oem"],
+      },
+      {
+        name: "Driver-side fender",
+        suggestedRepairScope: "Replace",
+        draftEstimate: 1280,
+        laborHours: 5.5,
+        flagged: false,
+        sources: ["mitchell", "ccc"],
+      },
+      {
+        name: "Hood panel",
+        suggestedRepairScope: "Replace",
+        draftEstimate: 1620,
+        laborHours: 3.5,
+        flagged: false,
+        sources: ["mitchell", "oem"],
+      },
+      {
+        name: "Front frame rail repair",
+        suggestedRepairScope: "Inspect & Repair",
+        draftEstimate: 2800,
+        laborHours: 8.0,
+        flagged: true,
+        sources: ["oem", "verify"],
+      },
+      {
+        name: "Radiator support",
+        suggestedRepairScope: "Replace",
+        draftEstimate: 1250,
+        laborHours: 4.5,
+        flagged: true,
+        sources: ["oem", "verify"],
+      },
+    ],
+    verificationConcerns: [
+      "Multi-panel impact suggests possible frame involvement",
+      "Estimated repair value exceeds standard adjuster approval threshold",
+      "Structural integrity cannot be confirmed from photo evidence alone",
+    ],
+    recommendedReviewer: {
+      title: "Recommended Reviewer",
+      description:
+        "High-value structural claim. Recommended reviewer: Senior adjuster with structural authority.",
+    },
+  },
 ];
+
+
 
 const COLORS = {
   bg: "#F8FAFC",
