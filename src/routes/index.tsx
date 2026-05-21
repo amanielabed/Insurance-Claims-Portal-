@@ -22,10 +22,11 @@ interface Part {
 interface Claim {
   id: string;
   type: string;
-  delegationState: "FAST_TRACK" | "MANUAL_REVIEW";
+  delegationState: "FAST_TRACK" | "MANUAL_REVIEW" | "SENIOR_REVIEW";
   reviewConfidence: "High" | "Moderate" | "Low";
   riskLevel: "LOW" | "MEDIUM" | "HIGH";
   estimatedCost: number;
+  estimatedCostLabel?: string;
   confidenceLabel: string;
   actionMessage: string;
   imagePlaceholder: string;
@@ -37,6 +38,40 @@ interface Claim {
     description: string;
   };
 }
+
+interface ScenarioMeta {
+  id: string;
+  label: string;
+  description: string;
+  state: "FAST_TRACK" | "MANUAL_REVIEW" | "SENIOR_REVIEW";
+}
+
+const SCENARIOS: ScenarioMeta[] = [
+  {
+    id: "2026-001",
+    label: "Simple Claim (Demo)",
+    description: "Minor cosmetic damage with low review complexity",
+    state: "FAST_TRACK",
+  },
+  {
+    id: "2026-002",
+    label: "Ambiguous Claim (Demo)",
+    description: "Moderate uncertainty requiring manual verification",
+    state: "MANUAL_REVIEW",
+  },
+  {
+    id: "2026-003",
+    label: "Complex Claim (Demo)",
+    description: "High-value structural review requiring senior authorization",
+    state: "SENIOR_REVIEW",
+  },
+];
+
+const STATE_DOT: Record<ScenarioMeta["state"], string> = {
+  FAST_TRACK: "#22C55E",
+  MANUAL_REVIEW: "#F59E0B",
+  SENIOR_REVIEW: "#DC2626",
+};
 
 const claimData: Claim[] = [
   {
@@ -69,6 +104,7 @@ const claimData: Claim[] = [
     reviewConfidence: "Moderate",
     riskLevel: "HIGH",
     estimatedCost: 1240,
+    estimatedCostLabel: "$1,240–$2,100",
     confidenceLabel:
       "Low resolution on rear quarter panel. Possible hidden structural damage behind deformation.",
     actionMessage:
@@ -103,7 +139,76 @@ const claimData: Claim[] = [
       description: "This claim may involve structural damage. Recommended reviewer: Structural damage specialist.",
     },
   },
+  {
+    id: "2026-003",
+    type: "Multi-Panel Structural",
+    delegationState: "SENIOR_REVIEW",
+    reviewConfidence: "Low",
+    riskLevel: "HIGH",
+    estimatedCost: 8400,
+    estimatedCostLabel: "$8,400+",
+    confidenceLabel:
+      "Multi-panel impact with possible frame involvement. High estimated repair value exceeds standard approval threshold.",
+    actionMessage:
+      "Senior authorization required. This claim must be reviewed by a senior adjuster before authorization.",
+    imagePlaceholder: "Multi-panel structural damage",
+    imageUrl: claimComplexImage,
+    parts: [
+      {
+        name: "Front bumper assembly",
+        suggestedRepairScope: "Replace",
+        draftEstimate: 1450,
+        laborHours: 4.0,
+        flagged: false,
+        sources: ["mitchell", "oem"],
+      },
+      {
+        name: "Driver-side fender",
+        suggestedRepairScope: "Replace",
+        draftEstimate: 1280,
+        laborHours: 5.5,
+        flagged: false,
+        sources: ["mitchell", "ccc"],
+      },
+      {
+        name: "Hood panel",
+        suggestedRepairScope: "Replace",
+        draftEstimate: 1620,
+        laborHours: 3.5,
+        flagged: false,
+        sources: ["mitchell", "oem"],
+      },
+      {
+        name: "Front frame rail repair",
+        suggestedRepairScope: "Inspect & Repair",
+        draftEstimate: 2800,
+        laborHours: 8.0,
+        flagged: true,
+        sources: ["oem", "verify"],
+      },
+      {
+        name: "Radiator support",
+        suggestedRepairScope: "Replace",
+        draftEstimate: 1250,
+        laborHours: 4.5,
+        flagged: true,
+        sources: ["oem", "verify"],
+      },
+    ],
+    verificationConcerns: [
+      "Multi-panel impact suggests possible frame involvement",
+      "Estimated repair value exceeds standard adjuster approval threshold",
+      "Structural integrity cannot be confirmed from photo evidence alone",
+    ],
+    recommendedReviewer: {
+      title: "Recommended Reviewer",
+      description:
+        "High-value structural claim. Recommended reviewer: Senior adjuster with structural authority.",
+    },
+  },
 ];
+
+
 
 const COLORS = {
   bg: "#F8FAFC",
@@ -1171,17 +1276,20 @@ function ReviewEstimateStep({
     [selectedId],
   );
 
-  const [seniorReview, setSeniorReview] = useState(false);
+  const [seniorReview, setSeniorReview] = useState(claim.delegationState === "SENIOR_REVIEW");
+  const [scenarioOpen, setScenarioOpen] = useState(false);
 
-  // Reset escalation when switching claims
+  // Sync escalation when switching claims — auto-load senior review for SENIOR_REVIEW scenarios
   useEffect(() => {
-    setSeniorReview(false);
-  }, [selectedId]);
+    setSeniorReview(claim.delegationState === "SENIOR_REVIEW");
+  }, [selectedId, claim.delegationState]);
 
   const isFastTrack = claim.delegationState === "FAST_TRACK";
 
   const workflowState: "FAST_TRACK" | "MANUAL_REVIEW" | "SENIOR_REVIEW" =
-    seniorReview ? "SENIOR_REVIEW" : isFastTrack ? "FAST_TRACK" : "MANUAL_REVIEW";
+    seniorReview || claim.delegationState === "SENIOR_REVIEW"
+      ? "SENIOR_REVIEW"
+      : claim.delegationState;
 
   const workflowLabel = {
     FAST_TRACK: "Fast-Track",
@@ -1194,6 +1302,8 @@ function ReviewEstimateStep({
     MANUAL_REVIEW: { bar: COLORS.amber, bg: COLORS.amberBg, fg: COLORS.amberText },
     SENIOR_REVIEW: { bar: "#DC2626", bg: "#FEF2F2", fg: "#991B1B" },
   }[workflowState];
+
+  const currentScenario = SCENARIOS.find((s) => s.id === selectedId) ?? SCENARIOS[0];
 
   return (
     <div
@@ -1260,25 +1370,71 @@ function ReviewEstimateStep({
           <label className="text-xs font-medium" style={{ color: COLORS.muted }}>
             Scenario
           </label>
-          <select
-            value={selectedId}
-            onChange={(e) => setSelectedId(e.target.value)}
-            className="px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            style={{
-              backgroundColor: COLORS.surface,
-              color: COLORS.text,
-              borderColor: "#D1D5DB",
-            }}
-          >
-            <option value="2026-001">Simple Claim (Demo) — Fast-Track</option>
-            <option value="2026-002">Complex Claim (Demo) — Manual Review</option>
-          </select>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setScenarioOpen((v) => !v)}
+              onBlur={() => setTimeout(() => setScenarioOpen(false), 120)}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[260px]"
+              style={{
+                backgroundColor: COLORS.surface,
+                color: COLORS.text,
+                borderColor: "#D1D5DB",
+              }}
+            >
+              <span
+                className="inline-block w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: STATE_DOT[currentScenario.state] }}
+              />
+              <span className="font-medium truncate">{currentScenario.label}</span>
+              <span className="ml-auto text-xs" style={{ color: COLORS.muted }}>▾</span>
+            </button>
+            {scenarioOpen && (
+              <div
+                className="absolute right-0 mt-1 w-[340px] rounded-md border shadow-lg z-20 overflow-hidden animate-fade-in"
+                style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
+              >
+                {SCENARIOS.map((s) => {
+                  const active = s.id === selectedId;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setSelectedId(s.id);
+                        setScenarioOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2.5 flex items-start gap-3 border-b last:border-b-0 hover:bg-slate-50 transition-colors"
+                      style={{
+                        borderColor: COLORS.border,
+                        backgroundColor: active ? "#F1F5F9" : "transparent",
+                      }}
+                    >
+                      <span
+                        className="inline-block w-2 h-2 rounded-full mt-1.5 shrink-0"
+                        style={{ backgroundColor: STATE_DOT[s.state] }}
+                      />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium" style={{ color: COLORS.text }}>
+                          {s.label}
+                        </div>
+                        <div className="text-xs mt-0.5" style={{ color: COLORS.muted }}>
+                          {s.description}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
       {/* Escalation banner */}
       <div key={workflowState + "-banner"} className="animate-fade-in">
-        {seniorReview ? (
+        {workflowState === "SENIOR_REVIEW" ? (
           <div
             className="flex items-start gap-3 px-6 py-3 border-b shrink-0"
             style={{
@@ -1289,9 +1445,9 @@ function ReviewEstimateStep({
           >
             <span className="text-base leading-5">●</span>
             <div>
-              <div className="text-sm font-semibold">Senior Review Required</div>
+              <div className="text-sm font-semibold">Senior Authorization Required</div>
               <div className="text-xs mt-0.5" style={{ color: "#B91C1C" }}>
-                This claim requires authorization before submission.
+                Estimated repair value exceeds standard adjuster approval threshold. Senior adjuster review is required before authorization.
               </div>
             </div>
           </div>
