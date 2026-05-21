@@ -2087,6 +2087,7 @@ function CostBreakdownPanel({
 
 function EstimateReviewPanel({
   claim,
+  claimForm,
   isFastTrack,
   seniorReview,
   onTriggerSeniorReview,
@@ -2094,6 +2095,7 @@ function EstimateReviewPanel({
   onHighlight,
 }: {
   claim: Claim;
+  claimForm: ClaimForm | null;
   isFastTrack: boolean;
   seniorReview: boolean;
   onTriggerSeniorReview: () => void;
