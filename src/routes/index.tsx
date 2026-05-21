@@ -1644,6 +1644,12 @@ function EstimateReviewPanel({
                 Draft
               </th>
               <th
+                className="text-left font-semibold uppercase tracking-wider text-[10px] pb-2 px-2"
+                style={{ color: COLORS.muted }}
+              >
+                Cost Basis
+              </th>
+              <th
                 className="text-right font-semibold uppercase tracking-wider text-[10px] pb-2 px-2"
                 style={{ color: COLORS.muted }}
               >
