@@ -58,6 +58,7 @@ const claimData: Claim[] = [
         draftEstimate: 187.5,
         laborHours: 1.5,
         flagged: false,
+        sources: ["mitchell", "ccc", "oem"],
       },
     ],
   },
