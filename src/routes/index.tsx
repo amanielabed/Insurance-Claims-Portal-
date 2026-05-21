@@ -766,7 +766,15 @@ function UploadPhotosStep({
             ← Back
           </button>
           <button
-            onClick={onContinue}
+            onClick={() => {
+              const out: UploadedPhoto[] = PHOTO_SLOTS.filter((s) => photos[s.id]).map((s) => ({
+                slotId: s.id,
+                name: s.name,
+                url: photos[s.id],
+                uploadedAt: photoTimes[s.id] ?? Date.now(),
+              }));
+              onContinue(out);
+            }}
             disabled={!sufficient}
             className="text-sm font-semibold px-6 py-3 rounded-md transition-colors"
             style={{
