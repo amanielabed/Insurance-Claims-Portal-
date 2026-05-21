@@ -718,8 +718,14 @@ const demoForm = (): ClaimForm => ({
   vin: "4T1G11AK5NU712398",
 });
 
-function InitiateClaimStep({ onContinue }: { onContinue: () => void }) {
-  const [form, setForm] = useState<ClaimForm>(emptyForm);
+function InitiateClaimStep({
+  initial,
+  onContinue,
+}: {
+  initial: ClaimForm | null;
+  onContinue: (data: ClaimForm) => void;
+}) {
+  const [form, setForm] = useState<ClaimForm>(() => initial ?? emptyForm());
   const [errors, setErrors] = useState<Partial<Record<keyof ClaimForm, string>>>({});
 
   const update = <K extends keyof ClaimForm>(key: K, value: ClaimForm[K]) => {
@@ -739,8 +745,9 @@ function InitiateClaimStep({ onContinue }: { onContinue: () => void }) {
   };
 
   const handleSubmit = () => {
-    if (validate()) onContinue();
+    if (validate()) onContinue(form);
   };
+
 
   const charCount = form.description.length;
 
