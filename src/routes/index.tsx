@@ -2768,9 +2768,19 @@ function EstimateReviewPanel({
 
       // ===== SECTION 1 — REVIEW SUMMARY =====
       sectionLabel("Review Summary");
-      const cardGap = 10;
-      const cardW = (W - 3 * cardGap) / 4;
+      const cardGap = 8;
+      const cardW = (W - 4 * cardGap) / 5;
       const cardH = 60;
+      const cf2 = claimForm;
+      const dedEntered = cf2?.deductible?.trim();
+      const deductibleValue =
+        cf2?.coverage === "full" && cf2?.fault === "policyholder"
+          ? (dedEntered ? `$${dedEntered}` : "$0")
+          : cf2?.coverage === "full"
+            ? "None"
+            : cf2?.coverage === "third_party"
+              ? "N/A"
+              : "—";
       const stats = [
         { label: "Review type", value: stateLabel, color: "#111827" },
         {
@@ -2784,18 +2794,20 @@ function EstimateReviewPanel({
           color: claim.riskLevel === "HIGH" ? "#B91C1C" : "#111827",
         },
         { label: "Draft total", value: fmtCurrency(draftTotal), color: "#111827" },
+        { label: "Deductible", value: deductibleValue, color: "#111827" },
       ];
       need(cardH + 8);
       stats.forEach((s, i) => {
         const x = M + i * (cardW + cardGap);
         pdf.setFillColor("#F3F4F6");
         pdf.roundedRect(x, y, cardW, cardH, 4, 4, "F");
-        setText(11, "#6B7280", false);
-        pdf.text(s.label.toUpperCase(), x + 12, y + 18);
-        setText(15, s.color, true);
-        pdf.text(s.value, x + 12, y + 44);
+        setText(10, "#6B7280", false);
+        pdf.text(s.label.toUpperCase(), x + 10, y + 18);
+        setText(13, s.color, true);
+        pdf.text(s.value, x + 10, y + 44);
       });
       y += cardH + 12;
+
 
       if (workflowState === "SENIOR_REVIEW") {
         const alertH = 52;
