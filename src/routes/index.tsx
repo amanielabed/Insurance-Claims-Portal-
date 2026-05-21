@@ -104,6 +104,7 @@ const claimData: Claim[] = [
     reviewConfidence: "Moderate",
     riskLevel: "HIGH",
     estimatedCost: 1240,
+    estimatedCostLabel: "$1,240–$2,100",
     confidenceLabel:
       "Low resolution on rear quarter panel. Possible hidden structural damage behind deformation.",
     actionMessage:
