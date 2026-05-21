@@ -757,14 +757,45 @@ function InitiateClaimStep({
     if (!form.fullName.trim()) next.fullName = "Full name is required.";
     if (!form.dateOfLoss) next.dateOfLoss = "Date of loss is required.";
     if (!form.incidentType) next.incidentType = "Select an incident type.";
+    if (form.incidentType === "Other" && !form.incidentTypeOther.trim())
+      next.incidentTypeOther = "Please describe the incident type.";
     if (!form.description.trim()) next.description = "Brief description is required.";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
 
+  const handlePolicyBlur = () => {
+    const value = form.policyNumber.trim();
+    if (!value) {
+      setPolicyMsg(null);
+      return;
+    }
+    const result = lookupPolicy(value);
+    if (result) {
+      setForm((prev) => ({
+        ...prev,
+        year: result.year,
+        make: result.make,
+        model: result.model,
+        vehicleAutoFilled: true,
+      }));
+      setPolicyMsg(null);
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        year: "",
+        make: "",
+        model: "",
+        vehicleAutoFilled: false,
+      }));
+      setPolicyMsg("Policy not found. Please enter vehicle details manually.");
+    }
+  };
+
   const handleSubmit = () => {
     if (validate()) onContinue(form);
   };
+
 
 
   const charCount = form.description.length;
