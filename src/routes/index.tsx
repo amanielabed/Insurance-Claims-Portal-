@@ -683,15 +683,63 @@ function EstimateReviewPanel({
       )}
 
       {/* CTA */}
-      {isFastTrack ? (
-        <button
-          className="shrink-0 w-full rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
-          style={{ backgroundColor: COLORS.blue }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
-        >
-          Confirm Estimate
-        </button>
+      {seniorReview ? (
+        <div className="shrink-0 flex flex-col gap-3">
+          <div
+            className="rounded-md border px-3 py-2.5"
+            style={{
+              backgroundColor: "#FEF2F2",
+              borderColor: "#FECACA",
+            }}
+          >
+            <div className="text-sm font-semibold" style={{ color: "#991B1B" }}>
+              Significant estimate variance detected.
+            </div>
+            <div className="text-xs mt-1" style={{ color: "#B91C1C" }}>
+              Final approval must be completed by an authorized senior adjuster.
+            </div>
+          </div>
+          <button
+            disabled
+            className="w-full rounded-md py-2.5 text-sm font-semibold cursor-not-allowed"
+            style={{
+              backgroundColor: "#F3F4F6",
+              color: "#9CA3AF",
+              border: `1px solid ${COLORS.border}`,
+            }}
+          >
+            {isFastTrack ? "Confirm Estimate" : "Submit for Authorization"}
+          </button>
+          <button
+            onClick={() =>
+              toast("Senior adjuster notified. Claim queued for review.")
+            }
+            className="w-full rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
+            style={{ backgroundColor: "#DC2626" }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#B91C1C")}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#DC2626")}
+          >
+            Request Senior Review
+          </button>
+        </div>
+      ) : isFastTrack ? (
+        <div className="shrink-0 flex flex-col gap-2">
+          <button
+            className="w-full rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
+            style={{ backgroundColor: COLORS.blue }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
+          >
+            Confirm Estimate
+          </button>
+          <button
+            onClick={onTriggerSeniorReview}
+            className="text-xs font-medium underline-offset-2 hover:underline self-center"
+            style={{ color: COLORS.muted }}
+          >
+            Flag for Senior Review
+          </button>
+        </div>
       ) : (
         <div className="shrink-0 flex flex-col gap-2">
           <Label>Required Verification Before Submission</Label>
@@ -731,6 +779,13 @@ function EstimateReviewPanel({
               Submit for Authorization
             </button>
           )}
+          <button
+            onClick={onTriggerSeniorReview}
+            className="text-xs font-medium underline-offset-2 hover:underline self-center mt-1"
+            style={{ color: COLORS.muted }}
+          >
+            Flag for Senior Review
+          </button>
         </div>
       )}
     </div>
