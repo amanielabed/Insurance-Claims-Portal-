@@ -964,6 +964,8 @@ function lookupPolicy(policyNumber: string): PolicyLookup | null {
   return null;
 }
 
+type PoliceReportStatus = "uploaded" | "pending" | "not_available" | "";
+
 interface ClaimForm {
   policyNumber: string;
   fullName: string;
@@ -978,6 +980,7 @@ interface ClaimForm {
   model: string;
   vin: string;
   vehicleAutoFilled: boolean;
+  policeReport: PoliceReportStatus;
 }
 
 const emptyForm = (): ClaimForm => ({
@@ -994,7 +997,9 @@ const emptyForm = (): ClaimForm => ({
   model: "",
   vin: "",
   vehicleAutoFilled: false,
+  policeReport: "",
 });
+
 
 const demoForm = (): ClaimForm => {
   const policyNumber = "POL-2026-48201";
@@ -1014,8 +1019,10 @@ const demoForm = (): ClaimForm => {
     model: lookup.model,
     vin: "4T1G11AK5NU712398",
     vehicleAutoFilled: true,
+    policeReport: "uploaded",
   };
 };
+
 
 function InitiateClaimStep({
   initial,
@@ -1282,6 +1289,55 @@ function InitiateClaimStep({
             />
           </Field>
         </FormSection>
+
+        <FormSection title="Documentation">
+          <Field label="Police Report Status" className="md:col-span-2">
+            <select
+              value={form.policeReport}
+              onChange={(e) => update("policeReport", e.target.value as PoliceReportStatus)}
+              className="w-full h-10 rounded-md border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{
+                borderColor: "#D1D5DB",
+                backgroundColor: COLORS.surface,
+                color: form.policeReport ? COLORS.text : COLORS.muted,
+              }}
+            >
+              <option value="">Select status…</option>
+              <option value="uploaded">Uploaded</option>
+              <option value="pending">Pending</option>
+              <option value="not_available">Not Available</option>
+            </select>
+            {form.policeReport === "uploaded" && (
+              <div
+                className="mt-2 rounded-md border px-3 py-2 text-xs"
+                style={{ backgroundColor: "#F0FDF4", borderColor: "#BBF7D0", color: "#15803D" }}
+              >
+                <span className="font-semibold">✓ Police report on file.</span>
+              </div>
+            )}
+            {form.policeReport === "pending" && (
+              <div
+                className="mt-2 rounded-md border px-3 py-2 text-xs"
+                style={{ backgroundColor: "#FFFBEB", borderColor: "#FCD34D", color: "#92400E" }}
+              >
+                Authorization may be paused until police report is received.
+              </div>
+            )}
+            {form.policeReport === "not_available" && (
+              <div
+                className="mt-2 rounded-md border px-3 py-2 text-xs"
+                style={{ backgroundColor: "#FFFBEB", borderColor: "#FCD34D", color: "#92400E" }}
+              >
+                Manual review required before authorization.
+              </div>
+            )}
+            <p className="text-[11px] mt-2" style={{ color: COLORS.muted }}>
+              Police report verification would be handled through document review or external authority integration in production.
+            </p>
+          </Field>
+        </FormSection>
+
+
 
         <FormSection title="Vehicle Information">
           {form.vehicleAutoFilled && (
@@ -3197,7 +3253,40 @@ function EstimateReviewPanel({
         </div>
       )}
 
+      {/* Documents */}
+      {(() => {
+        const pr = claimForm?.policeReport ?? "";
+        const label =
+          pr === "uploaded" ? "Uploaded" :
+          pr === "pending" ? "Pending" :
+          pr === "not_available" ? "Not Available" :
+          "Not Provided";
+        const tone =
+          pr === "uploaded"
+            ? { bg: "#F0FDF4", border: "#BBF7D0", fg: "#15803D", dot: "#16A34A" }
+            : { bg: "#FFFBEB", border: "#FCD34D", fg: "#92400E", dot: "#D97706" };
+        return (
+          <div
+            className="shrink-0 rounded-md border px-3 py-2.5"
+            style={{ backgroundColor: tone.bg, borderColor: tone.border }}
+          >
+            <Label>Documents</Label>
+            <div className="mt-1.5 flex items-center gap-2 text-xs" style={{ color: COLORS.text }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tone.dot }} />
+              <span className="font-semibold">Police Report:</span>
+              <span style={{ color: tone.fg }}>{label}</span>
+            </div>
+            {pr !== "uploaded" && (
+              <p className="text-[11px] mt-1.5 leading-snug" style={{ color: tone.fg }}>
+                Final authorization paused — manual review required before sign-off.
+              </p>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Estimate Sources */}
+
       <div
         className="shrink-0 rounded-md border px-3 py-2.5"
         style={{ backgroundColor: "#FAFAFA", borderColor: COLORS.border }}
@@ -3301,39 +3390,56 @@ function EstimateReviewPanel({
         </button>
 
         {/* 2. Approve & Submit */}
-        <button
-          type="button"
-          disabled={seniorReview}
-          title={
-            seniorReview
-              ? "Senior adjuster authorization required before submission."
-              : undefined
-          }
-          onClick={() => {
-            if (seniorReview) return;
-            if (isFastTrack) {
-              toast.success(`Claim #${claim.id} approved and submitted.`, {
-                description: `Estimate authorization issued for ${fmtCurrency(adjustedTotal)}.`,
-              });
-            } else {
-              setAuthDialogOpen(true);
-            }
-          }}
-          className="flex-1 rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
-          style={{
-            backgroundColor: seniorReview ? "#E5E7EB" : COLORS.blue,
-            color: seniorReview ? "#9CA3AF" : "white",
-            cursor: seniorReview ? "not-allowed" : "pointer",
-          }}
-          onMouseEnter={(e) => {
-            if (!seniorReview) e.currentTarget.style.backgroundColor = COLORS.blueHover;
-          }}
-          onMouseLeave={(e) => {
-            if (!seniorReview) e.currentTarget.style.backgroundColor = COLORS.blue;
-          }}
-        >
-          Approve & Submit
-        </button>
+        {(() => {
+          const pr = claimForm?.policeReport ?? "";
+          const policeBlocked = pr !== "uploaded";
+          const blocked = seniorReview || policeBlocked;
+          const blockTitle = seniorReview
+            ? "Senior adjuster authorization required before submission."
+            : policeBlocked
+              ? "Police report pending or unavailable — manual review required before authorization."
+              : undefined;
+          const label = policeBlocked && !seniorReview ? "Route to Manual Review" : "Approve & Submit";
+          return (
+            <button
+              type="button"
+              disabled={seniorReview}
+              title={blockTitle}
+              onClick={() => {
+                if (seniorReview) return;
+                if (policeBlocked) {
+                  toast.message(`Claim #${claim.id} routed to manual review.`, {
+                    description: "Final authorization paused pending police report verification.",
+                  });
+                  return;
+                }
+                if (isFastTrack) {
+                  toast.success(`Claim #${claim.id} approved and submitted.`, {
+                    description: `Estimate authorization issued for ${fmtCurrency(adjustedTotal)}.`,
+                  });
+                } else {
+                  setAuthDialogOpen(true);
+                }
+              }}
+              className="flex-1 rounded-md py-2.5 text-sm font-semibold transition-colors"
+              style={{
+                backgroundColor: seniorReview ? "#E5E7EB" : policeBlocked ? "#FFFBEB" : COLORS.blue,
+                color: seniorReview ? "#9CA3AF" : policeBlocked ? "#92400E" : "white",
+                border: policeBlocked && !seniorReview ? "1px solid #FCD34D" : "none",
+                cursor: blocked ? (seniorReview ? "not-allowed" : "pointer") : "pointer",
+              }}
+              onMouseEnter={(e) => {
+                if (!seniorReview && !policeBlocked) e.currentTarget.style.backgroundColor = COLORS.blueHover;
+              }}
+              onMouseLeave={(e) => {
+                if (!seniorReview && !policeBlocked) e.currentTarget.style.backgroundColor = COLORS.blue;
+              }}
+            >
+              {label}
+            </button>
+          );
+        })()}
+
 
         {/* 3. Generate Report */}
         <button
