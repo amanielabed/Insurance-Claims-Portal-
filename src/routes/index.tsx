@@ -437,15 +437,8 @@ function EstimateReviewPanel({ claim, isFastTrack }: { claim: Claim; isFastTrack
       return next;
     });
 
-  // Reset state when claim changes
-  const claimId = claim.id;
-  useMemo(() => {
-    setAdjusted(claim.parts.map((p) => p.draftEstimate));
-    setDrafts(claim.parts.map((p) => p.draftEstimate.toFixed(2)));
-    setLog([]);
-    setChecks([false, false, false]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [claimId]);
+
+
 
   const draftTotal = claim.parts.reduce((s, p) => s + p.draftEstimate, 0);
   const adjustedTotal = adjusted.reduce((s, n) => s + (isFinite(n) ? n : 0), 0);
