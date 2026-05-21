@@ -82,6 +82,7 @@ const claimData: Claim[] = [
         draftEstimate: 380,
         laborHours: 3.5,
         flagged: false,
+        sources: ["mitchell", "ccc"],
       },
       {
         name: "Frame rail inspection",
@@ -89,6 +90,7 @@ const claimData: Claim[] = [
         draftEstimate: 860,
         laborHours: 3.0,
         flagged: true,
+        sources: ["oem", "verify"],
       },
     ],
     verificationConcerns: [
