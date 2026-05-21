@@ -2487,118 +2487,141 @@ function EstimateReviewPanel({
         </div>
       </div>
 
-      {/* CTA */}
-
-      {seniorReview ? (
-        <div className="shrink-0 flex flex-col gap-3">
-          <div
-            className="rounded-md border px-3 py-2.5"
-            style={{
-              backgroundColor: "#FEF2F2",
-              borderColor: "#FECACA",
-            }}
-          >
-            <div className="text-sm font-semibold" style={{ color: "#991B1B" }}>
-              Significant estimate variance detected.
-            </div>
-            <div className="text-xs mt-1" style={{ color: "#B91C1C" }}>
-              Final approval must be completed by an authorized senior adjuster.
-            </div>
+      {/* Senior review banner (preserved) */}
+      {seniorReview && (
+        <div
+          className="shrink-0 rounded-md border px-3 py-2.5"
+          style={{ backgroundColor: "#FEF2F2", borderColor: "#FECACA" }}
+        >
+          <div className="text-sm font-semibold" style={{ color: "#991B1B" }}>
+            Significant estimate variance detected.
           </div>
-          <button
-            disabled
-            className="w-full rounded-md py-2.5 text-sm font-semibold cursor-not-allowed"
-            style={{
-              backgroundColor: "#F3F4F6",
-              color: "#9CA3AF",
-              border: `1px solid ${COLORS.border}`,
-            }}
-          >
-            {isFastTrack ? "Confirm Estimate" : "Submit for Authorization"}
-          </button>
-          <button
-            onClick={() =>
-              toast("Senior adjuster notified. Claim queued for review.")
-            }
-            className="w-full rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
-            style={{ backgroundColor: "#DC2626" }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#B91C1C")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#DC2626")}
-          >
-            Request Senior Review
-          </button>
-        </div>
-      ) : isFastTrack ? (
-        <div className="shrink-0 flex flex-col gap-2">
-          <button
-            onClick={() =>
-              toast.success(`Claim #${claim.id} approved and routed for processing`, {
-                description: "Estimated handling time: 23 seconds",
-              })
-            }
-            className="w-full rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
-            style={{ backgroundColor: COLORS.blue }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
-          >
-            Confirm Estimate
-          </button>
-          <button
-            onClick={onTriggerSeniorReview}
-            className="text-xs font-medium underline-offset-2 hover:underline self-center"
-            style={{ color: COLORS.muted }}
-          >
-            Flag for Senior Review
-          </button>
-        </div>
-      ) : (
-        <div className="shrink-0 flex flex-col gap-2">
-          <Label>Required Verification Before Submission</Label>
-          <div className="flex flex-col gap-1.5 mt-1">
-            {[
-              "Confirm photo angle is sufficient",
-              "Verify structural damage scope",
-              "Check repair vs. replace decision",
-            ].map((item, i) => (
-              <label
-                key={i}
-                className="flex items-center gap-2 text-sm cursor-pointer select-none"
-                style={{ color: COLORS.text }}
-              >
-                <input
-                  type="checkbox"
-                  checked={checks[i]}
-                  onChange={() => toggle(i)}
-                  className="w-4 h-4"
-                  style={{ accentColor: COLORS.blue }}
-                />
-                {item}
-              </label>
-            ))}
+          <div className="text-xs mt-1" style={{ color: "#B91C1C" }}>
+            Final approval must be completed by an authorized senior adjuster.
           </div>
-          {allChecked && (
-            <button
-              className="mt-2 w-full rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
-              style={{ backgroundColor: COLORS.blue }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor = COLORS.blueHover)
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor = COLORS.blue)
-              }
-            >
-              Submit for Authorization
-            </button>
-          )}
-          <button
-            onClick={onTriggerSeniorReview}
-            className="text-xs font-medium underline-offset-2 hover:underline self-center mt-1"
-            style={{ color: COLORS.muted }}
-          >
-            Flag for Senior Review
-          </button>
         </div>
       )}
+
+      {/* Workflow Action Bar */}
+      <div className="shrink-0 flex items-center gap-2 pt-1">
+        {/* 1. Edit Estimate */}
+        <button
+          type="button"
+          onClick={() => setEditMode((v) => !v)}
+          className="flex-1 rounded-md border py-2.5 text-sm font-semibold transition-colors"
+          style={{
+            borderColor: COLORS.blue,
+            color: editMode ? "white" : COLORS.blue,
+            backgroundColor: editMode ? COLORS.blue : "transparent",
+          }}
+        >
+          {editMode ? "Lock Edits ✓" : "Edit Estimate"}
+        </button>
+
+        {/* 2. Approve & Submit */}
+        <button
+          type="button"
+          disabled={seniorReview}
+          title={
+            seniorReview
+              ? "Senior adjuster authorization required before submission."
+              : undefined
+          }
+          onClick={() => {
+            if (seniorReview) return;
+            if (isFastTrack) {
+              toast.success(`Claim #${claim.id} approved and submitted.`, {
+                description: `Estimate authorization issued for ${fmtCurrency(adjustedTotal)}.`,
+              });
+            } else {
+              setAuthDialogOpen(true);
+            }
+          }}
+          className="flex-1 rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
+          style={{
+            backgroundColor: seniorReview ? "#E5E7EB" : COLORS.blue,
+            color: seniorReview ? "#9CA3AF" : "white",
+            cursor: seniorReview ? "not-allowed" : "pointer",
+          }}
+          onMouseEnter={(e) => {
+            if (!seniorReview) e.currentTarget.style.backgroundColor = COLORS.blueHover;
+          }}
+          onMouseLeave={(e) => {
+            if (!seniorReview) e.currentTarget.style.backgroundColor = COLORS.blue;
+          }}
+        >
+          Approve & Submit
+        </button>
+
+        {/* 3. Generate Report */}
+        <button
+          type="button"
+          disabled={isGeneratingReport}
+          onClick={() => {
+            setIsGeneratingReport(true);
+            const tid = toast.loading("Generating claim summary report…", {
+              description:
+                "Includes claim details, photo log, estimate breakdown, cost basis, adjuster notes, verification status & authorization record.",
+            });
+            setTimeout(() => {
+              setIsGeneratingReport(false);
+              toast.success("Report ready", {
+                id: tid,
+                description: `Claim_${claim.id}_Assessment.pdf`,
+              });
+            }, 1500);
+          }}
+          className="flex-1 rounded-md border py-2.5 text-sm font-semibold transition-colors"
+          style={{
+            borderColor: COLORS.border,
+            color: COLORS.text,
+            backgroundColor: "white",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F9FAFB")}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
+        >
+          {isGeneratingReport ? "Generating…" : "Generate Report"}
+        </button>
+      </div>
+
+      <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Authorization</DialogTitle>
+            <DialogDescription>
+              You are authorizing an estimate of{" "}
+              <span className="font-semibold" style={{ color: COLORS.text }}>
+                {fmtCurrency(adjustedTotal)}
+              </span>{" "}
+              for this vehicle. All required verification checks have been completed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setAuthDialogOpen(false)}
+              className="rounded-md border px-4 py-2 text-sm font-medium"
+              style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: "white" }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAuthDialogOpen(false);
+                toast.success(`Claim #${claim.id} approved and submitted.`, {
+                  description: `Estimate authorization issued for ${fmtCurrency(adjustedTotal)}.`,
+                });
+              }}
+              className="rounded-md px-4 py-2 text-sm font-semibold text-white"
+              style={{ backgroundColor: COLORS.blue }}
+            >
+              Confirm Authorization
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
