@@ -2108,6 +2108,7 @@ function ReviewEstimateStep({
             key={claim.id}
             claim={claim}
             claimForm={claimForm}
+            uploadedPhotos={uploadedPhotos}
             isFastTrack={isFastTrack}
             seniorReview={seniorReview}
             onTriggerSeniorReview={() => setSeniorReview(true)}
