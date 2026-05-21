@@ -143,15 +143,7 @@ function Index() {
             onBack={() => setStep(1)}
           />
         )}
-        {step === 3 && (
-          <SimpleStep
-            title="Draft Assessment"
-            description="The system is preparing a draft assessment based on the submitted information and photos."
-            ctaLabel="Continue to Estimate Review →"
-            onContinue={() => setStep(4)}
-            onBack={() => setStep(2)}
-          />
-        )}
+        {step === 3 && <DraftAssessmentStep onComplete={() => setStep(4)} />}
         {step === 4 && <ReviewEstimateStep />}
       </div>
     </div>
@@ -517,6 +509,138 @@ function PhotoCard({
     </label>
   );
 }
+
+const REFERENCE_SOURCES = [
+  "Mitchell RepairCenter",
+  "CCC Parts Database",
+  "OEM Repair Guidelines",
+];
+
+const PROCESSING_STEPS: { label: string; duration: number }[] = [
+  { label: "Photo quality validation complete — all required views meet minimum clarity standards", duration: 600 },
+  { label: "Vehicle identified: 2022 Toyota Camry SE", duration: 600 },
+  { label: "Analyzing visible damage regions and identifying affected parts…", duration: 1100 },
+  { label: "Cross-checking repair scope against repair-cost references…", duration: 1000 },
+  { label: "Claim complexity evaluated — routing to appropriate review workflow", duration: 600 },
+];
+
+function DraftAssessmentStep({ onComplete }: { onComplete: () => void }) {
+  // activeIndex = index of currently-processing step; PROCESSING_STEPS.length means all done
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [done, setDone] = useState(false);
+  const [refIndex, setRefIndex] = useState(0);
+
+  useEffect(() => {
+    if (activeIndex >= PROCESSING_STEPS.length) {
+      setDone(true);
+      const t = setTimeout(onComplete, 1000);
+      return () => clearTimeout(t);
+    }
+    const t = setTimeout(
+      () => setActiveIndex((i) => i + 1),
+      PROCESSING_STEPS[activeIndex].duration,
+    );
+    return () => clearTimeout(t);
+  }, [activeIndex, onComplete]);
+
+  // Rotate reference sources while step 4 (index 3) is active
+  useEffect(() => {
+    if (activeIndex !== 3) return;
+    const t = setInterval(() => setRefIndex((i) => (i + 1) % REFERENCE_SOURCES.length), 500);
+    return () => clearInterval(t);
+  }, [activeIndex]);
+
+  return (
+    <div className="flex-1 overflow-auto flex items-center justify-center">
+      <div
+        className="w-full max-w-xl mx-6 my-10 rounded-lg border p-8 animate-fade-in"
+        style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
+      >
+        {done ? (
+          <div className="flex flex-col items-center text-center gap-2 animate-fade-in py-4">
+            <div
+              className="inline-flex items-center justify-center w-12 h-12 rounded-full"
+              style={{ backgroundColor: COLORS.greenBg, color: COLORS.greenText, border: "1px solid #BBF7D0" }}
+            >
+              <span className="text-xl font-bold">✓</span>
+            </div>
+            <h2 className="text-lg font-semibold mt-1">Draft assessment complete</h2>
+            <p className="text-sm" style={{ color: COLORS.muted }}>
+              Opening Claims Review Cockpit…
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="text-center mb-6">
+              <h2 className="text-lg font-semibold tracking-tight">Generating Draft Assessment</h2>
+              <p className="text-sm mt-1" style={{ color: COLORS.muted }}>
+                Reviewing submitted claim information and uploaded photos
+              </p>
+            </div>
+
+            <ol className="flex flex-col gap-3">
+              {PROCESSING_STEPS.map((step, i) => {
+                if (i > activeIndex) return null;
+                const isDoneStep = i < activeIndex;
+                const isActive = i === activeIndex;
+                return (
+                  <li
+                    key={i}
+                    className="flex items-start gap-3 animate-fade-in"
+                  >
+                    <span
+                      className="inline-flex items-center justify-center w-6 h-6 rounded-full shrink-0 mt-0.5"
+                      style={{
+                        backgroundColor: isDoneStep ? COLORS.greenBg : "#F3F4F6",
+                        border: `1px solid ${isDoneStep ? "#BBF7D0" : COLORS.border}`,
+                      }}
+                    >
+                      {isDoneStep ? (
+                        <span className="text-xs font-bold" style={{ color: COLORS.greenText }}>✓</span>
+                      ) : (
+                        <Spinner />
+                      )}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className="text-sm leading-snug"
+                        style={{ color: isActive ? COLORS.text : isDoneStep ? COLORS.text : COLORS.muted }}
+                      >
+                        {step.label}
+                      </div>
+                      {isActive && i === 3 && (
+                        <div
+                          key={refIndex}
+                          className="text-xs mt-1.5 animate-fade-in"
+                          style={{ color: COLORS.muted }}
+                        >
+                          Referencing: <span style={{ color: COLORS.text }}>{REFERENCE_SOURCES[refIndex]}</span>
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Spinner() {
+  return (
+    <span
+      className="inline-block w-3 h-3 rounded-full border-2 animate-spin"
+      style={{
+        borderColor: "#E5E7EB",
+        borderTopColor: COLORS.blue,
+      }}
+    />
+  );
+}
+
 
 const INCIDENT_TYPES = [
   "Rear-end collision",
