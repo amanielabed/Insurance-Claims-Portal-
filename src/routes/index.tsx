@@ -31,10 +31,8 @@ const claimData: Claim[] = [
     id: "2026-001",
     type: "Simple Scratch",
     delegationState: "FAST_TRACK",
-    visionState: "GHOST",
     reviewConfidence: "High",
     riskLevel: "LOW",
-    trustScore: 94,
     estimatedCost: 187.5,
     confidenceLabel: "Clear imagery, single damaged part, low repair complexity.",
     actionMessage:
@@ -54,10 +52,8 @@ const claimData: Claim[] = [
     id: "2026-002",
     type: "Rear Collision",
     delegationState: "MANUAL_REVIEW",
-    visionState: "CHALLENGE",
     reviewConfidence: "Moderate",
     riskLevel: "HIGH",
-    trustScore: 61,
     estimatedCost: 1240,
     confidenceLabel:
       "Low resolution on rear quarter panel. Possible hidden structural damage behind deformation.",
