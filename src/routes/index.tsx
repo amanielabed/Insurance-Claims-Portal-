@@ -2431,7 +2431,47 @@ function EstimateReviewPanel({
         Draft estimates are generated using standardized repair references and require adjuster review before final authorization.
       </p>
 
+      {/* Adjuster Notes */}
+      <div className="shrink-0 flex flex-col gap-1.5">
+        <div className="flex items-center justify-between">
+          <Label>Adjuster Notes</Label>
+          <span
+            className="text-[11px] transition-opacity duration-300"
+            style={{
+              color: COLORS.greenText,
+              opacity: notesSavedVisible ? 1 : 0,
+            }}
+            aria-live="polite"
+          >
+            ✓ Notes saved
+          </span>
+        </div>
+        <p className="text-[11px] leading-snug" style={{ color: COLORS.muted }}>
+          Optional. Add observations, verification details, repair rationale, or claim-specific notes.
+        </p>
+        <textarea
+          value={adjusterNotes}
+          onChange={(e) => handleNotesChange(e.target.value)}
+          maxLength={NOTES_LIMIT}
+          rows={4}
+          placeholder={`Example:\nConfirmed bumper damage visible across two angles.\nNo visible frame involvement detected.\nRepair scope aligns with submitted photos.`}
+          className="w-full rounded-md border px-3 py-2 text-sm leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+          style={{
+            borderColor: COLORS.border,
+            backgroundColor: COLORS.surface,
+            color: COLORS.text,
+            minHeight: "5.5rem",
+          }}
+        />
+        <div className="flex justify-end">
+          <span className="text-[11px] tabular-nums" style={{ color: COLORS.muted }}>
+            {adjusterNotes.length} / {NOTES_LIMIT}
+          </span>
+        </div>
+      </div>
+
       {/* CTA */}
+
       {seniorReview ? (
         <div className="shrink-0 flex flex-col gap-3">
           <div
