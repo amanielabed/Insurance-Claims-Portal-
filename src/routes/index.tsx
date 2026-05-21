@@ -965,6 +965,8 @@ function lookupPolicy(policyNumber: string): PolicyLookup | null {
 }
 
 type PoliceReportStatus = "uploaded" | "pending" | "not_available" | "";
+type CoverageType = "full" | "third_party" | "";
+type FaultDetermination = "policyholder" | "other" | "unclear" | "single_vehicle" | "";
 
 interface ClaimForm {
   policyNumber: string;
@@ -981,6 +983,9 @@ interface ClaimForm {
   vin: string;
   vehicleAutoFilled: boolean;
   policeReport: PoliceReportStatus;
+  coverage: CoverageType;
+  fault: FaultDetermination;
+  deductible: string;
 }
 
 const emptyForm = (): ClaimForm => ({
@@ -998,6 +1003,9 @@ const emptyForm = (): ClaimForm => ({
   vin: "",
   vehicleAutoFilled: false,
   policeReport: "",
+  coverage: "",
+  fault: "",
+  deductible: "",
 });
 
 
@@ -1020,8 +1028,12 @@ const demoForm = (): ClaimForm => {
     vin: "4T1G11AK5NU712398",
     vehicleAutoFilled: true,
     policeReport: "uploaded",
+    coverage: "full",
+    fault: "other",
+    deductible: "",
   };
 };
+
 
 
 function InitiateClaimStep({
@@ -1152,10 +1164,14 @@ function InitiateClaimStep({
                   make: validated.make,
                   model: validated.model,
                   vehicleAutoFilled: true,
+                  coverage: validated.coverage,
+                  fault: fault || "",
+                  deductible: deductible,
                 }));
               }
               setEligibilityPassed(true);
             }}
+
           />
         ) : (
         <div>
@@ -1797,7 +1813,52 @@ function ReviewEstimateStep({
         </span>
       </div>
 
+      {/* Policyholder coverage status bar */}
+      {claimForm && (claimForm.coverage || claimForm.fault) && (() => {
+        const coverageLabel =
+          claimForm.coverage === "full" ? "Full" :
+          claimForm.coverage === "third_party" ? "Third-party" : "—";
+        const faultLabel =
+          claimForm.fault === "policyholder" ? "At fault" :
+          claimForm.fault === "other" ? "Not at fault" :
+          claimForm.fault === "unclear" ? "Disputed" :
+          claimForm.fault === "single_vehicle" ? "Single-vehicle" : "—";
+        const ded = claimForm.deductible?.trim();
+        const deductibleLabel =
+          claimForm.coverage === "full" && claimForm.fault === "policyholder" && ded
+            ? `$${ded}`
+            : "N/A";
+        return (
+          <div
+            className="flex items-center gap-6 px-6 h-8 border-b shrink-0"
+            style={{ backgroundColor: "#F9FAFB", borderColor: COLORS.border }}
+          >
+            <div className="flex items-center gap-2 text-[11px]">
+              <span className="uppercase tracking-wider font-semibold" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+                Coverage type:
+              </span>
+              <span className="font-medium" style={{ color: COLORS.text }}>{coverageLabel}</span>
+            </div>
+            <div className="h-3 w-px" style={{ backgroundColor: COLORS.border }} />
+            <div className="flex items-center gap-2 text-[11px]">
+              <span className="uppercase tracking-wider font-semibold" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+                Fault:
+              </span>
+              <span className="font-medium" style={{ color: COLORS.text }}>{faultLabel}</span>
+            </div>
+            <div className="h-3 w-px" style={{ backgroundColor: COLORS.border }} />
+            <div className="flex items-center gap-2 text-[11px]">
+              <span className="uppercase tracking-wider font-semibold" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+                Deductible:
+              </span>
+              <span className="font-medium tabular-nums" style={{ color: COLORS.text }}>{deductibleLabel}</span>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Header */}
+
       <header
         className="flex items-center justify-between gap-4 px-6 h-16 border-b shrink-0"
         style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
@@ -2707,9 +2768,19 @@ function EstimateReviewPanel({
 
       // ===== SECTION 1 — REVIEW SUMMARY =====
       sectionLabel("Review Summary");
-      const cardGap = 10;
-      const cardW = (W - 3 * cardGap) / 4;
+      const cardGap = 8;
+      const cardW = (W - 4 * cardGap) / 5;
       const cardH = 60;
+      const cf2 = claimForm;
+      const dedEntered = cf2?.deductible?.trim();
+      const deductibleValue =
+        cf2?.coverage === "full" && cf2?.fault === "policyholder"
+          ? (dedEntered ? `$${dedEntered}` : "$0")
+          : cf2?.coverage === "full"
+            ? "None"
+            : cf2?.coverage === "third_party"
+              ? "N/A"
+              : "—";
       const stats = [
         { label: "Review type", value: stateLabel, color: "#111827" },
         {
@@ -2723,18 +2794,20 @@ function EstimateReviewPanel({
           color: claim.riskLevel === "HIGH" ? "#B91C1C" : "#111827",
         },
         { label: "Draft total", value: fmtCurrency(draftTotal), color: "#111827" },
+        { label: "Deductible", value: deductibleValue, color: "#111827" },
       ];
       need(cardH + 8);
       stats.forEach((s, i) => {
         const x = M + i * (cardW + cardGap);
         pdf.setFillColor("#F3F4F6");
         pdf.roundedRect(x, y, cardW, cardH, 4, 4, "F");
-        setText(11, "#6B7280", false);
-        pdf.text(s.label.toUpperCase(), x + 12, y + 18);
-        setText(15, s.color, true);
-        pdf.text(s.value, x + 12, y + 44);
+        setText(10, "#6B7280", false);
+        pdf.text(s.label.toUpperCase(), x + 10, y + 18);
+        setText(13, s.color, true);
+        pdf.text(s.value, x + 10, y + 44);
       });
       y += cardH + 12;
+
 
       if (workflowState === "SENIOR_REVIEW") {
         const alertH = 52;
@@ -2810,6 +2883,55 @@ function EstimateReviewPanel({
       pdf.setDrawColor("#F3F4F6");
       pdf.setLineWidth(0.5);
       pdf.line(M, y, pageW - M, y);
+
+      // ===== SECTION 2b — COVERAGE SUMMARY =====
+      sectionLabel("Coverage Summary");
+      const cv = cf?.coverage;
+      const ft = cf?.fault;
+      const coverageTypeText =
+        cv === "full" ? "Full Coverage (Comprehensive)" :
+        cv === "third_party" ? "Third-Party Coverage" : "—";
+      const faultText =
+        ft === "policyholder" ? "Policyholder at fault" :
+        ft === "other" ? "Other party at fault" :
+        ft === "unclear" ? "Fault disputed / unclear" :
+        ft === "single_vehicle" ? "Single-vehicle incident" : "—";
+      const dedVal = cf?.deductible?.trim();
+      const deductibleApplicable =
+        cv === "full" && ft === "policyholder"
+          ? (dedVal ? `Yes — $${dedVal}` : "Yes — amount pending")
+          : cv === "full"
+            ? "No"
+            : cv === "third_party"
+              ? "No — third-party policy"
+              : "Pending";
+      const claimBasis =
+        cv === "full"
+          ? "Own damage — full coverage"
+          : cv === "third_party"
+            ? "Third-party documentation — liability claim"
+            : "—";
+      const covRows: [string, string][] = [
+        ["Coverage type", coverageTypeText],
+        ["Fault determination", faultText],
+        ["Deductible applicable", deductibleApplicable],
+        ["Claim basis", claimBasis],
+      ];
+      covRows.forEach(([label, val]) => {
+        need(24);
+        setText(11, "#6B7280");
+        pdf.text(label, labelX, y + 14);
+        setText(13, "#111827");
+        const wrapped = pdf.splitTextToSize(val, pageW - M - valX) as string[];
+        wrapped.forEach((ln, idx) => pdf.text(ln, valX, y + 14 + idx * 14));
+        y += 22 + Math.max(0, (wrapped.length - 1) * 14);
+        pdf.setDrawColor("#F3F4F6");
+        pdf.setLineWidth(0.5);
+        pdf.line(M, y, pageW - M, y);
+      });
+      y += 4;
+
+
 
       // ===== SECTION 3 — ESTIMATE BREAKDOWN =====
       sectionLabel("Estimate Breakdown");
