@@ -48,7 +48,7 @@ const claimData: Claim[] = [
       {
         name: "Rear bumper cover repair",
         suggestedRepairScope: "Repair",
-        draftEstimate: 142.5,
+        draftEstimate: 187.5,
         laborHours: 1.5,
         flagged: false,
       },
@@ -77,7 +77,7 @@ const claimData: Claim[] = [
       {
         name: "Frame rail inspection",
         suggestedRepairScope: "Inspect",
-        draftEstimate: 890,
+        draftEstimate: 860,
         laborHours: 3.0,
         flagged: true,
       },
