@@ -1138,7 +1138,8 @@ function InitiateClaimStep({
             onContinue={() => setEligibilityPassed(true)}
           />
         ) : (
-        <>
+        <div>
+
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
             <h2 className="text-xl font-semibold tracking-tight">Initiate Claim</h2>
@@ -1329,7 +1330,8 @@ function InitiateClaimStep({
             Begin Photo Submission →
           </button>
         </div>
-        </>
+        </div>
+
         )}
       </div>
     </div>
