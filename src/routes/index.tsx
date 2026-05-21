@@ -119,7 +119,487 @@ const COLORS = {
 const fmtCurrency = (n: number) =>
   `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+const STEPS = [
+  "Initiate Claim",
+  "Upload Photos",
+  "Draft Assessment",
+  "Review Estimate",
+] as const;
+
 function Index() {
+  const [step, setStep] = useState(1);
+
+  return (
+    <div
+      className="flex flex-col h-screen"
+      style={{ backgroundColor: COLORS.bg, color: COLORS.text }}
+    >
+      <StepIndicator current={step} />
+      <div key={step} className="flex-1 min-h-0 flex flex-col animate-fade-in">
+        {step === 1 && <InitiateClaimStep onContinue={() => setStep(2)} />}
+        {step === 2 && (
+          <SimpleStep
+            title="Upload Photos"
+            description="Attach photos of all visible damage. Multiple angles improve assessment accuracy."
+            ctaLabel="Continue to Draft Assessment →"
+            onContinue={() => setStep(3)}
+            onBack={() => setStep(1)}
+          />
+        )}
+        {step === 3 && (
+          <SimpleStep
+            title="Draft Assessment"
+            description="The system is preparing a draft assessment based on the submitted information and photos."
+            ctaLabel="Continue to Estimate Review →"
+            onContinue={() => setStep(4)}
+            onBack={() => setStep(2)}
+          />
+        )}
+        {step === 4 && <ReviewEstimateStep />}
+      </div>
+    </div>
+  );
+}
+
+function StepIndicator({ current }: { current: number }) {
+  return (
+    <div
+      className="shrink-0 border-b px-6 py-3"
+      style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
+    >
+      <ol className="flex items-center gap-2 max-w-5xl mx-auto">
+        {STEPS.map((label, i) => {
+          const n = i + 1;
+          const active = n === current;
+          const done = n < current;
+          const fg = active ? COLORS.blue : done ? COLORS.greenText : COLORS.muted;
+          const bg = active ? COLORS.blue : done ? COLORS.green : "#E5E7EB";
+          const textColor = active || done ? "#FFFFFF" : COLORS.muted;
+          return (
+            <li key={label} className="flex items-center gap-2 flex-1">
+              <div className="flex items-center gap-2 min-w-0">
+                <span
+                  className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-semibold shrink-0 transition-colors duration-300"
+                  style={{ backgroundColor: bg, color: textColor }}
+                >
+                  {done ? "✓" : n}
+                </span>
+                <span
+                  className="text-xs font-semibold truncate transition-colors duration-300"
+                  style={{ color: fg }}
+                >
+                  {label}
+                </span>
+              </div>
+              {n < STEPS.length && (
+                <span
+                  className="flex-1 h-px"
+                  style={{ backgroundColor: done ? COLORS.green : "#E5E7EB" }}
+                />
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+function SimpleStep({
+  title,
+  description,
+  ctaLabel,
+  onContinue,
+  onBack,
+}: {
+  title: string;
+  description: string;
+  ctaLabel: string;
+  onContinue: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <div className="flex-1 overflow-auto">
+      <div className="max-w-2xl mx-auto px-6 py-10">
+        <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
+        <p className="text-sm mt-2" style={{ color: COLORS.muted }}>
+          {description}
+        </p>
+        <div
+          className="mt-6 rounded-lg border border-dashed flex items-center justify-center text-sm h-64"
+          style={{ borderColor: "#D1D5DB", color: COLORS.muted, backgroundColor: COLORS.surface }}
+        >
+          {title} workspace
+        </div>
+        <div className="mt-6 flex items-center justify-between">
+          <button
+            onClick={onBack}
+            className="text-sm font-medium px-4 py-2 rounded-md border"
+            style={{ borderColor: "#D1D5DB", color: COLORS.text, backgroundColor: COLORS.surface }}
+          >
+            ← Back
+          </button>
+          <button
+            onClick={onContinue}
+            className="text-sm font-semibold text-white px-6 py-2.5 rounded-md transition-colors"
+            style={{ backgroundColor: COLORS.blue }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
+          >
+            {ctaLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const INCIDENT_TYPES = [
+  "Rear-end collision",
+  "Side impact",
+  "Front collision",
+  "Hail / Weather",
+  "Vandalism",
+  "Single vehicle",
+] as const;
+
+interface ClaimForm {
+  policyNumber: string;
+  fullName: string;
+  dateOfLoss: string;
+  contactPhone: string;
+  incidentType: string;
+  description: string;
+  location: string;
+  injured: boolean;
+  year: string;
+  make: string;
+  model: string;
+  vin: string;
+}
+
+const emptyForm = (): ClaimForm => ({
+  policyNumber: "",
+  fullName: "",
+  dateOfLoss: new Date().toISOString().slice(0, 10),
+  contactPhone: "",
+  incidentType: "",
+  description: "",
+  location: "",
+  injured: false,
+  year: "",
+  make: "",
+  model: "",
+  vin: "",
+});
+
+const demoForm = (): ClaimForm => ({
+  policyNumber: "POL-2026-48201",
+  fullName: "Jordan M. Whitaker",
+  dateOfLoss: new Date().toISOString().slice(0, 10),
+  contactPhone: "(415) 555-0142",
+  incidentType: "Rear-end collision",
+  description:
+    "Vehicle was struck from behind at a stoplight on Market St. Visible damage to rear bumper and trunk area. No airbag deployment.",
+  location: "Market St & 5th Ave, San Francisco, CA",
+  injured: false,
+  year: "2022",
+  make: "Toyota",
+  model: "Camry SE",
+  vin: "4T1G11AK5NU712398",
+});
+
+function InitiateClaimStep({ onContinue }: { onContinue: () => void }) {
+  const [form, setForm] = useState<ClaimForm>(emptyForm);
+  const [errors, setErrors] = useState<Partial<Record<keyof ClaimForm, string>>>({});
+
+  const update = <K extends keyof ClaimForm>(key: K, value: ClaimForm[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }));
+  };
+
+  const validate = () => {
+    const next: Partial<Record<keyof ClaimForm, string>> = {};
+    if (!form.policyNumber.trim()) next.policyNumber = "Policy number is required.";
+    if (!form.fullName.trim()) next.fullName = "Full name is required.";
+    if (!form.dateOfLoss) next.dateOfLoss = "Date of loss is required.";
+    if (!form.incidentType) next.incidentType = "Select an incident type.";
+    if (!form.description.trim()) next.description = "Brief description is required.";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (validate()) onContinue();
+  };
+
+  const charCount = form.description.length;
+
+  return (
+    <div className="flex-1 overflow-auto">
+      <div className="max-w-3xl mx-auto px-6 py-8">
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight">Initiate Claim</h2>
+            <p className="text-sm mt-1" style={{ color: COLORS.muted }}>
+              Provide policyholder, incident, and vehicle information to begin a new claim.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              setForm(demoForm());
+              setErrors({});
+            }}
+            className="text-xs font-medium px-3 py-2 rounded-md border shrink-0"
+            style={{ borderColor: "#D1D5DB", color: COLORS.text, backgroundColor: COLORS.surface }}
+          >
+            Use Demo Claim
+          </button>
+        </div>
+
+        <FormSection title="Policyholder Information">
+          <Field label="Policy Number" required error={errors.policyNumber}>
+            <TextInput
+              value={form.policyNumber}
+              onChange={(v) => update("policyNumber", v)}
+              placeholder="POL-2026-XXXXX"
+              invalid={!!errors.policyNumber}
+            />
+          </Field>
+          <Field label="Full Name" required error={errors.fullName}>
+            <TextInput
+              value={form.fullName}
+              onChange={(v) => update("fullName", v)}
+              placeholder="Jane Doe"
+              invalid={!!errors.fullName}
+            />
+          </Field>
+          <Field label="Date of Loss" required error={errors.dateOfLoss}>
+            <TextInput
+              type="date"
+              value={form.dateOfLoss}
+              onChange={(v) => update("dateOfLoss", v)}
+              invalid={!!errors.dateOfLoss}
+            />
+          </Field>
+          <Field label="Contact Phone">
+            <TextInput
+              value={form.contactPhone}
+              onChange={(v) => update("contactPhone", v)}
+              placeholder="(555) 555-0123"
+            />
+          </Field>
+        </FormSection>
+
+        <FormSection title="Incident Details">
+          <Field label="Incident Type" required error={errors.incidentType}>
+            <select
+              value={form.incidentType}
+              onChange={(e) => update("incidentType", e.target.value)}
+              className="w-full h-10 rounded-md border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{
+                borderColor: errors.incidentType ? "#DC2626" : "#D1D5DB",
+                backgroundColor: COLORS.surface,
+                color: form.incidentType ? COLORS.text : COLORS.muted,
+              }}
+            >
+              <option value="">Select incident type…</option>
+              {INCIDENT_TYPES.map((t) => (
+                <option key={t} value={t} style={{ color: COLORS.text }}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field
+            label="Brief Description"
+            required
+            error={errors.description}
+            className="md:col-span-2"
+          >
+            <textarea
+              value={form.description}
+              onChange={(e) => update("description", e.target.value.slice(0, 300))}
+              rows={4}
+              placeholder="Describe what happened…"
+              className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+              style={{
+                borderColor: errors.description ? "#DC2626" : "#D1D5DB",
+                backgroundColor: COLORS.surface,
+                color: COLORS.text,
+              }}
+            />
+            <div className="flex justify-end text-[11px] mt-1" style={{ color: COLORS.muted }}>
+              {charCount}/300
+            </div>
+          </Field>
+          <Field label="Location of Incident" className="md:col-span-2">
+            <TextInput
+              value={form.location}
+              onChange={(v) => update("location", v)}
+              placeholder="Street, city, state"
+            />
+          </Field>
+          <Field label="Was anyone injured?" className="md:col-span-2">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.injured}
+                onClick={() => update("injured", !form.injured)}
+                className="relative inline-flex h-6 w-11 rounded-full transition-colors"
+                style={{
+                  backgroundColor: form.injured ? COLORS.amber : "#D1D5DB",
+                }}
+              >
+                <span
+                  className="inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform"
+                  style={{ transform: form.injured ? "translateX(22px)" : "translateX(2px)", marginTop: 2 }}
+                />
+              </button>
+              <span className="text-sm" style={{ color: COLORS.text }}>
+                {form.injured ? "Yes" : "No"}
+              </span>
+            </div>
+            {form.injured && (
+              <div
+                className="mt-3 rounded-md border px-3 py-2 text-xs animate-fade-in"
+                style={{
+                  backgroundColor: COLORS.amberBg,
+                  borderColor: COLORS.amberBorder,
+                  color: COLORS.amberText,
+                }}
+              >
+                ⚠ Claims involving injuries require senior adjuster review.
+              </div>
+            )}
+          </Field>
+        </FormSection>
+
+        <FormSection title="Vehicle Information">
+          <Field label="Year">
+            <TextInput
+              type="number"
+              value={form.year}
+              onChange={(v) => update("year", v)}
+              placeholder="2024"
+            />
+          </Field>
+          <Field label="Make">
+            <TextInput
+              value={form.make}
+              onChange={(v) => update("make", v)}
+              placeholder="Toyota"
+            />
+          </Field>
+          <Field label="Model">
+            <TextInput
+              value={form.model}
+              onChange={(v) => update("model", v)}
+              placeholder="Camry"
+            />
+          </Field>
+          <Field label="VIN">
+            <TextInput
+              value={form.vin}
+              onChange={(v) => update("vin", v)}
+              placeholder="Optional"
+            />
+          </Field>
+        </FormSection>
+
+        <div className="mt-8 flex justify-end">
+          <button
+            onClick={handleSubmit}
+            className="text-sm font-semibold text-white px-6 py-3 rounded-md transition-colors"
+            style={{ backgroundColor: COLORS.blue }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
+          >
+            Begin Photo Submission →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section
+      className="rounded-lg border p-5 mb-4"
+      style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
+    >
+      <h3
+        className="text-[11px] font-semibold uppercase tracking-wider mb-4"
+        style={{ color: COLORS.muted }}
+      >
+        {title}
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{children}</div>
+    </section>
+  );
+}
+
+function Field({
+  label,
+  required,
+  error,
+  children,
+  className,
+}: {
+  label: string;
+  required?: boolean;
+  error?: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <label className="text-xs font-medium block mb-1.5" style={{ color: COLORS.text }}>
+        {label}
+        {required && <span style={{ color: "#DC2626" }}> *</span>}
+      </label>
+      {children}
+      {error && (
+        <div className="text-[11px] mt-1" style={{ color: "#DC2626" }}>
+          {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TextInput({
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  invalid,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  invalid?: boolean;
+}) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="w-full h-10 rounded-md border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+      style={{
+        borderColor: invalid ? "#DC2626" : "#D1D5DB",
+        backgroundColor: COLORS.surface,
+        color: COLORS.text,
+      }}
+    />
+  );
+}
+
+function ReviewEstimateStep() {
   const [selectedId, setSelectedId] = useState(claimData[0].id);
   const claim = useMemo(
     () => claimData.find((c) => c.id === selectedId) ?? claimData[0],
