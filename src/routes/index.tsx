@@ -2002,11 +2002,15 @@ function EstimateReviewPanel({
   isFastTrack,
   seniorReview,
   onTriggerSeniorReview,
+  highlightedPart,
+  onHighlight,
 }: {
   claim: Claim;
   isFastTrack: boolean;
   seniorReview: boolean;
   onTriggerSeniorReview: () => void;
+  highlightedPart: number | null;
+  onHighlight: (partIndex: number) => void;
 }) {
   const [adjusted, setAdjusted] = useState<number[]>(() =>
     claim.parts.map((p) => p.draftEstimate),
