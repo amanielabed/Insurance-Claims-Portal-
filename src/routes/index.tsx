@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import claimSimpleImage from "@/assets/claim-simple.jpg";
 import claimComplexImage from "@/assets/claim-complex.jpg";
@@ -273,15 +273,33 @@ interface PhotoSlot {
 }
 
 const PHOTO_SLOTS: PhotoSlot[] = [
-  { id: "front", name: "Front View", guidance: "Full front of vehicle", required: true, icon: "▲" },
-  { id: "rear", name: "Rear View", guidance: "Full rear of vehicle", required: true, icon: "▼" },
-  { id: "driver", name: "Driver Side", guidance: "Full left side", required: true, icon: "◀" },
-  { id: "passenger", name: "Passenger Side", guidance: "Full right side", required: true, icon: "▶" },
-  { id: "damage", name: "Primary Damage Close-Up", guidance: "Close photo of the main damaged area", required: true, icon: "◎" },
-  { id: "secondary", name: "Secondary Damage Detail", guidance: "Additional damage areas", required: false, icon: "◇" },
-  { id: "interior", name: "Interior Damage", guidance: "Cabin or interior damage", required: false, icon: "▣" },
-  { id: "odometer", name: "Odometer / Dashboard", guidance: "Mileage and dashboard view", required: false, icon: "◐" },
+  {
+    id: "primary",
+    name: "Primary Damage View",
+    guidance:
+      "Clear close-up photo of the main damaged area. Ensure the full extent of visible damage is shown.",
+    required: true,
+    icon: "◎",
+  },
+  {
+    id: "wide",
+    name: "Wide Context Shot",
+    guidance:
+      "Step back slightly to show the damaged area in relation to surrounding vehicle panels.",
+    required: true,
+    icon: "◰",
+  },
+  {
+    id: "angle",
+    name: "Second Damage Angle",
+    guidance:
+      "Capture the same damaged area from a different angle to help assess depth, deformation, or hidden extent.",
+    required: true,
+    icon: "◳",
+  },
 ];
+
+const MIN_REQUIRED = 3;
 
 function UploadPhotosStep({
   onContinue,
@@ -291,7 +309,9 @@ function UploadPhotosStep({
   onBack: () => void;
 }) {
   const [photos, setPhotos] = useState<Record<string, string>>({});
+  const [extraPhotos, setExtraPhotos] = useState<{ id: string; url: string }[]>([]);
   const [tooltipOpen, setTooltipOpen] = useState(false);
+  const extraInputRef = useRef<HTMLInputElement>(null);
 
   const handleSelect = (slotId: string, file: File | undefined) => {
     if (!file) return;
@@ -299,12 +319,22 @@ function UploadPhotosStep({
     setPhotos((prev) => ({ ...prev, [slotId]: url }));
   };
 
-  const required = PHOTO_SLOTS.filter((s) => s.required);
-  const optional = PHOTO_SLOTS.filter((s) => !s.required);
-  const uploadedRequired = required.filter((s) => photos[s.id]);
-  const uploadedCount = uploadedRequired.length;
-  const missing = required.filter((s) => !photos[s.id]);
-  const sufficient = uploadedCount === required.length;
+  const handleExtraSelect = (files: FileList | null) => {
+    if (!files) return;
+    const next = Array.from(files).map((f) => ({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      url: URL.createObjectURL(f),
+    }));
+    setExtraPhotos((prev) => [...prev, ...next]);
+  };
+
+  const removeExtra = (id: string) => {
+    setExtraPhotos((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const required = PHOTO_SLOTS;
+  const uploadedCount = required.filter((s) => photos[s.id]).length;
+  const sufficient = uploadedCount >= MIN_REQUIRED;
 
   return (
     <div className="flex-1 overflow-auto">
@@ -312,8 +342,24 @@ function UploadPhotosStep({
         <div className="mb-4">
           <h2 className="text-xl font-semibold tracking-tight">Upload Photos</h2>
           <p className="text-sm mt-1" style={{ color: COLORS.muted }}>
-            Capture multiple angles to enable a complete draft assessment.
+            Capture the damaged area from multiple angles to enable an accurate draft assessment.
           </p>
+        </div>
+
+        {/* Quality guidance banner */}
+        <div
+          className="rounded-lg border p-4 mb-5"
+          style={{ backgroundColor: "#F9FAFB", borderColor: COLORS.border }}
+        >
+          <h3 className="text-sm font-semibold mb-2" style={{ color: COLORS.text }}>
+            Photo Quality Requirements
+          </h3>
+          <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1 text-xs" style={{ color: COLORS.muted }}>
+            <li>• <span style={{ color: COLORS.text }}>In focus</span> — avoid blurry or motion-blurred images</li>
+            <li>• <span style={{ color: COLORS.text }}>Well-lit</span> — avoid shadows covering damage</li>
+            <li>• <span style={{ color: COLORS.text }}>High resolution</span> — minimum 2MP recommended</li>
+            <li>• <span style={{ color: COLORS.text }}>Unobstructed</span> — ensure the damaged area is fully visible</li>
+          </ul>
         </div>
 
         {/* Requirements panel */}
@@ -324,7 +370,7 @@ function UploadPhotosStep({
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-semibold" style={{ color: COLORS.text }}>
-                Draft Assessment Requires 5 Minimum Photos
+                Damage Photos Required ({MIN_REQUIRED} minimum)
               </h3>
               <div className="relative">
                 <button
@@ -333,7 +379,7 @@ function UploadPhotosStep({
                   onMouseLeave={() => setTooltipOpen(false)}
                   onFocus={() => setTooltipOpen(true)}
                   onBlur={() => setTooltipOpen(false)}
-                  aria-label="Why 5 photos?"
+                  aria-label="Why 3 photos?"
                   className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold border"
                   style={{ borderColor: "#D1D5DB", color: COLORS.muted }}
                 >
@@ -349,7 +395,7 @@ function UploadPhotosStep({
                       color: COLORS.text,
                     }}
                   >
-                    <span className="font-semibold">Why 5 photos?</span> Single-angle assessment increases the risk of missing structural damage. Multi-angle coverage helps cross-check damage patterns and flag inconsistencies.
+                    <span className="font-semibold">Why 3 photos?</span> A single image may not capture the full extent or depth of damage. Multiple views help cross-check visible damage and reduce the risk of under- or over-estimation.
                   </div>
                 )}
               </div>
@@ -362,7 +408,7 @@ function UploadPhotosStep({
                 border: `1px solid ${sufficient ? "#BBF7D0" : COLORS.border}`,
               }}
             >
-              {uploadedCount} of {required.length} required photos uploaded
+              {uploadedCount} of {MIN_REQUIRED} uploaded
             </div>
           </div>
 
@@ -371,7 +417,7 @@ function UploadPhotosStep({
             <div
               className="h-full rounded-full transition-all duration-300"
               style={{
-                width: `${(uploadedCount / required.length) * 100}%`,
+                width: `${Math.min(uploadedCount / MIN_REQUIRED, 1) * 100}%`,
                 backgroundColor: sufficient ? COLORS.green : COLORS.blue,
               }}
             />
@@ -379,7 +425,7 @@ function UploadPhotosStep({
         </div>
 
         {/* Required photo slots */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-5">
           {required.map((slot) => (
             <PhotoCard
               key={slot.id}
@@ -393,48 +439,82 @@ function UploadPhotosStep({
         {/* Sufficiency message */}
         {sufficient ? (
           <div
-            className="rounded-md border px-4 py-3 mb-5 flex items-center gap-2 animate-fade-in"
+            className="rounded-md border px-4 py-3 mb-5 animate-fade-in"
             style={{ backgroundColor: COLORS.greenBg, borderColor: "#BBF7D0", color: COLORS.greenText }}
           >
-            <span>✓</span>
-            <span className="text-sm font-medium">
-              Sufficient photo coverage detected. Draft assessment is ready to begin.
-            </span>
+            <div className="text-sm font-medium">✓ Minimum photo coverage met.</div>
+            <div className="text-xs mt-0.5">
+              You may upload additional photos for a more accurate assessment, or continue now.
+            </div>
           </div>
-        ) : uploadedCount >= 3 ? (
+        ) : uploadedCount === 2 ? (
           <div
             className="rounded-md border px-4 py-3 mb-5 text-sm animate-fade-in"
             style={{ backgroundColor: COLORS.amberBg, borderColor: COLORS.amberBorder, color: COLORS.amberText }}
           >
-            ⚠ {required.length - uploadedCount} more photo{required.length - uploadedCount === 1 ? "" : "s"} required before assessment can begin. Missing: {missing.map((s) => s.name).join(", ")}.
+            ⚠ 1 more photo required. Please upload a second angle of the damage.
           </div>
         ) : (
           <div
             className="rounded-md border px-4 py-3 mb-5 text-sm animate-fade-in"
             style={{ backgroundColor: "#FEF2F2", borderColor: "#FECACA", color: "#991B1B" }}
           >
-            Insufficient photo coverage. Multiple angles are required to assess structural integrity and reduce single-angle assessment errors.
+            At least 3 photos of the damaged area are required before assessment can begin.
           </div>
         )}
 
-        {/* Optional section */}
+        {/* Optional photos */}
         <div className="mb-5">
-          <h3 className="text-sm font-semibold mb-1" style={{ color: COLORS.text }}>
-            Additional Photos <span style={{ color: COLORS.muted }}>(Recommended)</span>
-          </h3>
-          <p className="text-xs mb-3" style={{ color: COLORS.muted }}>
-            Optional — but strengthens the assessment when included.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {optional.map((slot) => (
-              <PhotoCard
-                key={slot.id}
-                slot={slot}
-                previewUrl={photos[slot.id]}
-                onSelect={(f) => handleSelect(slot.id, f)}
-              />
-            ))}
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h3 className="text-sm font-semibold" style={{ color: COLORS.text }}>
+                Additional Photos <span style={{ color: COLORS.muted }}>(Optional)</span>
+              </h3>
+              <p className="text-xs mt-0.5" style={{ color: COLORS.muted }}>
+                e.g. secondary damage, wheel damage, interior, dashboard warnings, environment.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => extraInputRef.current?.click()}
+              className="text-xs font-medium px-3 py-2 rounded-md border shrink-0"
+              style={{ borderColor: "#D1D5DB", color: COLORS.text, backgroundColor: COLORS.surface }}
+            >
+              + Add More Photos
+            </button>
+            <input
+              ref={extraInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                handleExtraSelect(e.target.files);
+                e.target.value = "";
+              }}
+            />
           </div>
+          {extraPhotos.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto py-2">
+              {extraPhotos.map((p) => (
+                <div
+                  key={p.id}
+                  className="relative shrink-0 w-20 h-20 rounded-md overflow-hidden border"
+                  style={{ borderColor: COLORS.border }}
+                >
+                  <img src={p.url} alt="Additional" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removeExtra(p.id)}
+                    aria-label="Remove photo"
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-xs flex items-center justify-center hover:bg-black/80"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Navigation */}
@@ -469,6 +549,7 @@ function UploadPhotosStep({
     </div>
   );
 }
+
 
 function PhotoCard({
   slot,
