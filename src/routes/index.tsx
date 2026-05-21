@@ -24,6 +24,11 @@ interface Claim {
   actionMessage: string;
   imagePlaceholder: string;
   parts: Part[];
+  verificationConcerns?: string[];
+  recommendedReviewer?: {
+    title: string;
+    description: string;
+  };
 }
 
 const claimData: Claim[] = [
