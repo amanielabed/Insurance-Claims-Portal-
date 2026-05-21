@@ -413,7 +413,21 @@ function DamagePhotoPanel({ claim }: { claim: Claim }) {
   );
 }
 
-function EstimaticsPanel({ claim, isFastTrack }: { claim: Claim; isFastTrack: boolean }) {
+interface LogEntry {
+  id: number;
+  partName: string;
+  from: number;
+  to: number;
+}
+
+function EstimateReviewPanel({ claim, isFastTrack }: { claim: Claim; isFastTrack: boolean }) {
+  const [adjusted, setAdjusted] = useState<number[]>(() =>
+    claim.parts.map((p) => p.draftEstimate),
+  );
+  const [drafts, setDrafts] = useState<string[]>(() =>
+    claim.parts.map((p) => p.draftEstimate.toFixed(2)),
+  );
+  const [log, setLog] = useState<LogEntry[]>([]);
   const [checks, setChecks] = useState<[boolean, boolean, boolean]>([false, false, false]);
   const allChecked = checks.every(Boolean);
   const toggle = (i: number) =>
@@ -423,67 +437,203 @@ function EstimaticsPanel({ claim, isFastTrack }: { claim: Claim; isFastTrack: bo
       return next;
     });
 
+  // Reset state when claim changes
+  const claimId = claim.id;
+  useMemo(() => {
+    setAdjusted(claim.parts.map((p) => p.draftEstimate));
+    setDrafts(claim.parts.map((p) => p.draftEstimate.toFixed(2)));
+    setLog([]);
+    setChecks([false, false, false]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [claimId]);
+
+  const draftTotal = claim.parts.reduce((s, p) => s + p.draftEstimate, 0);
+  const adjustedTotal = adjusted.reduce((s, n) => s + (isFinite(n) ? n : 0), 0);
+
+  const commitEdit = (i: number, raw: string) => {
+    const parsed = parseFloat(raw);
+    if (isNaN(parsed)) {
+      setDrafts((prev) => {
+        const n = [...prev];
+        n[i] = adjusted[i].toFixed(2);
+        return n;
+      });
+      return;
+    }
+    const prevVal = adjusted[i];
+    if (parsed === prevVal) return;
+    setAdjusted((prev) => {
+      const n = [...prev];
+      n[i] = parsed;
+      return n;
+    });
+    setDrafts((prev) => {
+      const n = [...prev];
+      n[i] = parsed.toFixed(2);
+      return n;
+    });
+    setLog((prev) =>
+      [
+        { id: Date.now(), partName: claim.parts[i].name, from: prevVal, to: parsed },
+        ...prev,
+      ].slice(0, 4),
+    );
+  };
+
   return (
     <div className="flex flex-col h-full gap-4">
-      <div>
-        <Label>Draft Estimate</Label>
-        <div className="text-2xl font-bold mt-1" style={{ color: COLORS.text }}>
-          {fmtCurrency(claim.estimatedCost)}
-        </div>
-      </div>
-
+      {/* Estimate table */}
       <div className="flex-1 overflow-auto min-h-0">
-        <Label>Line Items</Label>
-        <div className="flex flex-col gap-2 mt-2">
-          {claim.parts.map((part, i) => {
-            const flagged = part.flagged;
-            return (
-              <div
-                key={i}
-                className="rounded-md border p-3"
-                style={{
-                  backgroundColor: flagged ? COLORS.amberBg : "#FAFAFA",
-                  borderColor: flagged ? COLORS.amberBorder : COLORS.border,
-                }}
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+              <th
+                className="text-left font-semibold uppercase tracking-wider text-[10px] pb-2 pr-2"
+                style={{ color: COLORS.muted }}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium" style={{ color: COLORS.text }}>
-                    {part.name}
-                  </span>
-                  {flagged && (
-                    <span
-                      className="px-2 py-0.5 rounded text-xs font-semibold"
-                      style={{
-                        backgroundColor: "#FEF3C7",
-                        color: COLORS.amberText,
-                      }}
-                    >
-                      NEEDS VERIFICATION
-                    </span>
-                  )}
-                </div>
-                <div
-                  className="flex items-center justify-between mt-2 text-xs"
-                  style={{ color: COLORS.muted }}
+                Line Item
+              </th>
+              <th
+                className="text-right font-semibold uppercase tracking-wider text-[10px] pb-2 px-2"
+                style={{ color: COLORS.muted }}
+              >
+                Draft
+              </th>
+              <th
+                className="text-right font-semibold uppercase tracking-wider text-[10px] pb-2 px-2"
+                style={{ color: COLORS.muted }}
+              >
+                Adjusted
+              </th>
+              <th
+                className="text-right font-semibold uppercase tracking-wider text-[10px] pb-2 pl-2"
+                style={{ color: COLORS.muted }}
+              >
+                Difference
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {claim.parts.map((part, i) => {
+              const draft = part.draftEstimate;
+              const adj = adjusted[i];
+              const diff = adj - draft;
+              const pct = draft === 0 ? 0 : Math.abs(diff / draft);
+              const variance = pct > 0.15;
+              const diffColor =
+                diff === 0
+                  ? COLORS.muted
+                  : diff > 0
+                    ? COLORS.amberText
+                    : COLORS.greenText;
+              const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
+              return (
+                <tr
+                  key={i}
+                  style={{
+                    backgroundColor: variance ? COLORS.amberBg : "transparent",
+                    borderBottom: `1px solid ${COLORS.border}`,
+                  }}
                 >
-                  <span>
-                    Suggested scope:{" "}
-                    <span style={{ color: COLORS.text, fontWeight: 500 }}>
-                      {part.suggestedRepairScope}
-                    </span>
-                    {" · "}
-                    {part.laborHours} hrs
-                  </span>
-                  <span className="font-medium" style={{ color: COLORS.text }}>
-                    {fmtCurrency(part.draftEstimate)}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+                  <td className="py-2.5 pr-2 align-top">
+                    <div className="font-medium" style={{ color: COLORS.text }}>
+                      {part.name}
+                    </div>
+                    <div className="text-xs mt-0.5" style={{ color: COLORS.muted }}>
+                      {part.suggestedRepairScope} · {part.laborHours} hrs
+                    </div>
+                  </td>
+                  <td
+                    className="py-2.5 px-2 text-right align-top tabular-nums"
+                    style={{ color: COLORS.muted }}
+                  >
+                    {fmtCurrency(draft)}
+                  </td>
+                  <td className="py-2.5 px-2 text-right align-top">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={drafts[i]}
+                      onChange={(e) =>
+                        setDrafts((prev) => {
+                          const n = [...prev];
+                          n[i] = e.target.value;
+                          return n;
+                        })
+                      }
+                      onBlur={(e) => commitEdit(i, e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                      }}
+                      className="w-24 text-right tabular-nums rounded border px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      style={{
+                        borderColor: "#D1D5DB",
+                        backgroundColor: COLORS.surface,
+                        color: COLORS.text,
+                      }}
+                    />
+                  </td>
+                  <td
+                    className="py-2.5 pl-2 text-right align-top tabular-nums font-medium"
+                    style={{ color: diffColor }}
+                  >
+                    {diff === 0
+                      ? "—"
+                      : `${sign}${fmtCurrency(Math.abs(diff))}`}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Totals */}
+      <div className="shrink-0 flex flex-col gap-1 pt-2 border-t" style={{ borderColor: COLORS.border }}>
+        <div className="flex items-center justify-between text-sm">
+          <span style={{ color: COLORS.muted }}>Draft Total</span>
+          <span className="tabular-nums" style={{ color: COLORS.muted }}>
+            {fmtCurrency(draftTotal)}
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold" style={{ color: COLORS.text }}>
+            Adjusted Total
+          </span>
+          <span
+            className="text-lg font-bold tabular-nums"
+            style={{ color: COLORS.text }}
+          >
+            {fmtCurrency(adjustedTotal)}
+          </span>
         </div>
       </div>
 
+      {/* Activity log */}
+      {log.length > 0 && (
+        <div
+          className="shrink-0 rounded-md border px-3 py-2"
+          style={{ backgroundColor: "#FAFAFA", borderColor: COLORS.border }}
+        >
+          <Label>Activity</Label>
+          <ul className="mt-1.5 flex flex-col gap-1">
+            {log.map((entry) => (
+              <li
+                key={entry.id}
+                className="text-xs"
+                style={{ color: COLORS.muted }}
+              >
+                Estimate updated: {entry.partName}{" "}
+                <span style={{ color: COLORS.text }}>
+                  {fmtCurrency(entry.from)} → {fmtCurrency(entry.to)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* CTA */}
       {isFastTrack ? (
         <button
           className="shrink-0 w-full rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
@@ -491,7 +641,7 @@ function EstimaticsPanel({ claim, isFastTrack }: { claim: Claim; isFastTrack: bo
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
         >
-          Confirm Draft Estimate
+          Confirm Estimate
         </button>
       ) : (
         <div className="shrink-0 flex flex-col gap-2">
