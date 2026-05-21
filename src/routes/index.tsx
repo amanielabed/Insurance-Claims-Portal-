@@ -77,7 +77,7 @@ const claimData: Claim[] = [
       {
         name: "Frame rail inspection",
         suggestedRepairScope: "Inspect",
-        draftEstimate: 890,
+        draftEstimate: 860,
         laborHours: 3.0,
         flagged: true,
       },
