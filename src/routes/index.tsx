@@ -2222,6 +2222,7 @@ function EstimateReviewPanel({
                   </td>
                   <td className="py-2.5 px-2 text-right align-top">
                     <input
+                      onClick={(e) => e.stopPropagation()}
                       type="number"
                       step="0.01"
                       value={drafts[i]}
