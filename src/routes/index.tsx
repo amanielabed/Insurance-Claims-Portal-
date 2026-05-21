@@ -1337,7 +1337,164 @@ function InitiateClaimStep({
 }
 
 
+type CoverageVal = "third_party" | "full" | "unsure" | "";
+type FaultVal = "policyholder" | "other" | "unclear" | "single_vehicle" | "";
+interface EligibilityResult {
+  tone: "amber" | "blue" | "green" | "red";
+  title: string;
+  body: string;
+  action: string;
+  note?: string;
+  showDeductible?: boolean;
+  canContinue: boolean;
+}
+
+function EligibilityCheck({
+  coverage, setCoverage, fault, setFault, deductible, setDeductible, eligibility, onContinue,
+}: {
+  coverage: CoverageVal;
+  setCoverage: (v: CoverageVal) => void;
+  fault: FaultVal;
+  setFault: (v: FaultVal) => void;
+  deductible: string;
+  setDeductible: (v: string) => void;
+  eligibility: EligibilityResult | null;
+  onContinue: () => void;
+}) {
+  const toneStyles: Record<string, { bg: string; border: string; text: string }> = {
+    amber: { bg: "#FFFBEB", border: "#FCD34D", text: "#92400E" },
+    blue: { bg: "#EFF6FF", border: "#BFDBFE", text: "#1D4ED8" },
+    green: { bg: "#F0FDF4", border: "#BBF7D0", text: "#15803D" },
+    red: { bg: "#FEF2F2", border: "#FECACA", text: "#B91C1C" },
+  };
+  const coverageOptions: { value: CoverageVal; label: string }[] = [
+    { value: "third_party", label: "Third-party only" },
+    { value: "full", label: "Full coverage (comprehensive)" },
+    { value: "unsure", label: "I'm not sure" },
+  ];
+  const faultOptions: { value: FaultVal; label: string }[] = [
+    { value: "policyholder", label: "Policyholder at fault" },
+    { value: "other", label: "Other party at fault" },
+    { value: "unclear", label: "Fault unclear or disputed" },
+    { value: "single_vehicle", label: "Single-vehicle incident" },
+  ];
+
+  const Radio = ({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) => (
+    <label className="flex items-center gap-2.5 py-2 cursor-pointer text-sm" style={{ color: COLORS.text }}>
+      <span
+        onClick={onChange}
+        className="w-4 h-4 rounded-full border flex items-center justify-center shrink-0"
+        style={{ borderColor: checked ? COLORS.blue : "#D1D5DB", backgroundColor: COLORS.surface }}
+      >
+        {checked && <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.blue }} />}
+      </span>
+      <input type="radio" checked={checked} onChange={onChange} className="sr-only" />
+      <span onClick={onChange}>{label}</span>
+    </label>
+  );
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold tracking-tight">Coverage Eligibility Check</h2>
+        <p className="text-sm mt-1" style={{ color: COLORS.muted }}>
+          We need a few details before beginning the claim review.
+        </p>
+      </div>
+
+      <FormSection title="Coverage Type">
+        <div className="md:col-span-2">
+          <p className="text-sm font-medium mb-2" style={{ color: COLORS.text }}>
+            What type of coverage does this policy include?
+          </p>
+          <div>
+            {coverageOptions.map((o) => (
+              <Radio key={o.value} checked={coverage === o.value} onChange={() => setCoverage(o.value)} label={o.label} />
+            ))}
+          </div>
+          {coverage === "unsure" && (
+            <p className="text-[11px] mt-2" style={{ color: COLORS.muted }}>
+              Coverage type may be confirmed using the policy number lookup.
+            </p>
+          )}
+        </div>
+      </FormSection>
+
+      <FormSection title="Preliminary Fault Assessment">
+        <div className="md:col-span-2">
+          <p className="text-sm font-medium mb-2" style={{ color: COLORS.text }}>
+            What is the current understanding of fault?
+          </p>
+          <div>
+            {faultOptions.map((o) => (
+              <Radio key={o.value} checked={fault === o.value} onChange={() => setFault(o.value)} label={o.label} />
+            ))}
+          </div>
+          <p className="text-[11px] mt-2" style={{ color: COLORS.muted }}>
+            This is a preliminary operational assessment and may change during formal review.
+          </p>
+        </div>
+      </FormSection>
+
+      {eligibility && (
+        <div
+          className="rounded-lg border p-5 mb-4 animate-fade-in"
+          style={{
+            backgroundColor: toneStyles[eligibility.tone].bg,
+            borderColor: toneStyles[eligibility.tone].border,
+          }}
+        >
+          <h3 className="text-sm font-semibold mb-1" style={{ color: toneStyles[eligibility.tone].text }}>
+            {eligibility.title}
+          </h3>
+          {eligibility.body && (
+            <p className="text-sm" style={{ color: COLORS.text }}>
+              {eligibility.body}
+            </p>
+          )}
+          {eligibility.note && (
+            <p className="text-[12px] mt-2" style={{ color: COLORS.muted }}>
+              {eligibility.note}
+            </p>
+          )}
+          {eligibility.showDeductible && (
+            <div className="mt-4 max-w-xs">
+              <label className="text-xs font-medium block mb-1.5" style={{ color: COLORS.text }}>
+                Deductible amount (optional)
+              </label>
+              <TextInput
+                type="number"
+                value={deductible}
+                onChange={setDeductible}
+                placeholder="$0"
+              />
+            </div>
+          )}
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => {
+                if (!eligibility.canContinue) return;
+                onContinue();
+              }}
+              disabled={!eligibility.canContinue}
+              className="text-sm font-semibold px-5 py-2.5 rounded-md transition-colors"
+              style={{
+                backgroundColor: eligibility.canContinue ? COLORS.blue : "#E5E7EB",
+                color: eligibility.canContinue ? "#FFFFFF" : COLORS.muted,
+                cursor: eligibility.canContinue ? "pointer" : "not-allowed",
+              }}
+            >
+              {eligibility.action}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
+
   return (
     <section
       className="rounded-lg border p-5 mb-4"
