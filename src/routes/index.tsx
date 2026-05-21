@@ -1753,7 +1753,15 @@ function AssessmentReviewPanel({ claim }: { claim: Claim }) {
   );
 }
 
-function DamagePhotoPanel({ claim }: { claim: Claim }) {
+function DamagePhotoPanel({
+  claim,
+  highlightedPart,
+  onHighlight,
+}: {
+  claim: Claim;
+  highlightedPart: number | null;
+  onHighlight: (partIndex: number) => void;
+}) {
   const confidence = claim.reviewConfidence;
 
   const confidenceMeta: Record<
