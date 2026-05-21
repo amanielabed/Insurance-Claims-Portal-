@@ -1330,7 +1330,8 @@ function InitiateClaimStep({
             Begin Photo Submission →
           </button>
         </div>
-        </>
+        </div>
+
         )}
       </div>
     </div>
