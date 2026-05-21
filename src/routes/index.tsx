@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -7,116 +7,181 @@ export const Route = createFileRoute("/")({
 
 interface Part {
   name: string;
-  aiEstimate: number;
+  suggestedRepairScope: string;
+  draftEstimate: number;
   laborHours: number;
-  flagged?: boolean;
+  flagged: boolean;
 }
 
 interface Claim {
   id: string;
   type: string;
-  delegationState: "FAST_TRACK" | "HUMAN_REVIEW";
-  trustScore: number;
-  riskLevel: "LOW" | "HIGH";
+  delegationState: "FAST_TRACK" | "MANUAL_REVIEW";
+  reviewConfidence: string;
+  riskLevel: string;
   estimatedCost: number;
   confidenceLabel: string;
   actionMessage: string;
-  parts: Part[];
   imagePlaceholder: string;
+  parts: Part[];
 }
 
-const CLAIM_DATA: Record<string, Claim> = {
-  "2026-001": {
+const claimData: Claim[] = [
+  {
     id: "2026-001",
     type: "Simple Scratch",
     delegationState: "FAST_TRACK",
-    trustScore: 94,
-    riskLevel: "LOW",
+    reviewConfidence: "High",
+    riskLevel: "Low",
     estimatedCost: 187.5,
-    confidenceLabel:
-      "High confidence — clear imagery, single damaged part, no structural risk detected",
+    confidenceLabel: "Clear imagery, single damaged part, low repair complexity.",
     actionMessage:
-      "Fast-track eligible. AI can draft the estimate with minimal human review.",
-    parts: [{ name: "Rear bumper cover repair", aiEstimate: 142.5, laborHours: 1.5 }],
+      "Auto-route eligible. This claim can move through a lightweight confirmation flow.",
     imagePlaceholder: "Simple bumper scratch",
+    parts: [
+      {
+        name: "Rear bumper cover repair",
+        suggestedRepairScope: "Repair",
+        draftEstimate: 142.5,
+        laborHours: 1.5,
+        flagged: false,
+      },
+    ],
   },
-  "2026-002": {
+  {
     id: "2026-002",
     type: "Rear Collision",
-    delegationState: "HUMAN_REVIEW",
-    trustScore: 61,
-    riskLevel: "HIGH",
+    delegationState: "MANUAL_REVIEW",
+    reviewConfidence: "Moderate",
+    riskLevel: "High",
     estimatedCost: 1240,
     confidenceLabel:
-      "Moderate confidence — low resolution on rear quarter panel, possible hidden frame damage behind deformation",
+      "Low resolution on rear quarter panel. Possible hidden structural damage behind deformation.",
     actionMessage:
-      "Human review required. Payment is paused until adjuster validates flagged items.",
-    parts: [
-      { name: "Rear quarter panel skin", aiEstimate: 380, laborHours: 3.5 },
-      { name: "Frame rail inspection", aiEstimate: 890, laborHours: 3.0, flagged: true },
-    ],
+      "Manual review required. Payment should remain paused until verification is complete.",
     imagePlaceholder: "Rear collision damage",
+    parts: [
+      {
+        name: "Rear quarter panel skin",
+        suggestedRepairScope: "Repair",
+        draftEstimate: 380,
+        laborHours: 3.5,
+        flagged: false,
+      },
+      {
+        name: "Frame rail inspection",
+        suggestedRepairScope: "Inspect",
+        draftEstimate: 890,
+        laborHours: 3.0,
+        flagged: true,
+      },
+    ],
   },
-};
-
-const CLAIM_OPTIONS = [
-  { id: "2026-001", label: "Claim #2026-001 — Simple Scratch" },
-  { id: "2026-002", label: "Claim #2026-002 — Rear Collision" },
 ];
 
+const COLORS = {
+  bg: "#F8FAFC",
+  surface: "#FFFFFF",
+  border: "#E5E7EB",
+  text: "#1F2937",
+  muted: "#6B7280",
+  blue: "#2563EB",
+  blueHover: "#1D4ED8",
+  green: "#22C55E",
+  greenBg: "#F0FDF4",
+  greenText: "#15803D",
+  amber: "#F59E0B",
+  amberBg: "#FFFBEB",
+  amberBorder: "#FDE68A",
+  amberText: "#B45309",
+};
+
+const fmtCurrency = (n: number) =>
+  `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 function Index() {
-  const [selectedClaimId, setSelectedClaimId] = useState(CLAIM_OPTIONS[0].id);
-  const claim = CLAIM_DATA[selectedClaimId];
+  const [selectedId, setSelectedId] = useState(claimData[0].id);
+  const claim = useMemo(
+    () => claimData.find((c) => c.id === selectedId) ?? claimData[0],
+    [selectedId],
+  );
+
+  const isFastTrack = claim.delegationState === "FAST_TRACK";
 
   return (
     <div
       className="flex flex-col h-screen"
-      style={{ backgroundColor: "#F8FAFC", color: "#1F2937" }}
+      style={{ backgroundColor: COLORS.bg, color: COLORS.text }}
     >
+      {/* Header */}
       <header
         className="flex items-center justify-between px-6 h-14 border-b shrink-0"
-        style={{ backgroundColor: "#FFFFFF", borderColor: "#E5E7EB" }}
+        style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
       >
         <div className="flex items-center gap-2">
           <span
             className="inline-block w-2 h-2 rounded-sm"
-            style={{ backgroundColor: "#2563EB" }}
+            style={{ backgroundColor: COLORS.blue }}
           />
-          <h1 className="text-sm font-semibold tracking-tight" style={{ color: "#1F2937" }}>
+          <h1 className="text-sm font-semibold tracking-tight">
             Claims Delegation Cockpit
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-xs font-medium" style={{ color: "#6B7280" }}>
+          <label className="text-xs font-medium" style={{ color: COLORS.muted }}>
             Active claim
           </label>
           <select
-            value={selectedClaimId}
-            onChange={(e) => setSelectedClaimId(e.target.value)}
-            className="px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            value={selectedId}
+            onChange={(e) => setSelectedId(e.target.value)}
+            className="px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             style={{
-              backgroundColor: "#FFFFFF",
-              color: "#1F2937",
+              backgroundColor: COLORS.surface,
+              color: COLORS.text,
               borderColor: "#D1D5DB",
             }}
           >
-            {CLAIM_OPTIONS.map((c) => (
+            {claimData.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.label}
+                Claim #{c.id} — {c.type}
               </option>
             ))}
           </select>
         </div>
       </header>
 
+      {/* Manual review banner */}
+      {!isFastTrack && (
+        <div
+          className="flex items-start gap-3 px-6 py-3 border-b shrink-0"
+          style={{
+            backgroundColor: COLORS.amberBg,
+            borderColor: COLORS.amberBorder,
+            color: COLORS.amberText,
+          }}
+        >
+          <span className="text-base leading-5">⚠</span>
+          <div>
+            <div className="text-sm font-semibold">Manual Review Required</div>
+            <div className="text-xs mt-0.5" style={{ color: "#92400E" }}>
+              Possible structural damage detected. Please verify before approval.
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="flex-1 min-h-0 grid grid-cols-3 gap-4 p-4">
+        {/* Damage Photo */}
         <Panel title="Damage Photo">
           <div className="flex flex-col h-full gap-3">
             <div
-              className="flex items-center justify-center flex-1 rounded-md border border-dashed text-sm min-h-0"
+              className="flex items-center justify-center flex-1 rounded-md border-2 text-sm min-h-0"
               style={{
                 backgroundColor: "#F1F5F9",
-                borderColor: "#CBD5E1",
+                borderColor: isFastTrack
+                  ? "rgba(34,197,94,0.4)"
+                  : COLORS.amber,
+                borderStyle: isFastTrack ? "dashed" : "solid",
                 color: "#64748B",
               }}
             >
@@ -129,226 +194,251 @@ function Index() {
                 </div>
               </div>
             </div>
+            {!isFastTrack && (
+              <div
+                className="text-xs px-3 py-2 rounded-md"
+                style={{
+                  backgroundColor: COLORS.amberBg,
+                  color: COLORS.amberText,
+                  border: `1px solid ${COLORS.amberBorder}`,
+                }}
+              >
+                Review image carefully — structural damage possible
+              </div>
+            )}
             <div className="shrink-0">
-              <StatusBadge state={claim.delegationState} />
+              {isFastTrack ? (
+                <Badge
+                  dot={COLORS.green}
+                  bg={COLORS.greenBg}
+                  fg={COLORS.greenText}
+                  border="#BBF7D0"
+                  text="Auto-Route Eligible"
+                />
+              ) : (
+                <Badge
+                  dot={COLORS.amber}
+                  bg={COLORS.amberBg}
+                  fg={COLORS.amberText}
+                  border={COLORS.amberBorder}
+                  text="Verification Required"
+                />
+              )}
             </div>
           </div>
         </Panel>
 
-        <Panel title="AI Assessment">
+        {/* Center: Initial Assessment / Review Confidence */}
+        <Panel title={isFastTrack ? "Initial Assessment" : "Review Confidence"}>
           <div className="flex flex-col h-full gap-4">
-            <div
-              className="flex items-center justify-between rounded-md px-4 py-3"
-              style={{
-                backgroundColor:
-                  claim.delegationState === "FAST_TRACK" ? "#F0FDF4" : "#FEF2F2",
-              }}
-            >
-              <div>
-                <div className="text-xs font-medium" style={{ color: "#6B7280" }}>
-                  Trust Score
-                </div>
-                <div
-                  className="text-2xl font-bold"
-                  style={{
-                    color:
-                      claim.delegationState === "FAST_TRACK" ? "#16A34A" : "#DC2626",
-                  }}
-                >
-                  {claim.trustScore}
-                  <span className="text-sm font-normal" style={{ color: "#9CA3AF" }}>
-                    /100
-                  </span>
-                </div>
-              </div>
+            <div>
+              <Label>{isFastTrack ? "High review confidence" : "Review confidence"}</Label>
               <div
-                className="px-3 py-1 rounded-md text-xs font-semibold"
+                className="text-sm font-semibold mt-1"
                 style={{
-                  backgroundColor:
-                    claim.riskLevel === "LOW" ? "#DCFCE7" : "#FEE2E2",
-                  color: claim.riskLevel === "LOW" ? "#16A34A" : "#DC2626",
+                  color: isFastTrack ? COLORS.greenText : COLORS.amberText,
                 }}
               >
-                {claim.riskLevel} RISK
+                {claim.reviewConfidence} · {claim.riskLevel} risk
               </div>
+              {isFastTrack && (
+                <div className="text-xs mt-1" style={{ color: COLORS.muted }}>
+                  Clear imagery and low repair complexity
+                </div>
+              )}
             </div>
 
-            <div className="flex-1 overflow-auto min-h-1">
-              <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "#6B7280" }}>
-                Confidence Assessment
-              </div>
-              <p className="text-sm leading-relaxed" style={{ color: "#374151" }}>
+            <div className="flex-1 overflow-auto min-h-0">
+              <Label>Initial Assessment</Label>
+              <p className="text-sm leading-relaxed mt-1" style={{ color: "#374151" }}>
                 {claim.confidenceLabel}
               </p>
 
-              <div className="mt-4 text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "#6B7280" }}>
-                AI Recommendation
-              </div>
-              <div
-                className="rounded-md p-3 text-sm"
-                style={{
-                  backgroundColor:
-                    claim.delegationState === "FAST_TRACK" ? "#EFF6FF" : "#FEF2F2",
-                  color: claim.delegationState === "FAST_TRACK" ? "#1E40AF" : "#991B1B",
-                }}
-              >
-                {claim.actionMessage}
-              </div>
-            </div>
-
-            <div className="shrink-1 mt-auto">
-              <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "#6B7280" }}>
-                Delegation State
-              </div>
-              <div
-                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
-                style={{
-                  backgroundColor:
-                    claim.delegationState === "FAST_TRACK" ? "#F0FDF4" : "#FEF2F2",
-                  color:
-                    claim.delegationState === "FAST_TRACK" ? "#16A34A" : "#DC2626",
-                  border: `1px solid ${claim.delegationState === "FAST_TRACK" ? "#BBF7D0" : "#FECACA"}`,
-                }}
-              >
-                <span
-                  className="inline-block w-2 h-2 rounded-full"
+              <div className="mt-4">
+                <Label>Next Action</Label>
+                <div
+                  className="rounded-md p-3 text-sm mt-1"
                   style={{
-                    backgroundColor:
-                      claim.delegationState === "FAST_TRACK" ? "#16A34A" : "#DC2626",
+                    backgroundColor: isFastTrack ? "#EFF6FF" : COLORS.amberBg,
+                    color: isFastTrack ? "#1E40AF" : COLORS.amberText,
+                    border: `1px solid ${isFastTrack ? "#BFDBFE" : COLORS.amberBorder}`,
                   }}
-                />
-                {claim.delegationState === "FAST_TRACK"
-                  ? "Fast-Track Approved"
-                  : "Human Review Required"}
+                >
+                  {claim.actionMessage}
+                </div>
               </div>
             </div>
           </div>
         </Panel>
 
+        {/* Right: Estimatics Review */}
         <Panel title="Estimatics Review">
-          <div className="flex flex-col h-full gap-4">
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "#6B7280" }}>
-                Estimated Cost
-              </div>
-              <div className="text-2xl font-bold" style={{ color: "#1F2937" }}>
-                ${claim.estimatedCost.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                })}
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-auto min-h-1">
-              <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "#6B7280" }}>
-                Line Items
-              </div>
-              <div className="flex flex-col gap-2">
-                {claim.parts.map((part, i) => (
-                  <div
-                    key={i}
-                    className="rounded-md border p-3"
-                    style={{
-                      backgroundColor: part.flagged ? "#FEF2F2" : "#FAFAFA",
-                      borderColor: part.flagged ? "#FECACA" : "#E5E7EB",
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium" style={{ color: "#1F2937" }}>
-                        {part.name}
-                      </span>
-                      {part.flagged && (
-                        <span
-                          className="px-2 py-0.5 rounded text-xs font-semibold"
-                          style={{
-                            backgroundColor: "#FEE2E2",
-                            color: "#DC2626",
-                          }}
-                        >
-                          FLAGGED
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between mt-1 text-xs" style={{ color: "#6B7280" }}>
-                      <span>{part.laborHours} hrs labor</span>
-                      <span className="font-medium" style={{ color: "#1F2937" }}>
-                        ${part.aiEstimate.toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                        })}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {claim.delegationState === "HUMAN_REVIEW" && (
-              <div
-                className="shrink-1 rounded-md p-3 text-sm"
-                style={{
-                  backgroundColor: "#FEF2F2",
-                  color: "#991B1B",
-                  border: "1px solid #FECACA",
-                }}
-              >
-                <div className="flex items-center gap-2 font-semibold mb-1">
-                  <span
-                    className="inline-block w-2 h-2 rounded-full"
-                    style={{ backgroundColor: "#DC2626" }}
-                  />
-                  Payment Paused
-                </div>
-                <div className="text-xs" style={{ color: "#B91C1C" }}>
-                  Flagged items require adjuster validation before payment release.
-                </div>
-              </div>
-            )}
-
-            {claim.delegationState === "FAST_TRACK" && (
-              <div
-                className="shrink-1 rounded-md p-3 text-sm"
-                style={{
-                  backgroundColor: "#F0FDF4",
-                  color: "#166534",
-                  border: "1px solid #BBF7D0",
-                }}
-              >
-                <div className="flex items-center gap-2 font-semibold mb-1">
-                  <span
-                    className="inline-block w-2 h-2 rounded-full"
-                    style={{ backgroundColor: "#16A34A" }}
-                  />
-                  Payment Ready
-                </div>
-                <div className="text-xs" style={{ color: "#15803D" }}>
-                  AI-generated estimate is approved for fast-track disbursement.
-                </div>
-              </div>
-            )}
-          </div>
+          <EstimaticsPanel claim={claim} isFastTrack={isFastTrack} />
         </Panel>
       </main>
     </div>
   );
 }
 
-function StatusBadge({ state }: { state: "FAST_TRACK" | "HUMAN_REVIEW" }) {
-  const isFastTrack = state === "FAST_TRACK";
+function EstimaticsPanel({ claim, isFastTrack }: { claim: Claim; isFastTrack: boolean }) {
+  const [checks, setChecks] = useState<[boolean, boolean, boolean]>([false, false, false]);
+  const allChecked = checks.every(Boolean);
+  const toggle = (i: number) =>
+    setChecks((prev) => {
+      const next = [...prev] as [boolean, boolean, boolean];
+      next[i] = !next[i];
+      return next;
+    });
+
+  return (
+    <div className="flex flex-col h-full gap-4">
+      <div>
+        <Label>Draft Estimate</Label>
+        <div className="text-2xl font-bold mt-1" style={{ color: COLORS.text }}>
+          {fmtCurrency(claim.estimatedCost)}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-auto min-h-0">
+        <Label>Line Items</Label>
+        <div className="flex flex-col gap-2 mt-2">
+          {claim.parts.map((part, i) => {
+            const flagged = part.flagged;
+            return (
+              <div
+                key={i}
+                className="rounded-md border p-3"
+                style={{
+                  backgroundColor: flagged ? COLORS.amberBg : "#FAFAFA",
+                  borderColor: flagged ? COLORS.amberBorder : COLORS.border,
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium" style={{ color: COLORS.text }}>
+                    {part.name}
+                  </span>
+                  {flagged && (
+                    <span
+                      className="px-2 py-0.5 rounded text-xs font-semibold"
+                      style={{
+                        backgroundColor: "#FEF3C7",
+                        color: COLORS.amberText,
+                      }}
+                    >
+                      NEEDS VERIFICATION
+                    </span>
+                  )}
+                </div>
+                <div
+                  className="flex items-center justify-between mt-2 text-xs"
+                  style={{ color: COLORS.muted }}
+                >
+                  <span>
+                    Suggested scope:{" "}
+                    <span style={{ color: COLORS.text, fontWeight: 500 }}>
+                      {part.suggestedRepairScope}
+                    </span>
+                    {" · "}
+                    {part.laborHours} hrs
+                  </span>
+                  <span className="font-medium" style={{ color: COLORS.text }}>
+                    {fmtCurrency(part.draftEstimate)}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {isFastTrack ? (
+        <button
+          className="shrink-0 w-full rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
+          style={{ backgroundColor: COLORS.blue }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
+        >
+          Confirm Draft Estimate
+        </button>
+      ) : (
+        <div className="shrink-0 flex flex-col gap-2">
+          <Label>Required Verification Before Submission</Label>
+          <div className="flex flex-col gap-1.5 mt-1">
+            {[
+              "Confirm photo angle is sufficient",
+              "Verify structural damage scope",
+              "Check repair vs. replace decision",
+            ].map((item, i) => (
+              <label
+                key={i}
+                className="flex items-center gap-2 text-sm cursor-pointer select-none"
+                style={{ color: COLORS.text }}
+              >
+                <input
+                  type="checkbox"
+                  checked={checks[i]}
+                  onChange={() => toggle(i)}
+                  className="w-4 h-4"
+                  style={{ accentColor: COLORS.blue }}
+                />
+                {item}
+              </label>
+            ))}
+          </div>
+          {allChecked && (
+            <button
+              className="mt-2 w-full rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
+              style={{ backgroundColor: COLORS.blue }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = COLORS.blueHover)
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = COLORS.blue)
+              }
+            >
+              Submit for Authorization
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Badge({
+  dot,
+  bg,
+  fg,
+  border,
+  text,
+}: {
+  dot: string;
+  bg: string;
+  fg: string;
+  border: string;
+  text: string;
+}) {
   return (
     <div
-      className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
-      style={{
-        backgroundColor: isFastTrack ? "#F0FDF4" : "#FEF2F2",
-        color: isFastTrack ? "#16A34A" : "#DC2626",
-        border: `1px solid ${isFastTrack ? "#BBF7D0" : "#FECACA"}`,
-      }}
+      className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-semibold"
+      style={{ backgroundColor: bg, color: fg, border: `1px solid ${border}` }}
     >
       <span
         className="inline-block w-2 h-2 rounded-full"
-        style={{
-          backgroundColor: isFastTrack ? "#16A34A" : "#DC2626",
-        }}
+        style={{ backgroundColor: dot }}
       />
-      {isFastTrack ? "Fast-Track" : "Human Review"}
+      {text}
+    </div>
+  );
+}
+
+function Label({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="text-xs font-semibold uppercase tracking-wider"
+      style={{ color: COLORS.muted }}
+    >
+      {children}
     </div>
   );
 }
@@ -357,15 +447,15 @@ function Panel({ title, children }: { title: string; children?: React.ReactNode 
   return (
     <section
       className="flex flex-col min-h-0 rounded-lg border"
-      style={{ backgroundColor: "#FFFFFF", borderColor: "#E5E7EB" }}
+      style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
     >
       <header
         className="flex items-center justify-between px-4 h-11 border-b shrink-0"
-        style={{ borderColor: "#E5E7EB" }}
+        style={{ borderColor: COLORS.border }}
       >
         <h2
           className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: "#6B7280" }}
+          style={{ color: COLORS.muted }}
         >
           {title}
         </h2>
