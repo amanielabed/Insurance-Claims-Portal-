@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import claimSimpleImage from "@/assets/claim-simple.jpg";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -24,6 +25,7 @@ interface Claim {
   confidenceLabel: string;
   actionMessage: string;
   imagePlaceholder: string;
+  imageUrl?: string;
   parts: Part[];
   verificationConcerns?: string[];
   recommendedReviewer?: {
@@ -44,6 +46,7 @@ const claimData: Claim[] = [
     actionMessage:
       "Auto-route eligible. This claim can move through a lightweight confirmation flow.",
     imagePlaceholder: "Simple bumper scratch",
+    imageUrl: claimSimpleImage,
     parts: [
       {
         name: "Rear bumper cover repair",
@@ -460,14 +463,23 @@ function DamagePhotoPanel({ claim }: { claim: Claim }) {
         className="relative flex items-center justify-center flex-1 rounded-md min-h-0 overflow-hidden"
         style={{ backgroundColor: "#E5E7EB", border: `1px solid ${COLORS.border}` }}
       >
-        <div className="text-center px-4">
-          <div className="font-medium text-sm" style={{ color: "#475569" }}>
-            {claim.imagePlaceholder}
+        {claim.imageUrl ? (
+          <img
+            src={claim.imageUrl}
+            alt={claim.imagePlaceholder}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <div className="text-center px-4">
+            <div className="font-medium text-sm" style={{ color: "#475569" }}>
+              {claim.imagePlaceholder}
+            </div>
+            <div className="text-xs mt-1" style={{ color: "#94A3B8" }}>
+              Claim {claim.id}
+            </div>
           </div>
-          <div className="text-xs mt-1" style={{ color: "#94A3B8" }}>
-            Claim {claim.id}
-          </div>
-        </div>
+        )}
+
 
         {isFastTrack ? (
           <div
