@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import claimSimpleImage from "@/assets/claim-simple.jpg";
+import claimComplexImage from "@/assets/claim-complex.jpg";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -69,6 +70,7 @@ const claimData: Claim[] = [
     actionMessage:
       "Manual review required. Payment should remain paused until verification is complete.",
     imagePlaceholder: "Rear collision damage",
+    imageUrl: claimComplexImage,
     parts: [
       {
         name: "Rear quarter panel skin",
