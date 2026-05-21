@@ -1568,7 +1568,13 @@ function ReviewEstimateStep({
       >
         {/* Damage Photo */}
         <Panel title="Damage Photo">
-          <DamagePhotoPanel claim={claim} />
+          <DamagePhotoPanel
+            claim={claim}
+            highlightedPart={highlightedPart}
+            onHighlight={(idx) =>
+              setHighlightedPart((cur) => (cur === idx ? null : idx))
+            }
+          />
         </Panel>
 
         {/* Center: Assessment Review */}
@@ -1584,6 +1590,10 @@ function ReviewEstimateStep({
             isFastTrack={isFastTrack}
             seniorReview={seniorReview}
             onTriggerSeniorReview={() => setSeniorReview(true)}
+            highlightedPart={highlightedPart}
+            onHighlight={(idx) =>
+              setHighlightedPart((cur) => (cur === idx ? null : idx))
+            }
           />
         </Panel>
       </main>
