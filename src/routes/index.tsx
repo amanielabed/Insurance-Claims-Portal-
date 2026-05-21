@@ -3390,39 +3390,56 @@ function EstimateReviewPanel({
         </button>
 
         {/* 2. Approve & Submit */}
-        <button
-          type="button"
-          disabled={seniorReview}
-          title={
-            seniorReview
-              ? "Senior adjuster authorization required before submission."
-              : undefined
-          }
-          onClick={() => {
-            if (seniorReview) return;
-            if (isFastTrack) {
-              toast.success(`Claim #${claim.id} approved and submitted.`, {
-                description: `Estimate authorization issued for ${fmtCurrency(adjustedTotal)}.`,
-              });
-            } else {
-              setAuthDialogOpen(true);
-            }
-          }}
-          className="flex-1 rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
-          style={{
-            backgroundColor: seniorReview ? "#E5E7EB" : COLORS.blue,
-            color: seniorReview ? "#9CA3AF" : "white",
-            cursor: seniorReview ? "not-allowed" : "pointer",
-          }}
-          onMouseEnter={(e) => {
-            if (!seniorReview) e.currentTarget.style.backgroundColor = COLORS.blueHover;
-          }}
-          onMouseLeave={(e) => {
-            if (!seniorReview) e.currentTarget.style.backgroundColor = COLORS.blue;
-          }}
-        >
-          Approve & Submit
-        </button>
+        {(() => {
+          const pr = claimForm?.policeReport ?? "";
+          const policeBlocked = pr !== "uploaded";
+          const blocked = seniorReview || policeBlocked;
+          const blockTitle = seniorReview
+            ? "Senior adjuster authorization required before submission."
+            : policeBlocked
+              ? "Police report pending or unavailable — manual review required before authorization."
+              : undefined;
+          const label = policeBlocked && !seniorReview ? "Route to Manual Review" : "Approve & Submit";
+          return (
+            <button
+              type="button"
+              disabled={seniorReview}
+              title={blockTitle}
+              onClick={() => {
+                if (seniorReview) return;
+                if (policeBlocked) {
+                  toast.message(`Claim #${claim.id} routed to manual review.`, {
+                    description: "Final authorization paused pending police report verification.",
+                  });
+                  return;
+                }
+                if (isFastTrack) {
+                  toast.success(`Claim #${claim.id} approved and submitted.`, {
+                    description: `Estimate authorization issued for ${fmtCurrency(adjustedTotal)}.`,
+                  });
+                } else {
+                  setAuthDialogOpen(true);
+                }
+              }}
+              className="flex-1 rounded-md py-2.5 text-sm font-semibold transition-colors"
+              style={{
+                backgroundColor: seniorReview ? "#E5E7EB" : policeBlocked ? "#FFFBEB" : COLORS.blue,
+                color: seniorReview ? "#9CA3AF" : policeBlocked ? "#92400E" : "white",
+                border: policeBlocked && !seniorReview ? "1px solid #FCD34D" : "none",
+                cursor: blocked ? (seniorReview ? "not-allowed" : "pointer") : "pointer",
+              }}
+              onMouseEnter={(e) => {
+                if (!seniorReview && !policeBlocked) e.currentTarget.style.backgroundColor = COLORS.blueHover;
+              }}
+              onMouseLeave={(e) => {
+                if (!seniorReview && !policeBlocked) e.currentTarget.style.backgroundColor = COLORS.blue;
+              }}
+            >
+              {label}
+            </button>
+          );
+        })()}
+
 
         {/* 3. Generate Report */}
         <button
