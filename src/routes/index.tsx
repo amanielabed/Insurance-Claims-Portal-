@@ -1445,6 +1445,104 @@ interface LogEntry {
   to: number;
 }
 
+const SOURCE_META: Record<
+  SourceKey,
+  { short: string; label: string; bg: string; fg: string; border: string }
+> = {
+  mitchell: {
+    short: "Mitchell",
+    label: "Mitchell RepairCenter",
+    bg: "#EFF6FF",
+    fg: "#1D4ED8",
+    border: "#BFDBFE",
+  },
+  ccc: {
+    short: "CCC",
+    label: "CCC Intelligent Solutions",
+    bg: "#F5F3FF",
+    fg: "#6D28D9",
+    border: "#DDD6FE",
+  },
+  oem: {
+    short: "OEM",
+    label: "OEM Repair Guidelines",
+    bg: "#F3F4F6",
+    fg: "#374151",
+    border: "#E5E7EB",
+  },
+  verify: {
+    short: "Verify",
+    label: "Verification Required",
+    bg: COLORS.amberBg,
+    fg: COLORS.amberText,
+    border: COLORS.amberBorder,
+  },
+};
+
+function SourceDetail({ source }: { source: SourceKey }) {
+  const meta = SOURCE_META[source];
+  const content: Record<SourceKey, React.ReactNode> = {
+    mitchell: (
+      <>
+        <DetailRow label="Labor benchmark" value="$95/hr regional labor average" />
+        <DetailRow label="Estimated repair time" value="1.5 hours for comparable bumper damage" />
+        <DetailRow label="Last updated" value="March 2026" />
+        <DetailRow label="Reference quality" value="High match confidence for this vehicle category." />
+      </>
+    ),
+    ccc: (
+      <>
+        <DetailRow label="Part reference" value="Rear bumper cover" />
+        <DetailRow label="OEM price" value="$340" />
+        <DetailRow label="Aftermarket option" value="$187" />
+        <DetailRow label="Suggested repair scope" value="Aftermarket replacement meets cosmetic repair standards" />
+        <DetailRow label="Supplier availability" value="Available through approved regional suppliers." />
+      </>
+    ),
+    oem: (
+      <>
+        <DetailRow label="Reference" value="Toyota Structural Repair Manual (2024 revision)" />
+        <DetailRow label="Procedure reference" value="Bumper repair and paint calibration guidance" />
+        <DetailRow label="Additional note" value="Paint calibration may be required for metallic finishes." />
+      </>
+    ),
+    verify: (
+      <>
+        <p className="text-xs leading-relaxed" style={{ color: COLORS.text }}>
+          A direct database match was not identified for this damage pattern.
+        </p>
+        <p className="text-xs leading-relaxed mt-1.5" style={{ color: COLORS.text }}>
+          The estimate was generated using comparable repair scenarios and regional pricing references.
+        </p>
+        <p className="text-xs leading-relaxed mt-1.5 font-medium" style={{ color: meta.fg }}>
+          Additional adjuster verification is recommended before authorization.
+        </p>
+      </>
+    ),
+  };
+  return (
+    <div
+      className="rounded-md border p-3 animate-fade-in"
+      style={{ backgroundColor: meta.bg, borderColor: meta.border }}
+    >
+      <div className="text-xs font-semibold mb-1.5" style={{ color: meta.fg }}>
+        {source === "oem" ? "Manufacturer Repair Guidelines" : meta.label}
+      </div>
+      <div className="flex flex-col gap-1">{content[source]}</div>
+    </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="text-xs leading-snug">
+      <span className="font-medium" style={{ color: COLORS.muted }}>{label}: </span>
+      <span style={{ color: COLORS.text }}>{value}</span>
+    </div>
+  );
+}
+
+
 function EstimateReviewPanel({
   claim,
   isFastTrack,
