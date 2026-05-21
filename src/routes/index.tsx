@@ -109,7 +109,7 @@ function Index() {
         </div>
       </header>
 
-      <main className="flex-1 min-h- 0 grid grid-cols-3 gap-4 p-4">
+      <main className="flex-1 min-h-0 grid grid-cols-3 gap-4 p-4">
         <Panel title="Damage Photo">
           <div className="flex flex-col h-full gap-3">
             <div
