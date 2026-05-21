@@ -1126,14 +1126,29 @@ function InitiateClaimStep({
       <div className="max-w-3xl mx-auto px-6 py-8">
         {!eligibilityPassed ? (
           <EligibilityCheck
-            coverage={coverage}
-            setCoverage={(v) => { setCoverage(v); }}
+            policyNumber={eligPolicy}
+            setPolicyNumber={setEligPolicy}
             fault={fault}
             setFault={(v) => { setFault(v); }}
             deductible={deductible}
             setDeductible={setDeductible}
+            validated={validated}
+            setValidated={setValidated}
             eligibility={eligibility}
-            onContinue={() => setEligibilityPassed(true)}
+            onContinue={() => {
+              if (validated) {
+                setForm((prev) => ({
+                  ...prev,
+                  policyNumber: validated.policyNumber,
+                  fullName: prev.fullName || validated.holderName,
+                  year: validated.year,
+                  make: validated.make,
+                  model: validated.model,
+                  vehicleAutoFilled: true,
+                }));
+              }
+              setEligibilityPassed(true);
+            }}
           />
         ) : (
         <div>
