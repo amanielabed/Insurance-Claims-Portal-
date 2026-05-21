@@ -1126,6 +1126,19 @@ function InitiateClaimStep({
   return (
     <div className="flex-1 overflow-auto">
       <div className="max-w-3xl mx-auto px-6 py-8">
+        {!eligibilityPassed ? (
+          <EligibilityCheck
+            coverage={coverage}
+            setCoverage={(v) => { setCoverage(v); }}
+            fault={fault}
+            setFault={(v) => { setFault(v); }}
+            deductible={deductible}
+            setDeductible={setDeductible}
+            eligibility={eligibility}
+            onContinue={() => setEligibilityPassed(true)}
+          />
+        ) : (
+        <>
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
             <h2 className="text-xl font-semibold tracking-tight">Initiate Claim</h2>
@@ -1144,6 +1157,7 @@ function InitiateClaimStep({
             Use Demo Claim
           </button>
         </div>
+
 
         <FormSection title="Policyholder Information">
           <Field label="Policy Number" required error={errors.policyNumber}>
