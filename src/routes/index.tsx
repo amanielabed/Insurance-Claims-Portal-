@@ -632,7 +632,7 @@ function ReviewEstimateStep() {
 
   return (
     <div
-      className="flex flex-col h-screen"
+      className="flex flex-col flex-1 min-h-0"
       style={{ backgroundColor: COLORS.bg, color: COLORS.text }}
     >
       {/* Workflow status indicator bar */}
