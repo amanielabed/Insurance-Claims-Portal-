@@ -1290,6 +1290,55 @@ function InitiateClaimStep({
           </Field>
         </FormSection>
 
+        <FormSection title="Documentation">
+          <Field label="Police Report Status" className="md:col-span-2">
+            <select
+              value={form.policeReport}
+              onChange={(e) => update("policeReport", e.target.value as PoliceReportStatus)}
+              className="w-full h-10 rounded-md border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{
+                borderColor: "#D1D5DB",
+                backgroundColor: COLORS.surface,
+                color: form.policeReport ? COLORS.text : COLORS.muted,
+              }}
+            >
+              <option value="">Select status…</option>
+              <option value="uploaded">Uploaded</option>
+              <option value="pending">Pending</option>
+              <option value="not_available">Not Available</option>
+            </select>
+            {form.policeReport === "uploaded" && (
+              <div
+                className="mt-2 rounded-md border px-3 py-2 text-xs"
+                style={{ backgroundColor: "#F0FDF4", borderColor: "#BBF7D0", color: "#15803D" }}
+              >
+                <span className="font-semibold">✓ Police report on file.</span>
+              </div>
+            )}
+            {form.policeReport === "pending" && (
+              <div
+                className="mt-2 rounded-md border px-3 py-2 text-xs"
+                style={{ backgroundColor: "#FFFBEB", borderColor: "#FCD34D", color: "#92400E" }}
+              >
+                Authorization may be paused until police report is received.
+              </div>
+            )}
+            {form.policeReport === "not_available" && (
+              <div
+                className="mt-2 rounded-md border px-3 py-2 text-xs"
+                style={{ backgroundColor: "#FFFBEB", borderColor: "#FCD34D", color: "#92400E" }}
+              >
+                Manual review required before authorization.
+              </div>
+            )}
+            <p className="text-[11px] mt-2" style={{ color: COLORS.muted }}>
+              Police report verification would be handled through document review or external authority integration in production.
+            </p>
+          </Field>
+        </FormSection>
+
+
+
         <FormSection title="Vehicle Information">
           {form.vehicleAutoFilled && (
             <div
