@@ -3253,7 +3253,40 @@ function EstimateReviewPanel({
         </div>
       )}
 
+      {/* Documents */}
+      {(() => {
+        const pr = claimForm?.policeReport ?? "";
+        const label =
+          pr === "uploaded" ? "Uploaded" :
+          pr === "pending" ? "Pending" :
+          pr === "not_available" ? "Not Available" :
+          "Not Provided";
+        const tone =
+          pr === "uploaded"
+            ? { bg: "#F0FDF4", border: "#BBF7D0", fg: "#15803D", dot: "#16A34A" }
+            : { bg: "#FFFBEB", border: "#FCD34D", fg: "#92400E", dot: "#D97706" };
+        return (
+          <div
+            className="shrink-0 rounded-md border px-3 py-2.5"
+            style={{ backgroundColor: tone.bg, borderColor: tone.border }}
+          >
+            <Label>Documents</Label>
+            <div className="mt-1.5 flex items-center gap-2 text-xs" style={{ color: COLORS.text }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tone.dot }} />
+              <span className="font-semibold">Police Report:</span>
+              <span style={{ color: tone.fg }}>{label}</span>
+            </div>
+            {pr !== "uploaded" && (
+              <p className="text-[11px] mt-1.5 leading-snug" style={{ color: tone.fg }}>
+                Final authorization paused — manual review required before sign-off.
+              </p>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Estimate Sources */}
+
       <div
         className="shrink-0 rounded-md border px-3 py-2.5"
         style={{ backgroundColor: "#FAFAFA", borderColor: COLORS.border }}
