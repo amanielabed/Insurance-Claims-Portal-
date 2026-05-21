@@ -190,47 +190,9 @@ function Index() {
           <DamagePhotoPanel claim={claim} />
         </Panel>
 
-        {/* Center: Initial Assessment / Review Confidence */}
-        <Panel title={isFastTrack ? "Initial Assessment" : "Review Confidence"}>
-          <div className="flex flex-col h-full gap-4">
-            <div>
-              <Label>{isFastTrack ? "High review confidence" : "Review confidence"}</Label>
-              <div
-                className="text-sm font-semibold mt-1"
-                style={{
-                  color: isFastTrack ? COLORS.greenText : COLORS.amberText,
-                }}
-              >
-                {claim.reviewConfidence} · {claim.riskLevel} risk
-              </div>
-              {isFastTrack && (
-                <div className="text-xs mt-1" style={{ color: COLORS.muted }}>
-                  Clear imagery and low repair complexity
-                </div>
-              )}
-            </div>
-
-            <div className="flex-1 overflow-auto min-h-0">
-              <Label>Initial Assessment</Label>
-              <p className="text-sm leading-relaxed mt-1" style={{ color: "#374151" }}>
-                {claim.confidenceLabel}
-              </p>
-
-              <div className="mt-4">
-                <Label>Next Action</Label>
-                <div
-                  className="rounded-md p-3 text-sm mt-1"
-                  style={{
-                    backgroundColor: isFastTrack ? "#EFF6FF" : COLORS.amberBg,
-                    color: isFastTrack ? "#1E40AF" : COLORS.amberText,
-                    border: `1px solid ${isFastTrack ? "#BFDBFE" : COLORS.amberBorder}`,
-                  }}
-                >
-                  {claim.actionMessage}
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Center: Assessment Review */}
+        <Panel title="Assessment Review">
+          <AssessmentReviewPanel claim={claim} />
         </Panel>
 
         {/* Right: Estimatics Review */}
