@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -120,6 +121,13 @@ function Index() {
     [selectedId],
   );
 
+  const [seniorReview, setSeniorReview] = useState(false);
+
+  // Reset escalation when switching claims
+  useEffect(() => {
+    setSeniorReview(false);
+  }, [selectedId]);
+
   const isFastTrack = claim.delegationState === "FAST_TRACK";
 
   return (
@@ -164,24 +172,43 @@ function Index() {
         </div>
       </header>
 
-      {/* Manual review banner */}
-      {!isFastTrack && (
+      {/* Escalation banner */}
+      {seniorReview ? (
         <div
           className="flex items-start gap-3 px-6 py-3 border-b shrink-0"
           style={{
-            backgroundColor: COLORS.amberBg,
-            borderColor: COLORS.amberBorder,
-            color: COLORS.amberText,
+            backgroundColor: "#FEF2F2",
+            borderColor: "#FECACA",
+            color: "#991B1B",
           }}
         >
-          <span className="text-base leading-5">⚠</span>
+          <span className="text-base leading-5">●</span>
           <div>
-            <div className="text-sm font-semibold">Manual Review Required</div>
-            <div className="text-xs mt-0.5" style={{ color: "#92400E" }}>
-              Possible structural damage detected. Please verify before approval.
+            <div className="text-sm font-semibold">Senior Review Required</div>
+            <div className="text-xs mt-0.5" style={{ color: "#B91C1C" }}>
+              This claim requires authorization before submission.
             </div>
           </div>
         </div>
+      ) : (
+        !isFastTrack && (
+          <div
+            className="flex items-start gap-3 px-6 py-3 border-b shrink-0"
+            style={{
+              backgroundColor: COLORS.amberBg,
+              borderColor: COLORS.amberBorder,
+              color: COLORS.amberText,
+            }}
+          >
+            <span className="text-base leading-5">⚠</span>
+            <div>
+              <div className="text-sm font-semibold">Manual Review Required</div>
+              <div className="text-xs mt-0.5" style={{ color: "#92400E" }}>
+                Possible structural damage detected. Please verify before approval.
+              </div>
+            </div>
+          </div>
+        )
       )}
 
       <main className="flex-1 min-h-0 grid grid-cols-3 gap-4 p-4">
@@ -197,7 +224,13 @@ function Index() {
 
         {/* Right: Estimate Review */}
         <Panel title="Estimate Review">
-          <EstimateReviewPanel key={claim.id} claim={claim} isFastTrack={isFastTrack} />
+          <EstimateReviewPanel
+            key={claim.id}
+            claim={claim}
+            isFastTrack={isFastTrack}
+            seniorReview={seniorReview}
+            onTriggerSeniorReview={() => setSeniorReview(true)}
+          />
         </Panel>
       </main>
     </div>
@@ -420,7 +453,17 @@ interface LogEntry {
   to: number;
 }
 
-function EstimateReviewPanel({ claim, isFastTrack }: { claim: Claim; isFastTrack: boolean }) {
+function EstimateReviewPanel({
+  claim,
+  isFastTrack,
+  seniorReview,
+  onTriggerSeniorReview,
+}: {
+  claim: Claim;
+  isFastTrack: boolean;
+  seniorReview: boolean;
+  onTriggerSeniorReview: () => void;
+}) {
   const [adjusted, setAdjusted] = useState<number[]>(() =>
     claim.parts.map((p) => p.draftEstimate),
   );
@@ -436,6 +479,19 @@ function EstimateReviewPanel({ claim, isFastTrack }: { claim: Claim; isFastTrack
       next[i] = !next[i];
       return next;
     });
+
+  // Auto-escalate: variance >15% on any high-risk (flagged) line item
+  useEffect(() => {
+    if (seniorReview) return;
+    const triggered = claim.parts.some((part, i) => {
+      if (!part.flagged) return false;
+      const draft = part.draftEstimate;
+      if (draft === 0) return false;
+      return Math.abs(adjusted[i] - draft) / draft > 0.15;
+    });
+    if (triggered) onTriggerSeniorReview();
+  }, [adjusted, claim.parts, seniorReview, onTriggerSeniorReview]);
+
 
 
 
@@ -627,15 +683,63 @@ function EstimateReviewPanel({ claim, isFastTrack }: { claim: Claim; isFastTrack
       )}
 
       {/* CTA */}
-      {isFastTrack ? (
-        <button
-          className="shrink-0 w-full rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
-          style={{ backgroundColor: COLORS.blue }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
-        >
-          Confirm Estimate
-        </button>
+      {seniorReview ? (
+        <div className="shrink-0 flex flex-col gap-3">
+          <div
+            className="rounded-md border px-3 py-2.5"
+            style={{
+              backgroundColor: "#FEF2F2",
+              borderColor: "#FECACA",
+            }}
+          >
+            <div className="text-sm font-semibold" style={{ color: "#991B1B" }}>
+              Significant estimate variance detected.
+            </div>
+            <div className="text-xs mt-1" style={{ color: "#B91C1C" }}>
+              Final approval must be completed by an authorized senior adjuster.
+            </div>
+          </div>
+          <button
+            disabled
+            className="w-full rounded-md py-2.5 text-sm font-semibold cursor-not-allowed"
+            style={{
+              backgroundColor: "#F3F4F6",
+              color: "#9CA3AF",
+              border: `1px solid ${COLORS.border}`,
+            }}
+          >
+            {isFastTrack ? "Confirm Estimate" : "Submit for Authorization"}
+          </button>
+          <button
+            onClick={() =>
+              toast("Senior adjuster notified. Claim queued for review.")
+            }
+            className="w-full rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
+            style={{ backgroundColor: "#DC2626" }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#B91C1C")}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#DC2626")}
+          >
+            Request Senior Review
+          </button>
+        </div>
+      ) : isFastTrack ? (
+        <div className="shrink-0 flex flex-col gap-2">
+          <button
+            className="w-full rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
+            style={{ backgroundColor: COLORS.blue }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
+          >
+            Confirm Estimate
+          </button>
+          <button
+            onClick={onTriggerSeniorReview}
+            className="text-xs font-medium underline-offset-2 hover:underline self-center"
+            style={{ color: COLORS.muted }}
+          >
+            Flag for Senior Review
+          </button>
+        </div>
       ) : (
         <div className="shrink-0 flex flex-col gap-2">
           <Label>Required Verification Before Submission</Label>
@@ -675,6 +779,13 @@ function EstimateReviewPanel({ claim, isFastTrack }: { claim: Claim; isFastTrack
               Submit for Authorization
             </button>
           )}
+          <button
+            onClick={onTriggerSeniorReview}
+            className="text-xs font-medium underline-offset-2 hover:underline self-center mt-1"
+            style={{ color: COLORS.muted }}
+          >
+            Flag for Senior Review
+          </button>
         </div>
       )}
     </div>
