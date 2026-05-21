@@ -8,12 +8,15 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
+type SourceKey = "mitchell" | "ccc" | "oem" | "verify";
+
 interface Part {
   name: string;
   suggestedRepairScope: string;
   draftEstimate: number;
   laborHours: number;
   flagged: boolean;
+  sources: SourceKey[];
 }
 
 interface Claim {
