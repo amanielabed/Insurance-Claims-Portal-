@@ -195,9 +195,9 @@ function Index() {
           <AssessmentReviewPanel claim={claim} />
         </Panel>
 
-        {/* Right: Estimatics Review */}
-        <Panel title="Estimatics Review">
-          <EstimaticsPanel claim={claim} isFastTrack={isFastTrack} />
+        {/* Right: Estimate Review */}
+        <Panel title="Estimate Review">
+          <EstimateReviewPanel claim={claim} isFastTrack={isFastTrack} />
         </Panel>
       </main>
     </div>
