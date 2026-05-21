@@ -1329,10 +1329,13 @@ function InitiateClaimStep({
             Begin Photo Submission →
           </button>
         </div>
+        </>
+        )}
       </div>
     </div>
   );
 }
+
 
 function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
