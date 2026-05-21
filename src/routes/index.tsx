@@ -208,6 +208,93 @@ const claimData: Claim[] = [
   },
 ];
 
+type OverlaySeverity = "green" | "amber" | "red";
+
+interface DamageOverlay {
+  partIndex: number;
+  label: string;
+  sub: string;
+  severity: OverlaySeverity;
+  dashed?: boolean;
+  /** % of image dimensions */
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+const OVERLAY_COLORS: Record<OverlaySeverity, { fill: string; border: string; pillBg: string; pillFg: string }> = {
+  green: {
+    fill: "rgba(34, 197, 94, 0.15)",
+    border: "#16A34A",
+    pillBg: "#DCFCE7",
+    pillFg: "#15803D",
+  },
+  amber: {
+    fill: "rgba(245, 158, 11, 0.15)",
+    border: "#D97706",
+    pillBg: "#FEF3C7",
+    pillFg: "#B45309",
+  },
+  red: {
+    fill: "rgba(220, 38, 38, 0.15)",
+    border: "#DC2626",
+    pillBg: "#FEE2E2",
+    pillFg: "#B91C1C",
+  },
+};
+
+const OVERLAYS: Record<string, DamageOverlay[]> = {
+  "2026-001": [
+    {
+      partIndex: 0,
+      label: "Rear Bumper Cover",
+      sub: "Cosmetic damage — repair recommended",
+      severity: "green",
+      x: 36, y: 60, w: 30, h: 22,
+    },
+  ],
+  "2026-002": [
+    {
+      partIndex: 0,
+      label: "Rear Quarter Panel",
+      sub: "Damage extent requires verification",
+      severity: "amber",
+      x: 52, y: 26, w: 36, h: 40,
+    },
+    {
+      partIndex: 1,
+      label: "Frame Rail Area",
+      sub: "Structural impact cannot be confirmed from available images",
+      severity: "red",
+      dashed: true,
+      x: 48, y: 62, w: 26, h: 22,
+    },
+  ],
+  "2026-003": [
+    {
+      partIndex: 1,
+      label: "Driver Door",
+      sub: "Severe deformation detected",
+      severity: "red",
+      x: 8, y: 32, w: 30, h: 40,
+    },
+    {
+      partIndex: 3,
+      label: "Rocker Panel",
+      sub: "Possible frame involvement",
+      severity: "red",
+      x: 34, y: 72, w: 38, h: 14,
+    },
+    {
+      partIndex: 4,
+      label: "A-Pillar",
+      sub: "Inspection required before authorization",
+      severity: "amber",
+      x: 6, y: 8, w: 18, h: 28,
+    },
+  ],
+};
 
 
 const COLORS = {
@@ -1278,10 +1365,12 @@ function ReviewEstimateStep({
 
   const [seniorReview, setSeniorReview] = useState(claim.delegationState === "SENIOR_REVIEW");
   const [scenarioOpen, setScenarioOpen] = useState(false);
+  const [highlightedPart, setHighlightedPart] = useState<number | null>(null);
 
   // Sync escalation when switching claims — auto-load senior review for SENIOR_REVIEW scenarios
   useEffect(() => {
     setSeniorReview(claim.delegationState === "SENIOR_REVIEW");
+    setHighlightedPart(null);
   }, [selectedId, claim.delegationState]);
 
   const isFastTrack = claim.delegationState === "FAST_TRACK";
@@ -1479,7 +1568,13 @@ function ReviewEstimateStep({
       >
         {/* Damage Photo */}
         <Panel title="Damage Photo">
-          <DamagePhotoPanel claim={claim} />
+          <DamagePhotoPanel
+            claim={claim}
+            highlightedPart={highlightedPart}
+            onHighlight={(idx) =>
+              setHighlightedPart((cur) => (cur === idx ? null : idx))
+            }
+          />
         </Panel>
 
         {/* Center: Assessment Review */}
@@ -1495,6 +1590,10 @@ function ReviewEstimateStep({
             isFastTrack={isFastTrack}
             seniorReview={seniorReview}
             onTriggerSeniorReview={() => setSeniorReview(true)}
+            highlightedPart={highlightedPart}
+            onHighlight={(idx) =>
+              setHighlightedPart((cur) => (cur === idx ? null : idx))
+            }
           />
         </Panel>
       </main>
@@ -1654,7 +1753,15 @@ function AssessmentReviewPanel({ claim }: { claim: Claim }) {
   );
 }
 
-function DamagePhotoPanel({ claim }: { claim: Claim }) {
+function DamagePhotoPanel({
+  claim,
+  highlightedPart,
+  onHighlight,
+}: {
+  claim: Claim;
+  highlightedPart: number | null;
+  onHighlight: (partIndex: number) => void;
+}) {
   const confidence = claim.reviewConfidence;
 
   const confidenceMeta: Record<
@@ -1704,34 +1811,56 @@ function DamagePhotoPanel({ claim }: { claim: Claim }) {
         )}
 
 
-        {isFastTrack ? (
-          <div
-            className="absolute left-1/2 -translate-x-1/2 bottom-4 rounded-sm px-2.5 py-1 text-[11px] font-medium"
-            style={{
-              backgroundColor: "rgba(34, 197, 94, 0.10)",
-              border: "1px solid rgba(34, 197, 94, 0.35)",
-              color: COLORS.greenText,
-            }}
-          >
-            <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5" style={{ backgroundColor: COLORS.green }} />
-            Bumper Cover
-          </div>
-        ) : (
-          <div
-            className="absolute top-3 right-3 min-w-[140px] max-w-[45%] rounded-sm px-3 py-2"
-            style={{
-              backgroundColor: "rgba(245, 158, 11, 0.10)",
-              border: "1px solid rgba(245, 158, 11, 0.35)",
-            }}
-          >
-            <div className="text-[11px] font-semibold" style={{ color: COLORS.amberText }}>
-              ⚠ Verification Required
-            </div>
-            <div className="text-[11px] mt-0.5" style={{ color: "#92400E" }}>
-              Possible structural damage detected.
-            </div>
-          </div>
-        )}
+        {(OVERLAYS[claim.id] ?? []).map((ov, i) => {
+          const colors = OVERLAY_COLORS[ov.severity];
+          const active = highlightedPart === ov.partIndex;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onHighlight(ov.partIndex)}
+              className="absolute text-left rounded-md transition-all duration-200 focus:outline-none"
+              style={{
+                left: `${ov.x}%`,
+                top: `${ov.y}%`,
+                width: `${ov.w}%`,
+                height: `${ov.h}%`,
+                backgroundColor: colors.fill,
+                border: `2px ${ov.dashed ? "dashed" : "solid"} ${colors.border}`,
+                boxShadow: active
+                  ? `0 0 0 2px #FFF, 0 0 0 4px ${colors.border}, 0 4px 12px rgba(0,0,0,0.15)`
+                  : "0 1px 3px rgba(0,0,0,0.12)",
+                transform: active ? "scale(1.02)" : "scale(1)",
+                zIndex: active ? 5 : 1,
+              }}
+              aria-label={`${ov.label} — ${ov.sub}`}
+            >
+              <div
+                className="absolute -top-2 left-2 inline-flex flex-col rounded-md shadow-sm"
+                style={{
+                  backgroundColor: colors.pillBg,
+                  border: `1px solid ${colors.border}`,
+                  maxWidth: "calc(100% - 8px)",
+                }}
+              >
+                <span
+                  className="px-2 py-0.5 text-[10px] font-semibold leading-tight"
+                  style={{ color: colors.pillFg }}
+                >
+                  {ov.label}
+                </span>
+                {active && (
+                  <span
+                    className="px-2 pb-1 text-[10px] leading-tight animate-fade-in"
+                    style={{ color: colors.pillFg }}
+                  >
+                    {ov.sub}
+                  </span>
+                )}
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {/* Review Confidence */}
@@ -1895,11 +2024,15 @@ function EstimateReviewPanel({
   isFastTrack,
   seniorReview,
   onTriggerSeniorReview,
+  highlightedPart,
+  onHighlight,
 }: {
   claim: Claim;
   isFastTrack: boolean;
   seniorReview: boolean;
   onTriggerSeniorReview: () => void;
+  highlightedPart: number | null;
+  onHighlight: (partIndex: number) => void;
 }) {
   const [adjusted, setAdjusted] = useState<number[]>(() =>
     claim.parts.map((p) => p.draftEstimate),
@@ -2025,17 +2158,34 @@ function EstimateReviewPanel({
                     : COLORS.greenText;
               const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
               const isExpanded = expanded?.row === i;
+              const isHighlighted = highlightedPart === i;
+              const hasOverlay = (OVERLAYS[claim.id] ?? []).some((o) => o.partIndex === i);
               return (
                 <Fragment key={i}>
                 <tr
+                  onClick={() => hasOverlay && onHighlight(i)}
                   style={{
-                    backgroundColor: variance ? COLORS.amberBg : "transparent",
+                    backgroundColor: isHighlighted
+                      ? "#DBEAFE"
+                      : variance
+                        ? COLORS.amberBg
+                        : "transparent",
                     borderBottom: isExpanded ? "none" : `1px solid ${COLORS.border}`,
+                    cursor: hasOverlay ? "pointer" : "default",
+                    boxShadow: isHighlighted ? "inset 3px 0 0 #2563EB" : "none",
+                    transition: "background-color 150ms ease",
                   }}
                 >
                   <td className="py-2.5 pr-2 align-top">
                     <div className="font-medium" style={{ color: COLORS.text }}>
                       {part.name}
+                      {hasOverlay && (
+                        <span
+                          className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full align-middle"
+                          style={{ backgroundColor: "#2563EB" }}
+                          aria-label="Linked to image overlay"
+                        />
+                      )}
                     </div>
                     <div className="text-xs mt-0.5" style={{ color: COLORS.muted }}>
                       {part.suggestedRepairScope} · {part.laborHours} hrs
@@ -2056,7 +2206,7 @@ function EstimateReviewPanel({
                           <button
                             key={src}
                             type="button"
-                            onClick={() => toggleSource(i, src)}
+                            onClick={(e) => { e.stopPropagation(); toggleSource(i, src); }}
                             className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border transition-colors"
                             style={{
                               backgroundColor: meta.bg,
@@ -2072,6 +2222,7 @@ function EstimateReviewPanel({
                   </td>
                   <td className="py-2.5 px-2 text-right align-top">
                     <input
+                      onClick={(e) => e.stopPropagation()}
                       type="number"
                       step="0.01"
                       value={drafts[i]}
