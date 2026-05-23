@@ -1578,11 +1578,17 @@ function EligibilityCheck({
         setLookupError("Policy not found. Please check the number and try again.");
         return;
       }
-      const upper = v.toUpperCase();
-      const coverage: "full" | "third_party" = upper.startsWith("POL-2025") ? "third_party" : "full";
-      const holderName = upper.startsWith("POL-2025") ? "Omar Al-Kuwari" : "Sarah Al-Mansouri";
-      setValidated({ policyNumber: v, ...result, holderName, coverage });
+      setValidated({
+        policyNumber: v,
+        year: result.year,
+        make: result.make,
+        model: result.model,
+        holderName: result.holderName,
+        coverage: result.coverage,
+        deductible: result.deductible,
+      });
       setValidating(false);
+
     }, 700);
   };
 
