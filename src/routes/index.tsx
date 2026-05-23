@@ -2897,6 +2897,13 @@ function CostBreakdownPanel({
         >
           {renderRows(laborRows, highlightLabor)}
         </div>
+        {complexityFactor !== 1.0 && (
+          <p className="mt-1.5 text-[11px]" style={{ color: COLORS.muted }}>
+            {complexityFactor > 1.0
+              ? "Adjusted for increased repair complexity and additional inspection requirements."
+              : "Adjusted downward for standard repair accessibility and lower repair complexity."}
+          </p>
+        )}
       </div>
 
       {/* Parts section */}
