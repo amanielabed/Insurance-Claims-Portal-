@@ -106,9 +106,11 @@ const claimData: Claim[] = [
         suggestedRepairScope: "Repair",
         draftEstimate: 329.5,
         laborHours: 1.5,
+        partsPrice: 187.0,
         flagged: false,
         sources: ["mitchell", "ccc", "oem"],
       },
+
     ],
   },
   {
