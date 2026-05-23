@@ -1034,14 +1034,24 @@ const INCIDENT_TYPES = [
   "Other",
 ] as const;
 
-type PolicyLookup = { year: string; make: string; model: string };
+type PolicyLookup = {
+  year: string;
+  make: string;
+  model: string;
+  coverage: "full" | "third_party";
+  deductible: string | null;
+  holderName: string;
+};
 
 function lookupPolicy(policyNumber: string): PolicyLookup | null {
   const p = policyNumber.trim().toUpperCase();
-  if (p.startsWith("POL-2026")) return { year: "2023", make: "Toyota", model: "Camry XSE" };
-  if (p.startsWith("POL-2025")) return { year: "2021", make: "Honda", model: "CR-V EX" };
+  if (p.startsWith("POL-2026"))
+    return { year: "2023", make: "Toyota", model: "Camry XSE", coverage: "full", deductible: "500", holderName: "Sarah Al-Mansouri" };
+  if (p.startsWith("POL-2025"))
+    return { year: "2021", make: "Honda", model: "CR-V EX", coverage: "third_party", deductible: null, holderName: "Omar Al-Kuwari" };
   return null;
 }
+
 
 type PoliceReportStatus = "uploaded" | "pending" | "not_available" | "";
 type CoverageType = "full" | "third_party" | "";
@@ -1107,11 +1117,12 @@ const demoForm = (): ClaimForm => {
     vin: "4T1G11AK5NU712398",
     vehicleAutoFilled: true,
     policeReport: "uploaded",
-    coverage: "full",
+    coverage: lookup.coverage,
     fault: "other",
-    deductible: "",
+    deductible: lookup.deductible ?? "",
   };
 };
+
 
 
 
@@ -1130,7 +1141,7 @@ function InitiateClaimStep({
   type Fault = "policyholder" | "other" | "unclear" | "single_vehicle" | "";
   const [eligPolicy, setEligPolicy] = useState("");
   const [fault, setFault] = useState<Fault>("");
-  const [deductible, setDeductible] = useState("");
+  // deductible is retrieved from policy lookup — no manual input
   const [validated, setValidated] = useState<ValidatedPolicy | null>(null);
   const [eligibilityPassed, setEligibilityPassed] = useState(false);
 
@@ -1228,8 +1239,6 @@ function InitiateClaimStep({
             setPolicyNumber={setEligPolicy}
             fault={fault}
             setFault={(v) => { setFault(v); }}
-            deductible={deductible}
-            setDeductible={setDeductible}
             validated={validated}
             setValidated={setValidated}
             eligibility={eligibility}
@@ -1245,13 +1254,14 @@ function InitiateClaimStep({
                   vehicleAutoFilled: true,
                   coverage: validated.coverage,
                   fault: fault || "",
-                  deductible: deductible,
+                  deductible: validated.deductible ?? "",
                 }));
               }
               setEligibilityPassed(true);
             }}
 
           />
+
         ) : (
         <div>
 
@@ -1504,7 +1514,7 @@ function InitiateClaimStep({
 
 
 type FaultVal = "policyholder" | "other" | "unclear" | "single_vehicle" | "";
-type ValidatedPolicy = { policyNumber: string; year: string; make: string; model: string; holderName: string; coverage: "full" | "third_party" };
+type ValidatedPolicy = { policyNumber: string; year: string; make: string; model: string; holderName: string; coverage: "full" | "third_party"; deductible: string | null };
 interface EligibilityResult {
   tone: "amber" | "blue" | "green" | "red";
   title: string;
@@ -1516,19 +1526,18 @@ interface EligibilityResult {
 }
 
 function EligibilityCheck({
-  policyNumber, setPolicyNumber, fault, setFault, deductible, setDeductible, validated, setValidated, eligibility, onContinue,
+  policyNumber, setPolicyNumber, fault, setFault, validated, setValidated, eligibility, onContinue,
 }: {
   policyNumber: string;
   setPolicyNumber: (v: string) => void;
   fault: FaultVal;
   setFault: (v: FaultVal) => void;
-  deductible: string;
-  setDeductible: (v: string) => void;
   validated: ValidatedPolicy | null;
   setValidated: (v: ValidatedPolicy | null) => void;
   eligibility: EligibilityResult | null;
   onContinue: () => void;
 }) {
+
   const [validating, setValidating] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const toneStyles: Record<string, { bg: string; border: string; text: string }> = {
@@ -1569,11 +1578,17 @@ function EligibilityCheck({
         setLookupError("Policy not found. Please check the number and try again.");
         return;
       }
-      const upper = v.toUpperCase();
-      const coverage: "full" | "third_party" = upper.startsWith("POL-2025") ? "third_party" : "full";
-      const holderName = upper.startsWith("POL-2025") ? "Omar Al-Kuwari" : "Sarah Al-Mansouri";
-      setValidated({ policyNumber: v, ...result, holderName, coverage });
+      setValidated({
+        policyNumber: v,
+        year: result.year,
+        make: result.make,
+        model: result.model,
+        holderName: result.holderName,
+        coverage: result.coverage,
+        deductible: result.deductible,
+      });
       setValidating(false);
+
     }, 700);
   };
 
@@ -1594,9 +1609,9 @@ function EligibilityCheck({
     const demoPolicy = "POL-2026-48201";
     setPolicyNumber(demoPolicy);
     setFault("other");
-    setDeductible("500");
     runValidation(demoPolicy);
   };
+
 
 
   return (
@@ -1728,19 +1743,65 @@ function EligibilityCheck({
               {eligibility.note}
             </p>
           )}
-          {eligibility.showDeductible && (
-            <div className="mt-4 max-w-xs">
-              <label className="text-xs font-medium block mb-1.5" style={{ color: COLORS.text }}>
-                Deductible amount (optional)
-              </label>
-              <TextInput
-                type="number"
-                value={deductible}
-                onChange={setDeductible}
-                placeholder="$0"
-              />
+          {validated && validated.coverage === "full" && (
+            <div
+              className="mt-4 rounded-lg"
+              style={{
+                backgroundColor: "#FFFFFF",
+                border: "0.5px solid #E5E7EB",
+                borderLeft: `3px solid ${fault === "policyholder" ? "#16A34A" : "#2563EB"}`,
+                borderRadius: 8,
+                padding: "12px 16px",
+              }}
+            >
+              <div
+                className="text-[11px] font-semibold uppercase mb-2"
+                style={{ color: COLORS.muted, letterSpacing: "0.08em" }}
+              >
+                Policy Coverage Retrieved
+              </div>
+              <div className="flex flex-col gap-2">
+                <div>
+                  <div className="text-[11px] uppercase" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+                    Coverage Type
+                  </div>
+                  <div className="text-sm font-medium" style={{ color: COLORS.text }}>
+                    Comprehensive
+                  </div>
+                </div>
+                {fault === "policyholder" ? (
+                  <>
+                    <div>
+                      <div className="text-[11px] uppercase" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+                        Deductible
+                      </div>
+                      <div className="text-sm font-medium tabular-nums" style={{ color: COLORS.text }}>
+                        ${validated.deductible}
+                      </div>
+                    </div>
+                    <div className="text-[11px] italic" style={{ color: COLORS.muted }}>
+                      Deductible retrieved from policy record.
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <div className="text-[11px] uppercase" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+                        Deductible Status
+                      </div>
+                      <div className="text-sm font-medium" style={{ color: COLORS.text }}>
+                        Pending liability determination
+                      </div>
+                    </div>
+                    <div className="text-[11px] italic" style={{ color: COLORS.muted }}>
+                      If the other party is determined to be at fault, deductible recovery may apply.
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           )}
+
           <div className="mt-4 flex justify-end">
             <button
               onClick={() => {
@@ -1933,9 +1994,14 @@ function ReviewEstimateStep({
           effectiveClaimForm.fault === "single_vehicle" ? "Single-vehicle" : "—";
         const ded = effectiveClaimForm.deductible?.trim();
         const deductibleLabel =
-          effectiveClaimForm.coverage === "full" && effectiveClaimForm.fault === "policyholder" && ded
-            ? `$${ded}`
-            : "N/A";
+          effectiveClaimForm.coverage === "third_party"
+            ? "N/A"
+            : effectiveClaimForm.coverage === "full" && effectiveClaimForm.fault === "policyholder"
+              ? (ded ? `$${ded}` : "N/A")
+              : effectiveClaimForm.coverage === "full"
+                ? "Pending"
+                : "N/A";
+
         return (
           <div
             className="flex items-center gap-6 px-6 h-8 border-b shrink-0"
@@ -1955,12 +2021,13 @@ function ReviewEstimateStep({
               <span className="font-medium" style={{ color: COLORS.text }}>{faultLabel}</span>
             </div>
             <div className="h-3 w-px" style={{ backgroundColor: COLORS.border }} />
-            <div className="flex items-center gap-2 text-[11px]">
-              <span className="uppercase tracking-wider font-semibold" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+            <div className="flex items-center gap-2 text-[11px]" title="Policy-level deductible retrieved during validation.">
+              <span className="uppercase tracking-wider font-semibold cursor-help" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
                 Deductible:
               </span>
               <span className="font-medium tabular-nums" style={{ color: COLORS.text }}>{deductibleLabel}</span>
             </div>
+
           </div>
         );
       })()}
@@ -3187,13 +3254,14 @@ function EstimateReviewPanel({
       const cf2 = claimForm;
       const dedEntered = cf2?.deductible?.trim();
       const deductibleValue =
-        cf2?.coverage === "full" && cf2?.fault === "policyholder"
-          ? (dedEntered ? `$${dedEntered}` : "$0")
-          : cf2?.coverage === "full"
-            ? "None"
-            : cf2?.coverage === "third_party"
-              ? "N/A"
+        cf2?.coverage === "third_party"
+          ? "N/A"
+          : cf2?.coverage === "full" && cf2?.fault === "policyholder"
+            ? (dedEntered ? `$${dedEntered}` : "N/A")
+            : cf2?.coverage === "full"
+              ? "Pending"
               : "—";
+
       const stats = [
         { label: "Review type", value: stateLabel, color: "#111827" },
         {
@@ -3380,13 +3448,14 @@ function EstimateReviewPanel({
         ft === "single_vehicle" ? "Single-vehicle incident" : "—";
       const dedVal = cf?.deductible?.trim();
       const deductibleApplicable =
-        cv === "full" && ft === "policyholder"
-          ? (dedVal ? `Yes — $${dedVal}` : "Yes — amount pending")
-          : cv === "full"
-            ? "No"
-            : cv === "third_party"
-              ? "No — third-party policy"
+        cv === "third_party"
+          ? "N/A"
+          : cv === "full" && ft === "policyholder"
+            ? (dedVal ? `$${dedVal} (retrieved from policy record)` : "N/A")
+            : cv === "full"
+              ? "Pending liability determination"
               : "Pending";
+
       const claimBasis =
         cv === "full"
           ? "Own damage — full coverage"
