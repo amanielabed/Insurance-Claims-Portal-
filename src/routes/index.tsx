@@ -2579,7 +2579,6 @@ function CostBreakdownPanel({
   source: SourceKey;
   onClose: () => void;
 }) {
-  const meta = SOURCE_META[source];
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -2593,99 +2592,224 @@ function CostBreakdownPanel({
     return () => document.removeEventListener("mousedown", handleMouseDown);
   }, [onClose]);
 
-  type Row = { label: string; value: string; emphasis?: boolean };
-  const rows: Row[] =
-    source === "mitchell"
-      ? [
-          { label: "Base labor hours", value: `${part.laborHours} hrs` },
-          { label: "Regional rate", value: "$95/hr" },
-          { label: "Complexity factor", value: "×1.0 (standard)" },
-          { label: "Subtotal", value: fmtCurrency(part.laborHours * 95), emphasis: true },
-        ]
-      : source === "ccc"
-        ? [
-            { label: "OEM part price", value: "$340.00" },
-            { label: "Aftermarket option", value: "$187.00" },
-            { label: "Selected basis", value: "Aftermarket" },
-            { label: "Rationale", value: "Cosmetic damage — aftermarket meets standard" },
-            { label: "Subtotal", value: "$187.00", emphasis: true },
-          ]
-        : source === "oem"
-          ? [
-              { label: "OEM part reference", value: `${part.name} (OEM)` },
-              { label: "Manufacturer guideline", value: "Structural Repair Manual (2024 rev.)" },
-              { label: "Applied procedure", value: "OEM-specified repair & paint calibration" },
-              { label: "Subtotal", value: fmtCurrency(part.draftEstimate), emphasis: true },
-            ]
-          : [
-              { label: "Comparable vehicle", value: "2022 Camry LE" },
-              { label: "Similar damage ref", value: "$820–$1,240" },
-              { label: "Applied estimate", value: "$890 (midpoint)" },
-              { label: "Confidence", value: "Low — verify", emphasis: true },
-            ];
+  const laborSubtotal = part.laborHours * 95;
+  const partsSubtotal = part.partsPrice;
+  const total = laborSubtotal + partsSubtotal;
 
-  const sourceReference: Record<SourceKey, string> = {
-    mitchell: "Mitchell RepairCenter | Regional Dataset v2026.1 | Updated March 2026",
-    ccc: "CCC Intelligent Solutions | Parts Pricing v2026.1 | Updated March 2026",
-    oem: "OEM Repair Guidelines | Toyota Structural Manual 2024 | Updated Jan 2026",
-    verify: "Internal Comparables Database | v2026.1 | Updated March 2026",
-  };
+  const hasCCC = part.sources.includes("ccc");
+  const hasOEM = part.sources.includes("oem");
+  const hasMitchell = part.sources.includes("mitchell");
+  const hasVerify = part.sources.includes("verify");
+
+  // Section highlight rules:
+  // - mitchell click → labor section
+  // - ccc / oem click → parts section
+  // - verify click → both (extrapolated)
+  const highlightLabor = source === "mitchell" || source === "verify";
+  const highlightParts = source === "ccc" || source === "oem" || source === "verify";
+
+  type Row = { label: string; value: string; emphasis?: boolean };
+
+  const laborSourceLabel = hasMitchell
+    ? "Mitchell RepairCenter"
+    : "Extrapolated from regional average";
+  const laborRows: Row[] = [
+    { label: "Base labor hours", value: `${part.laborHours} hrs` },
+    { label: "Regional rate", value: `$95/hr (${laborSourceLabel})` },
+    { label: "Complexity factor", value: "×1.0 (standard)" },
+    { label: "Labor subtotal", value: fmtCurrency(laborSubtotal), emphasis: true },
+  ];
+
+  let partsRows: Row[];
+  let partsSourceLabel: string;
+  if (hasCCC) {
+    partsSourceLabel = "CCC Intelligent Solutions";
+    const oemRef = fmtCurrency(partsSubtotal * 1.82);
+    partsRows = [
+      { label: "OEM part price", value: oemRef },
+      { label: "Aftermarket option", value: fmtCurrency(partsSubtotal) },
+      { label: "Selected basis", value: "Aftermarket" },
+      { label: "Rationale", value: "Cosmetic damage — aftermarket meets repair standard" },
+      { label: "Parts subtotal", value: fmtCurrency(partsSubtotal), emphasis: true },
+    ];
+  } else if (hasOEM && !hasVerify) {
+    partsSourceLabel = "OEM Repair Guidelines";
+    partsRows = [
+      { label: "OEM part reference", value: `${part.name} (OEM)` },
+      { label: "Manufacturer guideline", value: "Structural Repair Manual (2024 rev.)" },
+      { label: "Selected basis", value: "OEM" },
+      { label: "Parts subtotal", value: fmtCurrency(partsSubtotal), emphasis: true },
+    ];
+  } else {
+    // OEM + verify (flagged / extrapolated)
+    partsSourceLabel = "OEM guideline + Internal Comparables (extrapolated)";
+    partsRows = [
+      { label: "OEM part reference", value: `${part.name} (OEM)` },
+      { label: "Comparable claims ref", value: "Internal database, similar vehicle class" },
+      { label: "Applied basis", value: "Extrapolated midpoint — verify before authorizing" },
+      { label: "Parts subtotal", value: fmtCurrency(partsSubtotal), emphasis: true },
+    ];
+  }
+
+  const sourceReferences: string[] = [];
+  if (hasMitchell)
+    sourceReferences.push("Mitchell RepairCenter | Regional Dataset v2026.1 | Updated March 2026");
+  if (hasCCC)
+    sourceReferences.push("CCC Intelligent Solutions | Parts Pricing v2026.1 | Updated March 2026");
+  if (hasOEM)
+    sourceReferences.push("OEM Repair Guidelines | Toyota Structural Manual 2024 | Updated Jan 2026");
+  if (hasVerify)
+    sourceReferences.push("Internal Comparables Database | v2026.1 | Updated March 2026");
+
+  const sectionStyle = (highlight: boolean): React.CSSProperties => ({
+    borderColor: highlight ? "#1F2937" : COLORS.border,
+    backgroundColor: COLORS.surface,
+    boxShadow: highlight ? "0 0 0 1px #1F2937" : "none",
+    transition: "box-shadow 150ms ease, border-color 150ms ease",
+  });
+
+  const renderRows = (rows: Row[], emphasizeAll: boolean) => (
+    <table className="w-full text-xs">
+      <tbody>
+        {rows.map((r, idx) => (
+          <tr
+            key={idx}
+            style={{
+              borderBottom:
+                idx === rows.length - 1 ? "none" : `1px solid ${COLORS.border}`,
+            }}
+          >
+            <td
+              className="py-1.5 px-2.5 align-top"
+              style={{ color: COLORS.muted, width: "45%" }}
+            >
+              {r.label}
+            </td>
+            <td
+              className="py-1.5 px-2.5 align-top tabular-nums"
+              style={{
+                color: COLORS.text,
+                fontWeight: r.emphasis ? 700 : emphasizeAll ? 600 : 400,
+              }}
+            >
+              {r.value}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
+  const sectionHeader = (
+    title: string,
+    sourceLabel: string,
+    highlight: boolean,
+  ) => (
+    <div className="flex items-baseline justify-between mb-1.5">
+      <div
+        className="text-[11px] font-semibold uppercase tracking-wider"
+        style={{ color: highlight ? "#111827" : COLORS.muted }}
+      >
+        {title}
+        {highlight && (
+          <span
+            className="ml-1.5 inline-block w-1 h-1 rounded-full align-middle"
+            style={{ backgroundColor: "#111827" }}
+            aria-label="Relevant to clicked source"
+          />
+        )}
+      </div>
+      <div
+        className="text-[10px]"
+        style={{
+          color: highlight ? "#111827" : COLORS.muted,
+          fontWeight: highlight ? 600 : 400,
+        }}
+      >
+        sourced from {sourceLabel}
+      </div>
+    </div>
+  );
 
   return (
     <div
       ref={panelRef}
       className="relative rounded-md border p-3 animate-fade-in"
-      style={{ backgroundColor: meta.bg, borderColor: meta.border }}
+      style={{ backgroundColor: "#FAFAFA", borderColor: COLORS.border }}
     >
       <button
         type="button"
         onClick={onClose}
         aria-label="Close breakdown"
         className="absolute top-2 right-2 text-xs font-medium px-1.5 py-0.5 rounded hover:bg-black/5"
-        style={{ color: meta.fg }}
+        style={{ color: COLORS.muted }}
       >
         Close ×
       </button>
 
-      <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: meta.fg }}>
+      <div
+        className="text-[11px] font-semibold uppercase tracking-wider mb-3"
+        style={{ color: COLORS.text }}
+      >
         How This Estimate Was Calculated
       </div>
-      <div className="rounded border overflow-hidden mb-3" style={{ borderColor: meta.border, backgroundColor: COLORS.surface }}>
-        <table className="w-full text-xs">
-          <tbody>
-            {rows.map((r, idx) => (
-              <tr
-                key={idx}
-                style={{
-                  borderBottom:
-                    idx === rows.length - 1 ? "none" : `1px solid ${meta.border}`,
-                  backgroundColor: r.emphasis ? meta.bg : "transparent",
-                }}
-              >
-                <td className="py-1.5 px-2.5 align-top" style={{ color: COLORS.muted, width: "45%" }}>
-                  {r.label}
-                </td>
-                <td
-                  className="py-1.5 px-2.5 align-top tabular-nums"
-                  style={{ color: COLORS.text, fontWeight: r.emphasis ? 600 : 400 }}
-                >
-                  {r.value}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+
+      {/* Labor section */}
+      <div className="mb-3">
+        {sectionHeader("Section 1 — Labor", laborSourceLabel, highlightLabor)}
+        <div
+          className="rounded border overflow-hidden"
+          style={sectionStyle(highlightLabor)}
+        >
+          {renderRows(laborRows, highlightLabor)}
+        </div>
       </div>
 
-      <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: meta.fg }}>
-        Source Reference
+      {/* Parts section */}
+      <div className="mb-3">
+        {sectionHeader("Section 2 — Parts", partsSourceLabel, highlightParts)}
+        <div
+          className="rounded border overflow-hidden"
+          style={sectionStyle(highlightParts)}
+        >
+          {renderRows(partsRows, highlightParts)}
+        </div>
       </div>
-      <div className="text-xs" style={{ color: COLORS.text }}>
-        {sourceReference[source]}
+
+      {/* Divider + Total */}
+      <div
+        className="flex items-center justify-between pt-2.5 mt-1 border-t"
+        style={{ borderColor: "#111827", borderTopWidth: 1.5 }}
+      >
+        <div
+          className="text-[12px] font-semibold uppercase tracking-wider"
+          style={{ color: COLORS.text }}
+        >
+          Total
+        </div>
+        <div
+          className="text-sm font-bold tabular-nums"
+          style={{ color: COLORS.text }}
+        >
+          {fmtCurrency(total)}
+        </div>
       </div>
+
+      <div
+        className="text-[11px] font-semibold uppercase tracking-wider mt-3 mb-1"
+        style={{ color: COLORS.muted }}
+      >
+        Source References
+      </div>
+      <ul className="text-xs space-y-0.5" style={{ color: COLORS.text }}>
+        {sourceReferences.map((ref, idx) => (
+          <li key={idx}>• {ref}</li>
+        ))}
+      </ul>
     </div>
   );
 }
+
 
 
 
