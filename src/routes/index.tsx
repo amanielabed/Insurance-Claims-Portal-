@@ -1239,8 +1239,6 @@ function InitiateClaimStep({
             setPolicyNumber={setEligPolicy}
             fault={fault}
             setFault={(v) => { setFault(v); }}
-            deductible={deductible}
-            setDeductible={setDeductible}
             validated={validated}
             setValidated={setValidated}
             eligibility={eligibility}
@@ -1256,13 +1254,14 @@ function InitiateClaimStep({
                   vehicleAutoFilled: true,
                   coverage: validated.coverage,
                   fault: fault || "",
-                  deductible: deductible,
+                  deductible: validated.deductible ?? "",
                 }));
               }
               setEligibilityPassed(true);
             }}
 
           />
+
         ) : (
         <div>
 
