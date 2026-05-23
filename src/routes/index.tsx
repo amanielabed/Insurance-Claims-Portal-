@@ -2325,6 +2325,19 @@ function AssessmentReviewPanel({ claim }: { claim: Claim }) {
         </div>
       </div>
 
+      {/* Senior review passive status */}
+      {isSenior && (
+        <div className="flex flex-col gap-0.5">
+          <div className="text-sm font-semibold" style={{ color: "#DC2626" }}>
+            <span className="mr-1.5">●</span>Senior review in progress
+          </div>
+          <div className="text-xs" style={{ color: COLORS.muted }}>
+            Claim prepared for authorization review.
+          </div>
+        </div>
+      )}
+
+
       {/* Review Confidence Card */}
       <div
         className="rounded-md border p-4"
@@ -3774,6 +3787,14 @@ function EstimateReviewPanel({
     <div className="flex flex-col min-h-full gap-4">
       {/* Estimate table */}
       <div className="shrink-0 overflow-x-auto">
+        {seniorReview && (
+          <div
+            className="text-right text-[12px] mb-1.5"
+            style={{ color: "#92400E" }}
+          >
+            Changes made at this review level remain pending senior authorization.
+          </div>
+        )}
         <table className="w-full min-w-[560px] text-sm border-collapse">
           <thead>
             <tr style={{ borderBottom: `1px solid ${COLORS.border}` }}>
@@ -4246,21 +4267,6 @@ function EstimateReviewPanel({
         </div>
       </div>
 
-      {/* Senior review banner (preserved) */}
-      {seniorReview && (
-        <div
-          className="shrink-0 rounded-md border px-3 py-2.5"
-          style={{ backgroundColor: "#FEF2F2", borderColor: "#FECACA" }}
-        >
-          <div className="text-sm font-semibold" style={{ color: "#991B1B" }}>
-            Significant estimate variance detected.
-          </div>
-          <div className="text-xs mt-1" style={{ color: "#B91C1C" }}>
-            Final approval must be completed by an authorized senior adjuster.
-          </div>
-        </div>
-      )}
-
       {/* Workflow Action Bar */}
       {submitError && (
         <div
@@ -4297,13 +4303,16 @@ function EstimateReviewPanel({
         {(() => {
           const pr = claimForm?.policeReport ?? "";
           const policeBlocked = pr !== "uploaded";
-          const blocked = seniorReview || policeBlocked;
           const blockTitle = seniorReview
-            ? "Senior adjuster authorization required before submission."
+            ? "Final authorization requires senior adjuster approval."
             : policeBlocked
               ? "Police report pending or unavailable — manual review required before authorization."
               : undefined;
-          const label = policeBlocked && !seniorReview ? "Route to Manual Review" : "Approve & Submit";
+          const label = seniorReview
+            ? "Pending Senior Authorization"
+            : policeBlocked
+              ? "Route to Manual Review"
+              : "Approve & Submit";
           return (
             <button
               type="button"
@@ -4336,7 +4345,7 @@ function EstimateReviewPanel({
                 backgroundColor: seniorReview ? "#E5E7EB" : policeBlocked ? "#FFFBEB" : COLORS.blue,
                 color: seniorReview ? "#9CA3AF" : policeBlocked ? "#92400E" : "white",
                 border: policeBlocked && !seniorReview ? "1px solid #FCD34D" : "none",
-                cursor: blocked ? (seniorReview ? "not-allowed" : "pointer") : "pointer",
+                cursor: seniorReview ? "not-allowed" : "pointer",
               }}
               onMouseEnter={(e) => {
                 if (!seniorReview && !policeBlocked) e.currentTarget.style.backgroundColor = COLORS.blueHover;
