@@ -2021,12 +2021,13 @@ function ReviewEstimateStep({
               <span className="font-medium" style={{ color: COLORS.text }}>{faultLabel}</span>
             </div>
             <div className="h-3 w-px" style={{ backgroundColor: COLORS.border }} />
-            <div className="flex items-center gap-2 text-[11px]">
-              <span className="uppercase tracking-wider font-semibold" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+            <div className="flex items-center gap-2 text-[11px]" title="Policy-level deductible retrieved during validation.">
+              <span className="uppercase tracking-wider font-semibold cursor-help" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
                 Deductible:
               </span>
               <span className="font-medium tabular-nums" style={{ color: COLORS.text }}>{deductibleLabel}</span>
             </div>
+
           </div>
         );
       })()}
