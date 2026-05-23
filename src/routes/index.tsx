@@ -2714,14 +2714,24 @@ function CostBreakdownPanel({
     return () => document.removeEventListener("mousedown", handleMouseDown);
   }, [onClose]);
 
-  const laborSubtotal = part.laborHours * 95;
-  const partsSubtotal = part.partsPrice;
-  const total = laborSubtotal + partsSubtotal;
-
   const hasCCC = part.sources.includes("ccc");
   const hasOEM = part.sources.includes("oem");
   const hasMitchell = part.sources.includes("mitchell");
   const hasVerify = part.sources.includes("verify");
+
+  const complexityConfig =
+    part.flagged && hasVerify
+      ? { factor: 1.2, label: "×1.2" }
+      : part.flagged
+        ? { factor: 1.15, label: "×1.15" }
+        : part.suggestedRepairScope === "Repair"
+          ? { factor: 0.95, label: "×0.95" }
+          : { factor: 1.0, label: "×1.0" };
+  const complexityFactor = complexityConfig.factor;
+
+  const laborSubtotal = part.laborHours * 95 * complexityFactor;
+  const partsSubtotal = part.partsPrice;
+  const total = laborSubtotal + partsSubtotal;
 
   // Section highlight rules:
   // - mitchell click → labor section
@@ -2738,7 +2748,9 @@ function CostBreakdownPanel({
   const laborRows: Row[] = [
     { label: "Base labor hours", value: `${part.laborHours} hrs` },
     { label: "Regional rate", value: `$95/hr (${laborSourceLabel})` },
-    { label: "Complexity factor", value: "×1.0 (standard)" },
+    ...(complexityFactor !== 1.0
+      ? [{ label: "Complexity Adjustment", value: complexityConfig.label }]
+      : []),
     { label: "Labor subtotal", value: fmtCurrency(laborSubtotal), emphasis: true },
   ];
 
@@ -2885,6 +2897,13 @@ function CostBreakdownPanel({
         >
           {renderRows(laborRows, highlightLabor)}
         </div>
+        {complexityFactor !== 1.0 && (
+          <p className="mt-1.5 text-[11px]" style={{ color: COLORS.muted }}>
+            {complexityFactor > 1.0
+              ? "Adjusted for increased repair complexity and additional inspection requirements."
+              : "Adjusted downward for standard repair accessibility and lower repair complexity."}
+          </p>
+        )}
       </div>
 
       {/* Parts section */}
