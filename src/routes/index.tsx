@@ -3961,6 +3961,63 @@ function EstimateReviewPanel({
         Draft estimates are generated using standardized repair references and require adjuster review before final authorization.
       </p>
 
+      {/* Override Summary */}
+      {(() => {
+        const overriddenItems = claim.parts
+          .map((part, i) => {
+            const original = part.draftEstimate;
+            const adjustedVal = adjusted[i];
+            if (adjustedVal === original) return null;
+            const override = overrides[i];
+            const reasonLabel =
+              override?.reason === "additional_damage"
+                ? "Additional damage visible not captured in photos"
+                : override?.reason === "labor_rate"
+                  ? "Local labor rate differs from regional benchmark"
+                  : override?.reason === "scope_change"
+                    ? "Repair scope changed (repair → replace or vice versa)"
+                    : override?.reason === "parts_availability"
+                      ? "Parts availability — alternative sourcing required"
+                      : override?.reason === "other" && override.other.trim()
+                        ? override.other.trim()
+                        : "Override reason not recorded";
+            return { name: part.name, original, adjustedVal, reasonLabel };
+          })
+          .filter(Boolean) as { name: string; original: number; adjustedVal: number; reasonLabel: string }[];
+        if (overriddenItems.length === 0) return null;
+        return (
+          <div
+            className="shrink-0 rounded-md border p-3"
+            style={{ backgroundColor: "#FAFAFA", borderColor: COLORS.border }}
+          >
+            <div
+              className="text-[11px] font-semibold uppercase tracking-wider mb-2"
+              style={{ color: COLORS.muted }}
+            >
+              Override Summary
+            </div>
+            <div className="flex flex-col gap-2">
+              {overriddenItems.map((item, idx) => (
+                <div key={idx} className="flex flex-col gap-0.5">
+                  <div className="text-xs font-medium" style={{ color: COLORS.text }}>
+                    {item.name}
+                  </div>
+                  <div className="text-xs" style={{ color: COLORS.muted }}>
+                    AI draft: {fmtCurrency(item.original)} → Adjusted: {fmtCurrency(item.adjustedVal)}
+                  </div>
+                  <div className="text-[11px] italic" style={{ color: COLORS.amberText }}>
+                    Reason: {item.reasonLabel}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] mt-2 pt-2 leading-snug" style={{ color: COLORS.muted, borderTop: `1px solid ${COLORS.border}` }}>
+              {overriddenItems.length} line item{overriddenItems.length > 1 ? "s" : ""} adjusted. All overrides will be included in the generated report and logged for review.
+            </p>
+          </div>
+        );
+      })()}
+
       {/* Adjuster Notes */}
       <div className="shrink-0 flex flex-col gap-1.5">
         <div className="flex items-center justify-between">
