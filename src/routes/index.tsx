@@ -1636,27 +1636,6 @@ function EligibilityCheck({
           {lookupError && (
             <div className="text-[11px] mt-2" style={{ color: "#DC2626" }}>{lookupError}</div>
           )}
-          <div className="mt-3">
-            <p className="text-[10px] uppercase font-medium mb-1.5" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
-              Demo Scenarios
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={loadFullCoverageDemo}
-                className="text-xs font-medium px-3 py-2 rounded-md border transition-colors"
-                style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: COLORS.surface }}
-              >
-                Load Full Coverage Demo
-              </button>
-              <button
-                onClick={loadThirdPartyDemo}
-                className="text-xs font-medium px-3 py-2 rounded-md border transition-colors"
-                style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: COLORS.surface }}
-              >
-                Load Third-Party Demo
-              </button>
-            </div>
-          </div>
         </div>
       </FormSection>
 
