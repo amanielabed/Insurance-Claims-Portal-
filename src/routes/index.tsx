@@ -1609,9 +1609,9 @@ function EligibilityCheck({
     const demoPolicy = "POL-2026-48201";
     setPolicyNumber(demoPolicy);
     setFault("other");
-    setDeductible("500");
     runValidation(demoPolicy);
   };
+
 
 
   return (
