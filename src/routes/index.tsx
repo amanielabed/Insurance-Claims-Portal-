@@ -55,29 +55,49 @@ interface ScenarioMeta {
   label: string;
   description: string;
   state: "FAST_TRACK" | "MANUAL_REVIEW" | "SENIOR_REVIEW";
+  coverage: "full" | "third_party";
+  fault: "policyholder" | "other" | "unclear" | "single_vehicle";
+  coverageLabel: string;
+  faultLabel: string;
+  estimateRange: string;
 }
 
 const SCENARIOS: ScenarioMeta[] = [
   {
     id: "2026-001",
-    label: "Fast-Track Approval (Demo)",
+    label: "Full Coverage — Minor Cosmetic Damage",
     description:
-      "Low-complexity cosmetic damage with clear photo evidence and minimal review requirements.",
+      "Low-complexity cosmetic damage with clear photo evidence and fast-track approval eligibility.",
     state: "FAST_TRACK",
+    coverage: "full",
+    fault: "policyholder",
+    coverageLabel: "Full Coverage",
+    faultLabel: "Policyholder at fault",
+    estimateRange: "~$187",
   },
   {
     id: "2026-002",
-    label: "Verification Required (Demo)",
+    label: "Full Coverage — Ambiguous Rear Collision",
     description:
-      "Moderate uncertainty requiring manual review and additional verification before authorization.",
+      "Moderate uncertainty requiring manual verification before authorization.",
     state: "MANUAL_REVIEW",
+    coverage: "full",
+    fault: "unclear",
+    coverageLabel: "Full Coverage",
+    faultLabel: "Fault unclear",
+    estimateRange: "$1,240–$2,100",
   },
   {
     id: "2026-003",
-    label: "Senior Review Required (Demo)",
+    label: "Third-Party Coverage — Major Impact",
     description:
-      "High-severity or high-value claim requiring escalation and senior adjuster authorization.",
+      "High-severity damage with coverage limitations and senior review requirements.",
     state: "SENIOR_REVIEW",
+    coverage: "third_party",
+    fault: "policyholder",
+    coverageLabel: "Third-Party Coverage",
+    faultLabel: "Policyholder at fault",
+    estimateRange: "$8,400+",
   },
 ];
 
