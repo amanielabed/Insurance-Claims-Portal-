@@ -3495,9 +3495,9 @@ function EstimateReviewPanel({
             case "labor_rate":
               return "Local labor rate differs from regional benchmark";
             case "scope_change":
-              return "Repair scope changed (repair ↔ replace)";
+              return "Repair scope changed";
             case "parts_availability":
-              return "Parts availability — alternative sourcing required";
+              return "Parts availability — alternative sourcing";
             case "other":
               return o.other.trim() || "Other (no detail provided)";
           }
