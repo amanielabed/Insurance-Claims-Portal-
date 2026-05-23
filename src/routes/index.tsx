@@ -2748,7 +2748,7 @@ function CostBreakdownPanel({
   const laborRows: Row[] = [
     { label: "Base labor hours", value: `${part.laborHours} hrs` },
     { label: "Regional rate", value: `$95/hr (${laborSourceLabel})` },
-    ...(complexityFactor !== 1.2
+    ...(complexityFactor !== 1.0
       ? [{ label: "Complexity Adjustment", value: complexityConfig.label }]
       : []),
     { label: "Labor subtotal", value: fmtCurrency(laborSubtotal), emphasis: true },
