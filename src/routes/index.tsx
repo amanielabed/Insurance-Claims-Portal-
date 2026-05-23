@@ -24,9 +24,11 @@ interface Part {
   suggestedRepairScope: string;
   draftEstimate: number;
   laborHours: number;
+  partsPrice: number;
   flagged: boolean;
   sources: SourceKey[];
 }
+
 
 interface Claim {
   id: string;
