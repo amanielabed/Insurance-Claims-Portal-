@@ -3639,17 +3639,25 @@ function EstimateReviewPanel({
               const isExpanded = expanded?.row === i;
               const isHighlighted = highlightedPart === i;
               const hasOverlay = (OVERLAYS[claim.id] ?? []).some((o) => o.partIndex === i);
+              const override = overrides[i];
+              const pendingRationale = isOverridePending(i);
+              const confirmedOverride =
+                !!override && diff !== 0 && isOverrideConfirmed(override);
+              const rowBg = isHighlighted
+                ? "#DBEAFE"
+                : pendingRationale
+                  ? "#FEF3C7"
+                  : variance
+                    ? COLORS.amberBg
+                    : "transparent";
               return (
                 <Fragment key={i}>
                 <tr
                   onClick={() => hasOverlay && onHighlight(i)}
                   style={{
-                    backgroundColor: isHighlighted
-                      ? "#DBEAFE"
-                      : variance
-                        ? COLORS.amberBg
-                        : "transparent",
-                    borderBottom: isExpanded ? "none" : `1px solid ${COLORS.border}`,
+                    backgroundColor: rowBg,
+                    borderBottom:
+                      isExpanded || pendingRationale ? "none" : `1px solid ${COLORS.border}`,
                     cursor: hasOverlay ? "pointer" : "default",
                     boxShadow: isHighlighted ? "inset 3px 0 0 #2563EB" : "none",
                     transition: "background-color 150ms ease",
@@ -3711,32 +3719,46 @@ function EstimateReviewPanel({
                     </div>
                   </td>
                   <td className="py-2.5 px-2 text-right align-top">
-                    <input
-                      onClick={(e) => e.stopPropagation()}
-                      type="number"
-                      step="0.01"
-                      value={drafts[i]}
-                      readOnly={!editMode}
-                      onChange={(e) =>
-                        setDrafts((prev) => {
-                          const n = [...prev];
-                          n[i] = e.target.value;
-                          return n;
-                        })
-                      }
-                      onBlur={(e) => commitEdit(i, e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                      }}
-                      className="w-24 text-right tabular-nums rounded border px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      style={{
-                        borderColor: editMode ? "#93C5FD" : "#D1D5DB",
-                        backgroundColor: editMode ? COLORS.surface : "#F9FAFB",
-                        color: editMode ? COLORS.text : COLORS.muted,
-                        cursor: editMode ? "text" : "not-allowed",
-                      }}
-                    />
-
+                    <div className="flex items-center justify-end gap-1.5">
+                      {confirmedOverride && (
+                        <span
+                          className="text-[10px] font-semibold rounded px-1.5 py-0.5"
+                          style={{
+                            color: COLORS.amberText,
+                            backgroundColor: COLORS.amberBg,
+                            border: `1px solid ${COLORS.amberBorder}`,
+                          }}
+                          title="Adjuster override with recorded rationale"
+                        >
+                          Overridden {diff > 0 ? "↑" : "↓"}
+                        </span>
+                      )}
+                      <input
+                        onClick={(e) => e.stopPropagation()}
+                        type="number"
+                        step="0.01"
+                        value={drafts[i]}
+                        readOnly={!editMode}
+                        onChange={(e) =>
+                          setDrafts((prev) => {
+                            const n = [...prev];
+                            n[i] = e.target.value;
+                            return n;
+                          })
+                        }
+                        onBlur={(e) => commitEdit(i, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                        }}
+                        className="w-24 text-right tabular-nums rounded border px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        style={{
+                          borderColor: editMode ? "#93C5FD" : "#D1D5DB",
+                          backgroundColor: editMode ? COLORS.surface : "#F9FAFB",
+                          color: editMode ? COLORS.text : COLORS.muted,
+                          cursor: editMode ? "text" : "not-allowed",
+                        }}
+                      />
+                    </div>
                   </td>
                   <td
                     className="py-2.5 pl-2 text-right align-top tabular-nums font-medium"
@@ -3747,6 +3769,70 @@ function EstimateReviewPanel({
                       : `${sign}${fmtCurrency(Math.abs(diff))}`}
                   </td>
                 </tr>
+                {pendingRationale && (
+                  <tr style={{ borderBottom: `1px solid ${COLORS.border}`, backgroundColor: "#FEF3C7" }}>
+                    <td colSpan={5} className="px-3 pb-3 pt-1">
+                      <div
+                        className="rounded-md border p-3"
+                        style={{
+                          backgroundColor: COLORS.surface,
+                          borderColor: COLORS.amberBorder,
+                        }}
+                      >
+                        <div
+                          className="text-[11px] font-semibold uppercase tracking-wider mb-2"
+                          style={{ color: COLORS.amberText }}
+                        >
+                          Reason for adjustment (required)
+                        </div>
+                        <div className="space-y-1.5">
+                          {([
+                            ["additional_damage", "Additional damage visible not captured in photos"],
+                            ["labor_rate", "Local labor rate differs from regional benchmark"],
+                            ["scope_change", "Repair scope changed (repair → replace or vice versa)"],
+                            ["parts_availability", "Parts availability — alternative sourcing required"],
+                            ["other", "Other"],
+                          ] as [RationaleCode, string][]).map(([code, label]) => {
+                            const checked = override?.reason === code;
+                            return (
+                              <label
+                                key={code}
+                                className="flex items-start gap-2 text-xs cursor-pointer"
+                                style={{ color: COLORS.text }}
+                              >
+                                <input
+                                  type="radio"
+                                  name={`rationale-${i}`}
+                                  checked={checked}
+                                  onChange={() => setOverrideReason(i, code)}
+                                  className="mt-0.5 cursor-pointer"
+                                  style={{ accentColor: COLORS.amberText }}
+                                />
+                                <span className="leading-snug">{label}</span>
+                              </label>
+                            );
+                          })}
+                          {override?.reason === "other" && (
+                            <input
+                              type="text"
+                              autoFocus
+                              maxLength={140}
+                              value={override.other}
+                              onChange={(e) => setOverrideOther(i, e.target.value)}
+                              placeholder="Briefly describe the reason…"
+                              className="mt-1 ml-6 w-full max-w-sm rounded border px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400"
+                              style={{
+                                borderColor: COLORS.amberBorder,
+                                backgroundColor: COLORS.surface,
+                                color: COLORS.text,
+                              }}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 {isExpanded && (
                   <tr style={{ borderBottom: `1px solid ${COLORS.border}` }}>
                     <td colSpan={5} className="px-2 pb-3">
@@ -3758,6 +3844,7 @@ function EstimateReviewPanel({
                     </td>
                   </tr>
                 )}
+
 
                 </Fragment>
               );
