@@ -2190,23 +2190,20 @@ function DemoGuide() {
               ✕
             </button>
           </div>
-          <ol className="px-4 py-3 flex flex-col gap-2 text-xs" style={{ color: COLORS.text }}>
+          <ul className="px-4 py-3 flex flex-col gap-2 text-xs" style={{ color: COLORS.text }}>
             <li className="flex gap-2">
-              <span className="font-semibold" style={{ color: COLORS.muted }}>1.</span>
-              <span>Select Claim 001 to demonstrate Fast-Track processing.</span>
+              <span style={{ color: COLORS.muted }}>←</span>
+              <span>Select Fast-Track Approval to view streamlined claim authorization</span>
             </li>
             <li className="flex gap-2">
-              <span className="font-semibold" style={{ color: COLORS.muted }}>2.</span>
-              <span>Select Claim 002 to demonstrate Manual Review workflow.</span>
+              <span style={{ color: COLORS.muted }}>←</span>
+              <span>Select Verification Required to view manual review gates and verification checks</span>
             </li>
             <li className="flex gap-2">
-              <span className="font-semibold" style={{ color: COLORS.muted }}>3.</span>
-              <span>
-                Edit a high-risk estimate significantly or click “Flag for Senior Review”
-                to demonstrate escalation handling.
-              </span>
+              <span style={{ color: COLORS.muted }}>←</span>
+              <span>Select Senior Review Required to view how higher-risk claims require additional review and authorization oversight</span>
             </li>
-          </ol>
+          </ul>
         </div>
       ) : (
         <button
