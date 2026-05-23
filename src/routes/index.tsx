@@ -3774,6 +3774,14 @@ function EstimateReviewPanel({
     <div className="flex flex-col min-h-full gap-4">
       {/* Estimate table */}
       <div className="shrink-0 overflow-x-auto">
+        {seniorReview && (
+          <div
+            className="text-right text-[12px] mb-1.5"
+            style={{ color: "#92400E" }}
+          >
+            Changes made at this review level remain pending senior authorization.
+          </div>
+        )}
         <table className="w-full min-w-[560px] text-sm border-collapse">
           <thead>
             <tr style={{ borderBottom: `1px solid ${COLORS.border}` }}>
