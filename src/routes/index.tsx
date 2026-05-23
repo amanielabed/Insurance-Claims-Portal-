@@ -1514,7 +1514,7 @@ function InitiateClaimStep({
 
 
 type FaultVal = "policyholder" | "other" | "unclear" | "single_vehicle" | "";
-type ValidatedPolicy = { policyNumber: string; year: string; make: string; model: string; holderName: string; coverage: "full" | "third_party" };
+type ValidatedPolicy = { policyNumber: string; year: string; make: string; model: string; holderName: string; coverage: "full" | "third_party"; deductible: string | null };
 interface EligibilityResult {
   tone: "amber" | "blue" | "green" | "red";
   title: string;
@@ -1526,19 +1526,18 @@ interface EligibilityResult {
 }
 
 function EligibilityCheck({
-  policyNumber, setPolicyNumber, fault, setFault, deductible, setDeductible, validated, setValidated, eligibility, onContinue,
+  policyNumber, setPolicyNumber, fault, setFault, validated, setValidated, eligibility, onContinue,
 }: {
   policyNumber: string;
   setPolicyNumber: (v: string) => void;
   fault: FaultVal;
   setFault: (v: FaultVal) => void;
-  deductible: string;
-  setDeductible: (v: string) => void;
   validated: ValidatedPolicy | null;
   setValidated: (v: ValidatedPolicy | null) => void;
   eligibility: EligibilityResult | null;
   onContinue: () => void;
 }) {
+
   const [validating, setValidating] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const toneStyles: Record<string, { bg: string; border: string; text: string }> = {
