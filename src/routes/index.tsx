@@ -2325,6 +2325,19 @@ function AssessmentReviewPanel({ claim }: { claim: Claim }) {
         </div>
       </div>
 
+      {/* Senior review passive status */}
+      {isSenior && (
+        <div className="flex flex-col gap-0.5">
+          <div className="text-sm font-semibold" style={{ color: "#DC2626" }}>
+            <span className="mr-1.5">●</span>Senior review in progress
+          </div>
+          <div className="text-xs" style={{ color: COLORS.muted }}>
+            Claim prepared for authorization review.
+          </div>
+        </div>
+      )}
+
+
       {/* Review Confidence Card */}
       <div
         className="rounded-md border p-4"
