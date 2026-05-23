@@ -92,7 +92,7 @@ const claimData: Claim[] = [
     delegationState: "FAST_TRACK",
     reviewConfidence: "High",
     riskLevel: "LOW",
-    estimatedCost: 187.5,
+    estimatedCost: 329.5,
     confidenceLabel: "Clear imagery, single damaged part, low repair complexity.",
     actionMessage:
       "Auto-route eligible. This claim can move through a lightweight confirmation flow.",
@@ -102,7 +102,7 @@ const claimData: Claim[] = [
       {
         name: "Rear bumper cover repair",
         suggestedRepairScope: "Repair",
-        draftEstimate: 187.5,
+        draftEstimate: 329.5,
         laborHours: 1.5,
         flagged: false,
         sources: ["mitchell", "ccc", "oem"],
@@ -2207,7 +2207,7 @@ function AssessmentReviewPanel({ claim }: { claim: Claim }) {
   const routingBasis = isFastTrack
     ? [
         ["Photo quality", "High"],
-        ["Financial exposure", "Standard ($187)"],
+        ["Financial exposure", "Standard ($330)"],
         ["Damage complexity", "Single part, cosmetic"],
       ]
     : isSenior
