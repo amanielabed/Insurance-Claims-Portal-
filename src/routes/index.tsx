@@ -1994,9 +1994,14 @@ function ReviewEstimateStep({
           effectiveClaimForm.fault === "single_vehicle" ? "Single-vehicle" : "—";
         const ded = effectiveClaimForm.deductible?.trim();
         const deductibleLabel =
-          effectiveClaimForm.coverage === "full" && effectiveClaimForm.fault === "policyholder" && ded
-            ? `$${ded}`
-            : "N/A";
+          effectiveClaimForm.coverage === "third_party"
+            ? "N/A"
+            : effectiveClaimForm.coverage === "full" && effectiveClaimForm.fault === "policyholder"
+              ? (ded ? `$${ded}` : "N/A")
+              : effectiveClaimForm.coverage === "full"
+                ? "Pending"
+                : "N/A";
+
         return (
           <div
             className="flex items-center gap-6 px-6 h-8 border-b shrink-0"
