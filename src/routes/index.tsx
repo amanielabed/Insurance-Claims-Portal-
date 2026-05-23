@@ -3464,6 +3464,147 @@ function EstimateReviewPanel({
         "#6B7280",
       );
 
+      // ===== SECTION 4b — ESTIMATE ADJUSTMENTS & OVERRIDE RECORD =====
+      sectionLabel("Estimate Adjustments & Override Record");
+      {
+        const reasonText = (i: number): string => {
+          const o = overrides[i];
+          if (!o || !o.reason) return "Rationale not recorded";
+          switch (o.reason) {
+            case "additional_damage":
+              return "Additional damage visible not captured in photos";
+            case "labor_rate":
+              return "Local labor rate differs from regional benchmark";
+            case "scope_change":
+              return "Repair scope changed (repair ↔ replace)";
+            case "parts_availability":
+              return "Parts availability — alternative sourcing required";
+            case "other":
+              return o.other.trim() || "Other (no detail provided)";
+          }
+        };
+        const adjustedRows = claim.parts
+          .map((part, i) => {
+            const original = part.draftEstimate;
+            const adj = reportAdjusted[i];
+            if (adj === original) return null;
+            const variance = adj - original;
+            const variancePct = original !== 0 ? (variance / original) * 100 : 0;
+            return { i, name: part.name, original, adj, variance, variancePct, reason: reasonText(i) };
+          })
+          .filter(Boolean) as { i: number; name: string; original: number; adj: number; variance: number; variancePct: number; reason: string }[];
+
+        if (adjustedRows.length === 0) {
+          need(40);
+          pdf.setFillColor("#F9FAFB");
+          pdf.rect(M, y, W, 36, "F");
+          setText(12, "#6B7280", false, true);
+          pdf.text("No estimate adjustments were made.", M + 12, y + 15);
+          pdf.text("The draft estimate was approved as reviewed.", M + 12, y + 30);
+          y += 44;
+        } else {
+          // Table header
+          const cName = M;
+          const cDraft = M + 230;
+          const cAdj = M + 305;
+          const cVar = M + 380;
+          const cPct = M + 445;
+          const cReason = M + 495;
+          need(24);
+          setText(10, "#6B7280", true);
+          pdf.text("LINE ITEM", cName, y + 10);
+          pdf.text("DRAFT", cDraft, y + 10, { align: "right" });
+          pdf.text("ADJUSTED", cAdj, y + 10, { align: "right" });
+          pdf.text("VARIANCE", cVar, y + 10, { align: "right" });
+          pdf.text("VAR %", cPct, y + 10, { align: "right" });
+          pdf.text("RATIONALE", cReason, y + 10);
+          y += 16;
+          pdf.setDrawColor("#E5E7EB");
+          pdf.setLineWidth(0.5);
+          pdf.line(M, y, pageW - M, y);
+          y += 4;
+
+          let draftSum = 0;
+          let adjSum = 0;
+          claim.parts.forEach((p, i) => {
+            draftSum += p.draftEstimate;
+            adjSum += reportAdjusted[i];
+          });
+
+          adjustedRows.forEach((r) => {
+            const nameLines = pdf.splitTextToSize(r.name, 220) as string[];
+            const reasonLines = pdf.splitTextToSize(r.reason, pageW - M - cReason) as string[];
+            const rowH = Math.max(nameLines.length, reasonLines.length) * 14 + 10;
+            need(rowH);
+            const rowY = y + 14;
+            setText(12, "#111827");
+            nameLines.forEach((ln, idx) => pdf.text(ln, cName, rowY + idx * 14));
+            setText(12, "#374151");
+            pdf.text(fmtCurrency(r.original), cDraft, rowY, { align: "right" });
+            pdf.text(fmtCurrency(r.adj), cAdj, rowY, { align: "right" });
+            const varColor = r.variance > 0 ? "#B45309" : "#047857";
+            setText(12, varColor, true);
+            const sign = r.variance > 0 ? "+" : "−";
+            pdf.text(`${sign}${fmtCurrency(Math.abs(r.variance))}`, cVar, rowY, { align: "right" });
+            pdf.text(`${r.variance > 0 ? "+" : "−"}${Math.abs(r.variancePct).toFixed(1)}%`, cPct, rowY, { align: "right" });
+            setText(11, "#374151", false, true);
+            reasonLines.forEach((ln, idx) => pdf.text(ln, cReason, rowY + idx * 14));
+            y += rowH;
+            pdf.setDrawColor("#F3F4F6");
+            pdf.line(M, y, pageW - M, y);
+          });
+
+          // Summary totals
+          const netVar = adjSum - draftSum;
+          const netVarPct = draftSum !== 0 ? (netVar / draftSum) * 100 : 0;
+          y += 6;
+          need(60);
+          setText(12, "#374151");
+          pdf.text("Draft Total", M, y + 12);
+          pdf.text(fmtCurrency(draftSum), pageW - M, y + 12, { align: "right" });
+          y += 16;
+          pdf.text("Adjusted Total", M, y + 12);
+          pdf.text(fmtCurrency(adjSum), pageW - M, y + 12, { align: "right" });
+          y += 16;
+          setText(12, "#111827", true);
+          pdf.text("Net Variance", M, y + 12);
+          const netSign = netVar >= 0 ? "+" : "−";
+          const netColor = netVar > 0 ? "#B45309" : netVar < 0 ? "#047857" : "#111827";
+          setText(12, netColor, true);
+          pdf.text(
+            `${netSign}${fmtCurrency(Math.abs(netVar))} (${netVar >= 0 ? "+" : "−"}${Math.abs(netVarPct).toFixed(1)}%)`,
+            pageW - M,
+            y + 12,
+            { align: "right" },
+          );
+          y += 20;
+
+          // Significant variance indicator
+          if (Math.abs(netVarPct) > 20) {
+            need(22);
+            setText(11, "#B45309", true);
+            pdf.text("⚠  Significant adjustment", M, y + 12);
+            y += 18;
+          }
+
+          // Auditability callout
+          y += 4;
+          const calloutLines = pdf.splitTextToSize(
+            "All estimate adjustments are recorded with supporting rationale to preserve review transparency and operational auditability.",
+            W - 24,
+          ) as string[];
+          const calloutH = calloutLines.length * 14 + 16;
+          need(calloutH + 4);
+          pdf.setFillColor("#F8FAFC");
+          pdf.rect(M, y, W, calloutH, "F");
+          pdf.setFillColor("#3B82F6");
+          pdf.rect(M, y, 3, calloutH, "F");
+          setText(11, "#475569");
+          calloutLines.forEach((ln, idx) => pdf.text(ln, M + 14, y + 14 + idx * 14));
+          y += calloutH + 8;
+        }
+      }
+
       // ===== SECTION 5 — ADJUSTER NOTES =====
       sectionLabel("Adjuster Notes");
       const notesText = adjusterNotes.trim();
