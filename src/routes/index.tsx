@@ -2114,7 +2114,7 @@ function ReviewEstimateStep({
           <EstimateReviewPanel
             key={claim.id}
             claim={claim}
-            claimForm={claimForm}
+            claimForm={effectiveClaimForm}
             uploadedPhotos={uploadedPhotos}
             isFastTrack={isFastTrack}
             seniorReview={seniorReview}
