@@ -3552,7 +3552,9 @@ function EstimateReviewPanel({
           adjustedRows.forEach((r) => {
             const nameLines = pdf.splitTextToSize(r.name, 220) as string[];
             const reasonLines = pdf.splitTextToSize(r.reason, pageW - M - cReason) as string[];
-            const rowH = Math.max(nameLines.length, reasonLines.length) * 14 + 10;
+            const isSignificant = Math.abs(r.variancePct) > 20;
+            const extraH = isSignificant ? 14 : 0;
+            const rowH = Math.max(nameLines.length, reasonLines.length) * 14 + 10 + extraH;
             need(rowH);
             const rowY = y + 14;
             setText(12, "#111827");
@@ -3567,6 +3569,11 @@ function EstimateReviewPanel({
             pdf.text(`${r.variance > 0 ? "+" : "−"}${Math.abs(r.variancePct).toFixed(1)}%`, cPct, rowY, { align: "right" });
             setText(11, "#374151", false, true);
             reasonLines.forEach((ln, idx) => pdf.text(ln, cReason, rowY + idx * 14));
+            if (isSignificant) {
+              const flagY = rowY + Math.max(nameLines.length, reasonLines.length) * 14;
+              setText(11, "#B45309", true);
+              pdf.text("⚠ Significant adjustment", cName, flagY);
+            }
             y += rowH;
             pdf.setDrawColor("#F3F4F6");
             pdf.line(M, y, pageW - M, y);
