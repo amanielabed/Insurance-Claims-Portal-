@@ -4016,6 +4016,19 @@ function EstimateReviewPanel({
       )}
 
       {/* Workflow Action Bar */}
+      {submitError && (
+        <div
+          className="shrink-0 rounded-md border px-3 py-2 text-xs"
+          role="alert"
+          style={{
+            backgroundColor: COLORS.amberBg,
+            borderColor: COLORS.amberBorder,
+            color: COLORS.amberText,
+          }}
+        >
+          {submitError}
+        </div>
+      )}
       <div className="shrink-0 flex items-center gap-2 pt-1">
         {/* 1. Edit Estimate */}
         <button
@@ -4052,6 +4065,12 @@ function EstimateReviewPanel({
               title={blockTitle}
               onClick={() => {
                 if (seniorReview) return;
+                if (hasPendingOverrides) {
+                  setSubmitError(
+                    "Please provide a reason for all adjusted line items before submitting.",
+                  );
+                  return;
+                }
                 if (policeBlocked) {
                   toast.message(`Claim #${claim.id} routed to manual review.`, {
                     description: "Final authorization paused pending police report verification.",
@@ -4090,7 +4109,15 @@ function EstimateReviewPanel({
         <button
           type="button"
           disabled={isGeneratingReport}
-          onClick={generateReport}
+          onClick={() => {
+            if (hasPendingOverrides) {
+              setSubmitError(
+                "Please provide a reason for all adjusted line items before submitting.",
+              );
+              return;
+            }
+            generateReport();
+          }}
           className="flex-1 rounded-md border py-2.5 text-sm font-semibold transition-colors"
           style={{
             borderColor: COLORS.border,
@@ -4103,6 +4130,7 @@ function EstimateReviewPanel({
           {isGeneratingReport ? "Generating…" : "Generate Report"}
         </button>
       </div>
+
 
       <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
         <DialogContent>
