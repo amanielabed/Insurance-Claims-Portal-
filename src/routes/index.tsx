@@ -3495,9 +3495,9 @@ function EstimateReviewPanel({
             case "labor_rate":
               return "Local labor rate differs from regional benchmark";
             case "scope_change":
-              return "Repair scope changed (repair ↔ replace)";
+              return "Repair scope changed";
             case "parts_availability":
-              return "Parts availability — alternative sourcing required";
+              return "Parts availability — alternative sourcing";
             case "other":
               return o.other.trim() || "Other (no detail provided)";
           }
@@ -3514,13 +3514,12 @@ function EstimateReviewPanel({
           .filter(Boolean) as { i: number; name: string; original: number; adj: number; variance: number; variancePct: number; reason: string }[];
 
         if (adjustedRows.length === 0) {
-          need(40);
+          need(32);
           pdf.setFillColor("#F9FAFB");
-          pdf.rect(M, y, W, 36, "F");
+          pdf.rect(M, y, W, 28, "F");
           setText(12, "#6B7280", false, true);
-          pdf.text("No estimate adjustments were made.", M + 12, y + 15);
-          pdf.text("The draft estimate was approved as reviewed.", M + 12, y + 30);
-          y += 44;
+          pdf.text("No adjustments made. Draft estimate approved as reviewed.", M + 12, y + 18);
+          y += 36;
         } else {
           // Table header
           const cName = M;
@@ -3553,7 +3552,9 @@ function EstimateReviewPanel({
           adjustedRows.forEach((r) => {
             const nameLines = pdf.splitTextToSize(r.name, 220) as string[];
             const reasonLines = pdf.splitTextToSize(r.reason, pageW - M - cReason) as string[];
-            const rowH = Math.max(nameLines.length, reasonLines.length) * 14 + 10;
+            const isSignificant = Math.abs(r.variancePct) > 20;
+            const extraH = isSignificant ? 14 : 0;
+            const rowH = Math.max(nameLines.length, reasonLines.length) * 14 + 10 + extraH;
             need(rowH);
             const rowY = y + 14;
             setText(12, "#111827");
@@ -3568,6 +3569,11 @@ function EstimateReviewPanel({
             pdf.text(`${r.variance > 0 ? "+" : "−"}${Math.abs(r.variancePct).toFixed(1)}%`, cPct, rowY, { align: "right" });
             setText(11, "#374151", false, true);
             reasonLines.forEach((ln, idx) => pdf.text(ln, cReason, rowY + idx * 14));
+            if (isSignificant) {
+              const flagY = rowY + Math.max(nameLines.length, reasonLines.length) * 14;
+              setText(11, "#B45309", true);
+              pdf.text("⚠ Significant adjustment", cName, flagY);
+            }
             y += rowH;
             pdf.setDrawColor("#F3F4F6");
             pdf.line(M, y, pageW - M, y);
