@@ -2985,7 +2985,22 @@ function EstimateReviewPanel({
         ...prev,
       ].slice(0, 4),
     );
+
+    // Rationale tracking: if value diverges from draft, require a reason.
+    const draftVal = claim.parts[i].draftEstimate;
+    setOverrides((prev) => {
+      const next = { ...prev };
+      if (parsed === draftVal) {
+        delete next[i];
+      } else {
+        // Reset to unconfirmed whenever the value changes.
+        next[i] = { reason: null, other: "" };
+      }
+      return next;
+    });
+    setSubmitError(null);
   };
+
 
   const generateReport = async () => {
     const reportAdjusted = syncDraftValues();
