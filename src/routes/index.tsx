@@ -54,6 +54,7 @@ interface ScenarioMeta {
   id: string;
   label: string;
   description: string;
+  subtext?: string;
   state: "FAST_TRACK" | "MANUAL_REVIEW" | "SENIOR_REVIEW";
   coverage: "full" | "third_party";
   fault: "policyholder" | "other" | "unclear" | "single_vehicle";
@@ -65,9 +66,9 @@ interface ScenarioMeta {
 const SCENARIOS: ScenarioMeta[] = [
   {
     id: "2026-001",
-    label: "Full Coverage — Minor Cosmetic Damage",
+    label: "Fast-Track Approval (Demo)",
     description:
-      "Low-complexity cosmetic damage with clear photo evidence and fast-track approval eligibility.",
+      "Demonstrates fast-track routing — clear photo evidence, low repair complexity, and streamlined authorization workflow.",
     state: "FAST_TRACK",
     coverage: "full",
     fault: "policyholder",
@@ -77,9 +78,9 @@ const SCENARIOS: ScenarioMeta[] = [
   },
   {
     id: "2026-002",
-    label: "Full Coverage — Ambiguous Rear Collision",
+    label: "Verification Required (Demo)",
     description:
-      "Moderate uncertainty requiring manual verification before authorization.",
+      "Demonstrates manual review routing — uncertain damage scope requiring additional verification before authorization.",
     state: "MANUAL_REVIEW",
     coverage: "full",
     fault: "unclear",
@@ -89,9 +90,10 @@ const SCENARIOS: ScenarioMeta[] = [
   },
   {
     id: "2026-003",
-    label: "Third-Party Coverage — Major Impact",
+    label: "Senior Review Required (Demo)",
     description:
-      "High-severity damage with coverage limitations and senior review requirements.",
+      "Demonstrates senior review routing — high-value structural claim exceeding standard authorization thresholds.",
+    subtext: "Authorization pending senior approval.",
     state: "SENIOR_REVIEW",
     coverage: "third_party",
     fault: "policyholder",
