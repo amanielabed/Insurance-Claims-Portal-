@@ -3514,13 +3514,12 @@ function EstimateReviewPanel({
           .filter(Boolean) as { i: number; name: string; original: number; adj: number; variance: number; variancePct: number; reason: string }[];
 
         if (adjustedRows.length === 0) {
-          need(40);
+          need(32);
           pdf.setFillColor("#F9FAFB");
-          pdf.rect(M, y, W, 36, "F");
+          pdf.rect(M, y, W, 28, "F");
           setText(12, "#6B7280", false, true);
-          pdf.text("No estimate adjustments were made.", M + 12, y + 15);
-          pdf.text("The draft estimate was approved as reviewed.", M + 12, y + 30);
-          y += 44;
+          pdf.text("No adjustments made. Draft estimate approved as reviewed.", M + 12, y + 18);
+          y += 36;
         } else {
           // Table header
           const cName = M;
