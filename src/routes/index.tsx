@@ -4254,21 +4254,6 @@ function EstimateReviewPanel({
         </div>
       </div>
 
-      {/* Senior review banner (preserved) */}
-      {seniorReview && (
-        <div
-          className="shrink-0 rounded-md border px-3 py-2.5"
-          style={{ backgroundColor: "#FEF2F2", borderColor: "#FECACA" }}
-        >
-          <div className="text-sm font-semibold" style={{ color: "#991B1B" }}>
-            Significant estimate variance detected.
-          </div>
-          <div className="text-xs mt-1" style={{ color: "#B91C1C" }}>
-            Final approval must be completed by an authorized senior adjuster.
-          </div>
-        </div>
-      )}
-
       {/* Workflow Action Bar */}
       {submitError && (
         <div
@@ -4305,13 +4290,16 @@ function EstimateReviewPanel({
         {(() => {
           const pr = claimForm?.policeReport ?? "";
           const policeBlocked = pr !== "uploaded";
-          const blocked = seniorReview || policeBlocked;
           const blockTitle = seniorReview
-            ? "Senior adjuster authorization required before submission."
+            ? "Final authorization requires senior adjuster approval."
             : policeBlocked
               ? "Police report pending or unavailable — manual review required before authorization."
               : undefined;
-          const label = policeBlocked && !seniorReview ? "Route to Manual Review" : "Approve & Submit";
+          const label = seniorReview
+            ? "Pending Senior Authorization"
+            : policeBlocked
+              ? "Route to Manual Review"
+              : "Approve & Submit";
           return (
             <button
               type="button"
@@ -4344,7 +4332,7 @@ function EstimateReviewPanel({
                 backgroundColor: seniorReview ? "#E5E7EB" : policeBlocked ? "#FFFBEB" : COLORS.blue,
                 color: seniorReview ? "#9CA3AF" : policeBlocked ? "#92400E" : "white",
                 border: policeBlocked && !seniorReview ? "1px solid #FCD34D" : "none",
-                cursor: blocked ? (seniorReview ? "not-allowed" : "pointer") : "pointer",
+                cursor: seniorReview ? "not-allowed" : "pointer",
               }}
               onMouseEnter={(e) => {
                 if (!seniorReview && !policeBlocked) e.currentTarget.style.backgroundColor = COLORS.blueHover;
