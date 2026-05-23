@@ -1944,6 +1944,22 @@ function ReviewEstimateStep({
         );
       })()}
 
+      {effectiveClaimForm?.coverage === "third_party" && effectiveClaimForm?.fault === "policyholder" && (
+        <div
+          className="flex items-start gap-2 px-6 py-2 border-b text-[12px]"
+          style={{
+            backgroundColor: COLORS.amberBg,
+            borderLeft: `3px solid ${COLORS.amber}`,
+            borderColor: COLORS.amberBorder,
+            color: COLORS.amberText,
+          }}
+        >
+          <span className="shrink-1 leading-relaxed">
+            Third-party liability claim. This claim covers damage to the other party's vehicle. Repairs to the policyholder's own vehicle are not covered under this policy.
+          </span>
+        </div>
+      )}
+
       {/* Header */}
 
       <header
