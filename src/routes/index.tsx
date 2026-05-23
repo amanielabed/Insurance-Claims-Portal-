@@ -55,29 +55,49 @@ interface ScenarioMeta {
   label: string;
   description: string;
   state: "FAST_TRACK" | "MANUAL_REVIEW" | "SENIOR_REVIEW";
+  coverage: "full" | "third_party";
+  fault: "policyholder" | "other" | "unclear" | "single_vehicle";
+  coverageLabel: string;
+  faultLabel: string;
+  estimateRange: string;
 }
 
 const SCENARIOS: ScenarioMeta[] = [
   {
     id: "2026-001",
-    label: "Fast-Track Approval (Demo)",
+    label: "Full Coverage — Minor Cosmetic Damage",
     description:
-      "Low-complexity cosmetic damage with clear photo evidence and minimal review requirements.",
+      "Low-complexity cosmetic damage with clear photo evidence and fast-track approval eligibility.",
     state: "FAST_TRACK",
+    coverage: "full",
+    fault: "policyholder",
+    coverageLabel: "Full Coverage",
+    faultLabel: "Policyholder at fault",
+    estimateRange: "~$187",
   },
   {
     id: "2026-002",
-    label: "Verification Required (Demo)",
+    label: "Full Coverage — Ambiguous Rear Collision",
     description:
-      "Moderate uncertainty requiring manual review and additional verification before authorization.",
+      "Moderate uncertainty requiring manual verification before authorization.",
     state: "MANUAL_REVIEW",
+    coverage: "full",
+    fault: "unclear",
+    coverageLabel: "Full Coverage",
+    faultLabel: "Fault unclear",
+    estimateRange: "$1,240–$2,100",
   },
   {
     id: "2026-003",
-    label: "Senior Review Required (Demo)",
+    label: "Third-Party Coverage — Major Impact",
     description:
-      "High-severity or high-value claim requiring escalation and senior adjuster authorization.",
+      "High-severity damage with coverage limitations and senior review requirements.",
     state: "SENIOR_REVIEW",
+    coverage: "third_party",
+    fault: "policyholder",
+    coverageLabel: "Third-Party Coverage",
+    faultLabel: "Policyholder at fault",
+    estimateRange: "$8,400+",
   },
 ];
 
@@ -1567,15 +1587,6 @@ function EligibilityCheck({
     if (lookupError) setLookupError(null);
   };
 
-  const loadFullCoverageDemo = () => {
-    handlePolicyChange("POL-2026-48201");
-    runValidation("POL-2026-48201");
-  };
-
-  const loadThirdPartyDemo = () => {
-    handlePolicyChange("POL-2025-77310");
-    runValidation("POL-2025-77310");
-  };
 
   return (
     <div>
@@ -1616,27 +1627,6 @@ function EligibilityCheck({
           {lookupError && (
             <div className="text-[11px] mt-2" style={{ color: "#DC2626" }}>{lookupError}</div>
           )}
-          <div className="mt-3">
-            <p className="text-[10px] uppercase font-medium mb-1.5" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
-              Demo Scenarios
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={loadFullCoverageDemo}
-                className="text-xs font-medium px-3 py-2 rounded-md border transition-colors"
-                style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: COLORS.surface }}
-              >
-                Load Full Coverage Demo
-              </button>
-              <button
-                onClick={loadThirdPartyDemo}
-                className="text-xs font-medium px-3 py-2 rounded-md border transition-colors"
-                style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: COLORS.surface }}
-              >
-                Load Third-Party Demo
-              </button>
-            </div>
-          </div>
         </div>
       </FormSection>
 
@@ -1880,6 +1870,12 @@ function ReviewEstimateStep({
 
   const currentScenario = SCENARIOS.find((s) => s.id === selectedId) ?? SCENARIOS[0];
 
+  // Unified Demo Claim: scenario overrides coverage + fault so policy details,
+  // coverage status, escalation logic, and downstream panels all stay in sync.
+  const effectiveClaimForm: ClaimForm | null = claimForm
+    ? { ...claimForm, coverage: currentScenario.coverage, fault: currentScenario.fault }
+    : null;
+
   return (
     <div
       className="flex flex-col flex-1 min-h-0"
@@ -1905,18 +1901,18 @@ function ReviewEstimateStep({
       </div>
 
       {/* Policyholder coverage status bar */}
-      {claimForm && (claimForm.coverage || claimForm.fault) && (() => {
+      {effectiveClaimForm && (effectiveClaimForm.coverage || effectiveClaimForm.fault) && (() => {
         const coverageLabel =
-          claimForm.coverage === "full" ? "Full" :
-          claimForm.coverage === "third_party" ? "Third-party" : "—";
+          effectiveClaimForm.coverage === "full" ? "Full" :
+          effectiveClaimForm.coverage === "third_party" ? "Third-party" : "—";
         const faultLabel =
-          claimForm.fault === "policyholder" ? "At fault" :
-          claimForm.fault === "other" ? "Not at fault" :
-          claimForm.fault === "unclear" ? "Disputed" :
-          claimForm.fault === "single_vehicle" ? "Single-vehicle" : "—";
-        const ded = claimForm.deductible?.trim();
+          effectiveClaimForm.fault === "policyholder" ? "At fault" :
+          effectiveClaimForm.fault === "other" ? "Not at fault" :
+          effectiveClaimForm.fault === "unclear" ? "Disputed" :
+          effectiveClaimForm.fault === "single_vehicle" ? "Single-vehicle" : "—";
+        const ded = effectiveClaimForm.deductible?.trim();
         const deductibleLabel =
-          claimForm.coverage === "full" && claimForm.fault === "policyholder" && ded
+          effectiveClaimForm.coverage === "full" && effectiveClaimForm.fault === "policyholder" && ded
             ? `$${ded}`
             : "N/A";
         return (
@@ -1988,7 +1984,7 @@ function ReviewEstimateStep({
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <label className="text-xs font-medium" style={{ color: COLORS.muted }}>
-            Assessment Outcome
+            Demo Claim
           </label>
           <div className="relative">
             <button
@@ -2041,6 +2037,13 @@ function ReviewEstimateStep({
                         </div>
                         <div className="text-xs mt-0.5" style={{ color: COLORS.muted }}>
                           {s.description}
+                        </div>
+                        <div className="text-[10px] mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5" style={{ color: COLORS.muted }}>
+                          <span><span className="uppercase tracking-wider" style={{ letterSpacing: "0.06em" }}>Policy:</span> <span style={{ color: COLORS.text }}>{s.coverageLabel}</span></span>
+                          <span>·</span>
+                          <span><span className="uppercase tracking-wider" style={{ letterSpacing: "0.06em" }}>Fault:</span> <span style={{ color: COLORS.text }}>{s.faultLabel}</span></span>
+                          <span>·</span>
+                          <span><span className="uppercase tracking-wider" style={{ letterSpacing: "0.06em" }}>Est:</span> <span className="tabular-nums" style={{ color: COLORS.text }}>{s.estimateRange}</span></span>
                         </div>
                       </div>
                     </button>
@@ -2118,7 +2121,7 @@ function ReviewEstimateStep({
           <EstimateReviewPanel
             key={claim.id}
             claim={claim}
-            claimForm={claimForm}
+            claimForm={effectiveClaimForm}
             uploadedPhotos={uploadedPhotos}
             isFastTrack={isFastTrack}
             seniorReview={seniorReview}
