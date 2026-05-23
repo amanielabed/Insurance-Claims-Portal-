@@ -3448,13 +3448,14 @@ function EstimateReviewPanel({
         ft === "single_vehicle" ? "Single-vehicle incident" : "—";
       const dedVal = cf?.deductible?.trim();
       const deductibleApplicable =
-        cv === "full" && ft === "policyholder"
-          ? (dedVal ? `Yes — $${dedVal}` : "Yes — amount pending")
-          : cv === "full"
-            ? "No"
-            : cv === "third_party"
-              ? "No — third-party policy"
+        cv === "third_party"
+          ? "N/A"
+          : cv === "full" && ft === "policyholder"
+            ? (dedVal ? `$${dedVal} (retrieved from policy record)` : "N/A")
+            : cv === "full"
+              ? "Pending liability determination"
               : "Pending";
+
       const claimBasis =
         cv === "full"
           ? "Own damage — full coverage"
