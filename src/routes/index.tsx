@@ -1590,13 +1590,30 @@ function EligibilityCheck({
   };
 
 
+  const loadDemo = () => {
+    const demoPolicy = "POL-2026-48201";
+    setPolicyNumber(demoPolicy);
+    setFault("other");
+    setDeductible("500");
+    runValidation(demoPolicy);
+  };
+
   return (
     <div>
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold tracking-tight">Coverage Eligibility Check</h2>
-        <p className="text-sm mt-1" style={{ color: COLORS.muted }}>
-          We need a few details before beginning the claim review.
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight">Coverage Eligibility Check</h2>
+          <p className="text-sm mt-1" style={{ color: COLORS.muted }}>
+            We need a few details before beginning the claim review.
+          </p>
+        </div>
+        <button
+          onClick={loadDemo}
+          className="text-xs font-medium px-3 py-2 rounded-md border shrink-0"
+          style={{ borderColor: "#D1D5DB", color: COLORS.text, backgroundColor: COLORS.surface }}
+        >
+          Use Demo Claim
+        </button>
       </div>
 
       <FormSection title="Policy Number">
