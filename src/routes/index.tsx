@@ -1034,14 +1034,24 @@ const INCIDENT_TYPES = [
   "Other",
 ] as const;
 
-type PolicyLookup = { year: string; make: string; model: string };
+type PolicyLookup = {
+  year: string;
+  make: string;
+  model: string;
+  coverage: "full" | "third_party";
+  deductible: string | null;
+  holderName: string;
+};
 
 function lookupPolicy(policyNumber: string): PolicyLookup | null {
   const p = policyNumber.trim().toUpperCase();
-  if (p.startsWith("POL-2026")) return { year: "2023", make: "Toyota", model: "Camry XSE" };
-  if (p.startsWith("POL-2025")) return { year: "2021", make: "Honda", model: "CR-V EX" };
+  if (p.startsWith("POL-2026"))
+    return { year: "2023", make: "Toyota", model: "Camry XSE", coverage: "full", deductible: "500", holderName: "Sarah Al-Mansouri" };
+  if (p.startsWith("POL-2025"))
+    return { year: "2021", make: "Honda", model: "CR-V EX", coverage: "third_party", deductible: null, holderName: "Omar Al-Kuwari" };
   return null;
 }
+
 
 type PoliceReportStatus = "uploaded" | "pending" | "not_available" | "";
 type CoverageType = "full" | "third_party" | "";
