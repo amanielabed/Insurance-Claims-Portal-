@@ -2056,7 +2056,12 @@ function ReviewEstimateStep({
                         <div className="text-xs mt-0.5" style={{ color: COLORS.muted }}>
                           {s.description}
                         </div>
-                        <div className="text-[10px] mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5" style={{ color: COLORS.muted }}>
+                        {s.subtext && (
+                          <div className="text-[11px] mt-0.5 italic" style={{ color: COLORS.muted }}>
+                            {s.subtext}
+                          </div>
+                        )}
+                        <div className="text-[10px] mt-1.5 flex flex-wrap gap-x-2 gap-y-1" style={{ color: COLORS.muted }}>
                           <span><span className="uppercase tracking-wider" style={{ letterSpacing: "0.06em" }}>Policy:</span> <span style={{ color: COLORS.text }}>{s.coverageLabel}</span></span>
                           <span>·</span>
                           <span><span className="uppercase tracking-wider" style={{ letterSpacing: "0.06em" }}>Fault:</span> <span style={{ color: COLORS.text }}>{s.faultLabel}</span></span>
