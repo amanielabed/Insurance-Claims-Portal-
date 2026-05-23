@@ -1587,15 +1587,6 @@ function EligibilityCheck({
     if (lookupError) setLookupError(null);
   };
 
-  const loadFullCoverageDemo = () => {
-    handlePolicyChange("POL-2026-48201");
-    runValidation("POL-2026-48201");
-  };
-
-  const loadThirdPartyDemo = () => {
-    handlePolicyChange("POL-2025-77310");
-    runValidation("POL-2025-77310");
-  };
 
   return (
     <div>
