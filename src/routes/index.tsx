@@ -2880,6 +2880,49 @@ function EstimateReviewPanel({
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
+  // Rationale tracking for adjuster overrides
+  type RationaleCode =
+    | "additional_damage"
+    | "labor_rate"
+    | "scope_change"
+    | "parts_availability"
+    | "other";
+  type Override = { reason: RationaleCode | null; other: string };
+  const [overrides, setOverrides] = useState<Record<number, Override>>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const isOverrideConfirmed = (o: Override | undefined) =>
+    !!o && o.reason !== null && (o.reason !== "other" || o.other.trim().length > 0);
+  const isOverridePending = (i: number) => {
+    const o = overrides[i];
+    if (!o) return false;
+    if (adjusted[i] === claim.parts[i].draftEstimate) return false;
+    return !isOverrideConfirmed(o);
+  };
+  const pendingOverrideRows = claim.parts
+    .map((_, i) => i)
+    .filter((i) => isOverridePending(i));
+  const hasPendingOverrides = pendingOverrideRows.length > 0;
+
+  const setOverrideReason = (i: number, reason: RationaleCode) => {
+    setOverrides((prev) => {
+      const next = { ...prev };
+      const existing = next[i] ?? { reason: null, other: "" };
+      next[i] = { ...existing, reason };
+      return next;
+    });
+    setSubmitError(null);
+  };
+  const setOverrideOther = (i: number, other: string) => {
+    setOverrides((prev) => {
+      const next = { ...prev };
+      const existing = next[i] ?? { reason: "other" as RationaleCode, other: "" };
+      next[i] = { ...existing, other: other.slice(0, 140) };
+      return next;
+    });
+  };
+
+
 
 
   // Auto-escalate: variance >15% on any high-risk (flagged) line item
