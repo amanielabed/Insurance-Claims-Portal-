@@ -1117,11 +1117,12 @@ const demoForm = (): ClaimForm => {
     vin: "4T1G11AK5NU712398",
     vehicleAutoFilled: true,
     policeReport: "uploaded",
-    coverage: "full",
+    coverage: lookup.coverage,
     fault: "other",
-    deductible: "",
+    deductible: lookup.deductible ?? "",
   };
 };
+
 
 
 
