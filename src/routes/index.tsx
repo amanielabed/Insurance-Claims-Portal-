@@ -1591,7 +1591,6 @@ function EligibilityCheck({
 
 
   const loadDemo = () => {
-    console.log("[demo] loadDemo clicked");
     const demoPolicy = "POL-2026-48201";
     setPolicyNumber(demoPolicy);
     setFault("other");
@@ -1612,7 +1611,6 @@ function EligibilityCheck({
         <button
           type="button"
           onClick={loadDemo}
-          onPointerDown={() => console.log("[demo] pointerdown")}
           className="text-xs font-medium px-3 py-2 rounded-md border shrink-0"
           style={{ borderColor: "#D1D5DB", color: COLORS.text, backgroundColor: COLORS.surface }}
         >
