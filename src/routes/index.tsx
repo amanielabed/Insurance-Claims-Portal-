@@ -54,6 +54,7 @@ interface ScenarioMeta {
   id: string;
   label: string;
   description: string;
+  subtext?: string;
   state: "FAST_TRACK" | "MANUAL_REVIEW" | "SENIOR_REVIEW";
   coverage: "full" | "third_party";
   fault: "policyholder" | "other" | "unclear" | "single_vehicle";
@@ -65,9 +66,9 @@ interface ScenarioMeta {
 const SCENARIOS: ScenarioMeta[] = [
   {
     id: "2026-001",
-    label: "Full Coverage — Minor Cosmetic Damage",
+    label: "Fast-Track Approval (Demo)",
     description:
-      "Low-complexity cosmetic damage with clear photo evidence and fast-track approval eligibility.",
+      "Demonstrates fast-track routing — clear photo evidence, low repair complexity, and streamlined authorization workflow.",
     state: "FAST_TRACK",
     coverage: "full",
     fault: "policyholder",
@@ -77,9 +78,9 @@ const SCENARIOS: ScenarioMeta[] = [
   },
   {
     id: "2026-002",
-    label: "Full Coverage — Ambiguous Rear Collision",
+    label: "Verification Required (Demo)",
     description:
-      "Moderate uncertainty requiring manual verification before authorization.",
+      "Demonstrates manual review routing — uncertain damage scope requiring additional verification before authorization.",
     state: "MANUAL_REVIEW",
     coverage: "full",
     fault: "unclear",
@@ -89,9 +90,10 @@ const SCENARIOS: ScenarioMeta[] = [
   },
   {
     id: "2026-003",
-    label: "Third-Party Coverage — Major Impact",
+    label: "Senior Review Required (Demo)",
     description:
-      "High-severity damage with coverage limitations and senior review requirements.",
+      "Demonstrates senior review routing — high-value structural claim exceeding standard authorization thresholds.",
+    subtext: "Authorization pending senior approval.",
     state: "SENIOR_REVIEW",
     coverage: "third_party",
     fault: "policyholder",
@@ -2054,7 +2056,12 @@ function ReviewEstimateStep({
                         <div className="text-xs mt-0.5" style={{ color: COLORS.muted }}>
                           {s.description}
                         </div>
-                        <div className="text-[10px] mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5" style={{ color: COLORS.muted }}>
+                        {s.subtext && (
+                          <div className="text-[11px] mt-0.5 italic" style={{ color: COLORS.muted }}>
+                            {s.subtext}
+                          </div>
+                        )}
+                        <div className="text-[10px] mt-1.5 flex flex-wrap gap-x-2 gap-y-1" style={{ color: COLORS.muted }}>
                           <span><span className="uppercase tracking-wider" style={{ letterSpacing: "0.06em" }}>Policy:</span> <span style={{ color: COLORS.text }}>{s.coverageLabel}</span></span>
                           <span>·</span>
                           <span><span className="uppercase tracking-wider" style={{ letterSpacing: "0.06em" }}>Fault:</span> <span style={{ color: COLORS.text }}>{s.faultLabel}</span></span>
@@ -2183,23 +2190,20 @@ function DemoGuide() {
               ✕
             </button>
           </div>
-          <ol className="px-4 py-3 flex flex-col gap-2 text-xs" style={{ color: COLORS.text }}>
+          <ul className="px-4 py-3 flex flex-col gap-2 text-xs" style={{ color: COLORS.text }}>
             <li className="flex gap-2">
-              <span className="font-semibold" style={{ color: COLORS.muted }}>1.</span>
-              <span>Select Claim 001 to demonstrate Fast-Track processing.</span>
+              <span style={{ color: COLORS.muted }}>←</span>
+              <span>Select Fast-Track Approval to view streamlined claim authorization</span>
             </li>
             <li className="flex gap-2">
-              <span className="font-semibold" style={{ color: COLORS.muted }}>2.</span>
-              <span>Select Claim 002 to demonstrate Manual Review workflow.</span>
+              <span style={{ color: COLORS.muted }}>←</span>
+              <span>Select Verification Required to view manual review gates and verification checks</span>
             </li>
             <li className="flex gap-2">
-              <span className="font-semibold" style={{ color: COLORS.muted }}>3.</span>
-              <span>
-                Edit a high-risk estimate significantly or click “Flag for Senior Review”
-                to demonstrate escalation handling.
-              </span>
+              <span style={{ color: COLORS.muted }}>←</span>
+              <span>Select Senior Review Required to view how higher-risk claims require additional review and authorization oversight</span>
             </li>
-          </ol>
+          </ul>
         </div>
       ) : (
         <button
