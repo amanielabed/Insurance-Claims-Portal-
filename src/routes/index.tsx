@@ -1743,19 +1743,65 @@ function EligibilityCheck({
               {eligibility.note}
             </p>
           )}
-          {eligibility.showDeductible && (
-            <div className="mt-4 max-w-xs">
-              <label className="text-xs font-medium block mb-1.5" style={{ color: COLORS.text }}>
-                Deductible amount (optional)
-              </label>
-              <TextInput
-                type="number"
-                value={deductible}
-                onChange={setDeductible}
-                placeholder="$0"
-              />
+          {validated && validated.coverage === "full" && (
+            <div
+              className="mt-4 rounded-lg"
+              style={{
+                backgroundColor: "#FFFFFF",
+                border: "0.5px solid #E5E7EB",
+                borderLeft: `3px solid ${fault === "policyholder" ? "#16A34A" : "#2563EB"}`,
+                borderRadius: 8,
+                padding: "12px 16px",
+              }}
+            >
+              <div
+                className="text-[11px] font-semibold uppercase mb-2"
+                style={{ color: COLORS.muted, letterSpacing: "0.08em" }}
+              >
+                Policy Coverage Retrieved
+              </div>
+              <div className="flex flex-col gap-2">
+                <div>
+                  <div className="text-[11px] uppercase" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+                    Coverage Type
+                  </div>
+                  <div className="text-sm font-medium" style={{ color: COLORS.text }}>
+                    Comprehensive
+                  </div>
+                </div>
+                {fault === "policyholder" ? (
+                  <>
+                    <div>
+                      <div className="text-[11px] uppercase" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+                        Deductible
+                      </div>
+                      <div className="text-sm font-medium tabular-nums" style={{ color: COLORS.text }}>
+                        ${validated.deductible}
+                      </div>
+                    </div>
+                    <div className="text-[11px] italic" style={{ color: COLORS.muted }}>
+                      Deductible retrieved from policy record.
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <div className="text-[11px] uppercase" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+                        Deductible Status
+                      </div>
+                      <div className="text-sm font-medium" style={{ color: COLORS.text }}>
+                        Pending liability determination
+                      </div>
+                    </div>
+                    <div className="text-[11px] italic" style={{ color: COLORS.muted }}>
+                      If the other party is determined to be at fault, deductible recovery may apply.
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           )}
+
           <div className="mt-4 flex justify-end">
             <button
               onClick={() => {
