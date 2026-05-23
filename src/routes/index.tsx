@@ -3730,7 +3730,7 @@ function EstimateReviewPanel({
                           }}
                           title="Adjuster override with recorded rationale"
                         >
-                          Overridden {diff > 0 ? "↑" : "↓"}
+                          Adjusted {diff > 0 ? "↑" : "↓"}
                         </span>
                       )}
                       <input
@@ -4003,7 +4003,7 @@ function EstimateReviewPanel({
                     {item.name}
                   </div>
                   <div className="text-xs" style={{ color: COLORS.muted }}>
-                    AI draft: {fmtCurrency(item.original)} → Adjusted: {fmtCurrency(item.adjustedVal)}
+                    Draft estimate: {fmtCurrency(item.original)} → Adjusted: {fmtCurrency(item.adjustedVal)}
                   </div>
                   <div className="text-[11px] italic" style={{ color: COLORS.amberText }}>
                     Reason: {item.reasonLabel}
@@ -4012,7 +4012,7 @@ function EstimateReviewPanel({
               ))}
             </div>
             <p className="text-[11px] mt-2 pt-2 leading-snug" style={{ color: COLORS.muted, borderTop: `1px solid ${COLORS.border}` }}>
-              {overriddenItems.length} line item{overriddenItems.length > 1 ? "s" : ""} adjusted. All overrides will be included in the generated report and logged for review.
+              {overriddenItems.length} line item{overriddenItems.length > 1 ? "s" : ""} adjusted. All estimate adjustments will appear in the generated report and be recorded in the claim history.
             </p>
           </div>
         );
