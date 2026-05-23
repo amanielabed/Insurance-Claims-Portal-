@@ -1870,6 +1870,12 @@ function ReviewEstimateStep({
 
   const currentScenario = SCENARIOS.find((s) => s.id === selectedId) ?? SCENARIOS[0];
 
+  // Unified Demo Claim: scenario overrides coverage + fault so policy details,
+  // coverage status, escalation logic, and downstream panels all stay in sync.
+  const effectiveClaimForm: ClaimForm | null = claimForm
+    ? { ...claimForm, coverage: currentScenario.coverage, fault: currentScenario.fault }
+    : null;
+
   return (
     <div
       className="flex flex-col flex-1 min-h-0"
