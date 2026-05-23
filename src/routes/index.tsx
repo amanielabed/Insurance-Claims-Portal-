@@ -1141,7 +1141,7 @@ function InitiateClaimStep({
   type Fault = "policyholder" | "other" | "unclear" | "single_vehicle" | "";
   const [eligPolicy, setEligPolicy] = useState("");
   const [fault, setFault] = useState<Fault>("");
-  const [deductible, setDeductible] = useState("");
+  // deductible is retrieved from policy lookup — no manual input
   const [validated, setValidated] = useState<ValidatedPolicy | null>(null);
   const [eligibilityPassed, setEligibilityPassed] = useState(false);
 
