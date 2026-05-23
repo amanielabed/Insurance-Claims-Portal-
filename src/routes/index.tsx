@@ -1901,18 +1901,18 @@ function ReviewEstimateStep({
       </div>
 
       {/* Policyholder coverage status bar */}
-      {claimForm && (claimForm.coverage || claimForm.fault) && (() => {
+      {effectiveClaimForm && (effectiveClaimForm.coverage || effectiveClaimForm.fault) && (() => {
         const coverageLabel =
-          claimForm.coverage === "full" ? "Full" :
-          claimForm.coverage === "third_party" ? "Third-party" : "—";
+          effectiveClaimForm.coverage === "full" ? "Full" :
+          effectiveClaimForm.coverage === "third_party" ? "Third-party" : "—";
         const faultLabel =
-          claimForm.fault === "policyholder" ? "At fault" :
-          claimForm.fault === "other" ? "Not at fault" :
-          claimForm.fault === "unclear" ? "Disputed" :
-          claimForm.fault === "single_vehicle" ? "Single-vehicle" : "—";
-        const ded = claimForm.deductible?.trim();
+          effectiveClaimForm.fault === "policyholder" ? "At fault" :
+          effectiveClaimForm.fault === "other" ? "Not at fault" :
+          effectiveClaimForm.fault === "unclear" ? "Disputed" :
+          effectiveClaimForm.fault === "single_vehicle" ? "Single-vehicle" : "—";
+        const ded = effectiveClaimForm.deductible?.trim();
         const deductibleLabel =
-          claimForm.coverage === "full" && claimForm.fault === "policyholder" && ded
+          effectiveClaimForm.coverage === "full" && effectiveClaimForm.fault === "policyholder" && ded
             ? `$${ded}`
             : "N/A";
         return (
