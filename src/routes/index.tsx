@@ -1598,6 +1598,7 @@ function EligibilityCheck({
     runValidation(demoPolicy);
   };
 
+
   return (
     <div>
       <div className="mb-6 flex items-start justify-between gap-4">
@@ -1608,6 +1609,7 @@ function EligibilityCheck({
           </p>
         </div>
         <button
+          type="button"
           onClick={loadDemo}
           className="text-xs font-medium px-3 py-2 rounded-md border shrink-0"
           style={{ borderColor: "#D1D5DB", color: COLORS.text, backgroundColor: COLORS.surface }}
