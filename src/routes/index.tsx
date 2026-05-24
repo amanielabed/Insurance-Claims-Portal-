@@ -389,12 +389,12 @@ export interface UploadedPhoto {
 }
 
 function Index() {
-  const [step, setStep] = useState(4);
-  const [claimForm, setClaimForm] = useState<ClaimForm | null>(demoForm());
+  const [step, setStep] = useState(1);
+  const [claimForm, setClaimForm] = useState<ClaimForm | null>(null);
   const [uploadedPhotos, setUploadedPhotos] = useState<UploadedPhoto[]>([]);
   const [submitted, setSubmitted] = useState(false);
-  const [claimRef, setClaimRef] = useState<string>("CLM-2026-000001");
-  const [submittedAt, setSubmittedAt] = useState<number | null>(Date.now());
+  const [claimRef, setClaimRef] = useState<string>("");
+  const [submittedAt, setSubmittedAt] = useState<number | null>(null);
   const [finalized, setFinalized] = useState(false);
 
   const reset = () => {
