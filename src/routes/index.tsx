@@ -1585,7 +1585,6 @@ function EligibilityCheck({
         year: result.year,
         make: result.make,
         model: result.model,
-        holderName: result.holderName,
         coverage: result.coverage,
         deductible: result.deductible,
       });
