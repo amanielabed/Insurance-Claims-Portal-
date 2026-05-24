@@ -2548,7 +2548,7 @@ function ResolutionActions({
         onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
       >
-        Continue Reviewing
+        Continue Reviewing Claim Details
       </button>
       <button
         type="button"
@@ -5658,18 +5658,7 @@ function EstimateReviewPanel({
                     </ul>
                   </div>
                 </div>
-                <DialogFooter className="sm:justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setValidationOpen(false);
-                      setRequestInfoOpen(true);
-                    }}
-                    className="text-sm font-medium underline-offset-2 hover:underline"
-                    style={{ color: COLORS.blue }}
-                  >
-                    Request Additional Information
-                  </button>
+                <DialogFooter className="sm:justify-end gap-2">
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
