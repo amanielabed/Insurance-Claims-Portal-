@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { AlertTriangle, Check, CheckCircle, Clock, FileText, ChevronRight } from "lucide-react";
+import { AlertTriangle, Check, CheckCircle, Clock, FileText, ChevronRight, Lock } from "lucide-react";
 import claimSimpleImage from "@/assets/claim-simple.jpg";
 import claimComplexImage from "@/assets/claim-complex.jpg";
 
@@ -489,9 +489,9 @@ function SubmissionConfirmationStep({
   claimForm: ClaimForm | null;
   onOpenForReview: () => void;
 }) {
-  const submittedLabel = new Date(submittedAt).toLocaleString(undefined, {
+  const submittedLabel = new Date(submittedAt).toLocaleString("en-US", {
     year: "numeric",
-    month: "short",
+    month: "long",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
@@ -2140,6 +2140,7 @@ function ReviewEstimateStep({
   const [concernsDismissed, setConcernsDismissed] = useState(false);
   const [authorization, setAuthorization] = useState<AuthorizationDetails | null>(null);
   const [seniorPending, setSeniorPending] = useState(false);
+  const [viewingSubmitted, setViewingSubmitted] = useState(false);
   const generateReportRef = useRef<((forAuthorization?: boolean) => Promise<void>) | null>(null);
 
   // Sync escalation when switching claims — auto-load senior authorization for SENIOR_AUTHORIZATION scenarios
@@ -2149,6 +2150,7 @@ function ReviewEstimateStep({
     setConcernsDismissed(false);
     setAuthorization(null);
     setSeniorPending(false);
+    setViewingSubmitted(false);
   }, [selectedId, claim.delegationState]);
 
   // Notify parent when claim reaches a final workflow state
@@ -2283,7 +2285,7 @@ function ReviewEstimateStep({
                 Reviewing Claim for: {claimForm?.fullName?.trim() || "—"}
               </div>
               <div className="text-[11px] truncate" style={{ color: COLORS.muted }}>
-                Policy: {claimForm?.policyNumber?.trim() || "—"}
+                Claim #{claimRef} · Policy: {claimForm?.policyNumber?.trim() || "—"}
               </div>
             </div>
           </div>
@@ -2407,7 +2409,7 @@ function ReviewEstimateStep({
         )}
       </div>
 
-      {(authorization || seniorPending) && (
+      {(authorization || seniorPending) && !viewingSubmitted && (
         <div className="flex-1 min-h-0 overflow-auto p-6 animate-fade-in">
           {authorization ? (
             <ClaimAuthorizedScreen
@@ -2429,7 +2431,7 @@ function ReviewEstimateStep({
                 toast("Returning to claims queue…");
                 setTimeout(() => onReset(), 600);
               }}
-              onViewEstimate={() => setSeniorPending(false)}
+              onViewEstimate={() => setViewingSubmitted(true)}
               onDownloadEstimate={() => generateReportRef.current?.(false)}
             />
           )}
@@ -2440,7 +2442,7 @@ function ReviewEstimateStep({
         key={claim.id}
         className="flex-1 min-h-0 grid grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(420px,1.35fr)] gap-4 p-4 animate-fade-in"
         style={
-          authorization || seniorPending
+          (authorization || seniorPending) && !viewingSubmitted
             ? { display: "none" }
             : undefined
         }
@@ -2488,6 +2490,8 @@ function ReviewEstimateStep({
             onAuthorize={(details) => setAuthorization(details)}
             onSeniorSubmit={() => setSeniorPending(true)}
             generateReportRef={generateReportRef}
+            readOnly={viewingSubmitted}
+            onOpenNewClaim={onReset}
           />
         </Panel>
       </main>
@@ -2517,9 +2521,9 @@ function ClaimAuthorizedScreen({
   const vehicle =
     [claimForm?.year, claimForm?.make, claimForm?.model].filter(Boolean).join(" ").trim() || "—";
   const policyholder = claimForm?.fullName?.trim() || "—";
-  const dateLabel = new Date(authorization.authorizedAt).toLocaleString(undefined, {
+  const dateLabel = new Date(authorization.authorizedAt).toLocaleString("en-US", {
     year: "numeric",
-    month: "short",
+    month: "long",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
@@ -3320,6 +3324,8 @@ function EstimateReviewPanel({
   onAuthorize,
   onSeniorSubmit,
   generateReportRef,
+  readOnly = false,
+  onOpenNewClaim,
 }: {
   claim: Claim;
   claimForm: ClaimForm | null;
@@ -3338,6 +3344,8 @@ function EstimateReviewPanel({
   onAuthorize: (details: AuthorizationDetails) => void;
   onSeniorSubmit: () => void;
   generateReportRef: React.MutableRefObject<((forAuthorization?: boolean) => Promise<void>) | null>;
+  readOnly?: boolean;
+  onOpenNewClaim?: () => void;
 }) {
   const [adjusted, setAdjusted] = useState<number[]>(() =>
     claim.parts.map((p) => p.draftEstimate),
@@ -3382,6 +3390,9 @@ function EstimateReviewPanel({
   >(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  useEffect(() => {
+    if (readOnly) setEditMode(false);
+  }, [readOnly]);
   const seniorSubmitted = seniorPending;
   const isAuthorized = authorization !== null;
 
@@ -3530,9 +3541,7 @@ function EstimateReviewPanel({
   const generateReport = async (forAuthorization: boolean = isAuthorized) => {
     const reportAdjusted = syncDraftValues();
     const reportTotal = reportAdjusted.reduce((s, n) => s + (isFinite(n) ? n : 0), 0);
-    const fileName = forAuthorization
-      ? `Claim_${claim.id}_Authorization.pdf`
-      : `Claim_${claim.id}_Assessment.pdf`;
+    const fileName = `${claimRef}_Estimate_Report.pdf`;
 
     const workflowState: "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION" =
       seniorReview || claim.delegationState === "SENIOR_AUTHORIZATION"
@@ -3649,7 +3658,7 @@ function EstimateReviewPanel({
       pdf.text(stateLabel, pageW - M - bbw + 9, y + 16);
       y += 26;
       setText(13, "#6B7280");
-      pdf.text(`Claim #${claim.id} · ${claim.type} · ${dateStr}`, M, y + 10);
+      pdf.text(`Claim #${claimRef} · ${claim.type} · ${dateStr}`, M, y + 10);
       y += 22;
       pdf.setDrawColor("#111827");
       pdf.setLineWidth(1.5);
@@ -3778,15 +3787,32 @@ function EstimateReviewPanel({
 
       const photoData = await Promise.all(uploadedPhotos.map((p) => toDataUrl(p.url)));
 
+      const photoGap = 12;
+      const photosPerRow = 3;
+      const photoW = (W - photoGap * (photosPerRow - 1)) / photosPerRow;
+      const photoH = photoW * 0.72;
+
       if (uploadedPhotos.length === 0) {
-        setText(12, "#6B7280", false, true);
-        pdf.text("No photos were uploaded for this claim.", M, y + 14);
-        y += 24;
+        // Demo mode / no real uploads — render neutral placeholder rectangles
+        const placeholderCaptions = [
+          "Primary Damage View",
+          "Wide Context Shot",
+          "Secondary Damage Angle",
+        ];
+        const blockH = photoH + 20;
+        need(blockH + 6);
+        placeholderCaptions.forEach((caption, i) => {
+          const px = M + i * (photoW + photoGap);
+          const py = y;
+          pdf.setFillColor("#F3F4F6");
+          pdf.setDrawColor("#E5E7EB");
+          pdf.setLineWidth(0.5);
+          pdf.roundedRect(px, py, photoW, photoH, 3, 3, "FD");
+          setText(11, "#9CA3AF");
+          pdf.text(caption, px + photoW / 2, py + photoH / 2 + 3, { align: "center" });
+        });
+        y += blockH;
       } else {
-        const photoGap = 12;
-        const photosPerRow = 3;
-        const photoW = (W - photoGap * (photosPerRow - 1)) / photosPerRow;
-        const photoH = photoW * 0.72;
         const captionH = 44;
         const blockH = photoH + captionH + 6;
 
@@ -3822,7 +3848,7 @@ function EstimateReviewPanel({
           // caption
           const cap = uploadedPhotos[i];
           const ts = new Date(cap.uploadedAt).toLocaleString("en-US", {
-            month: "short",
+            month: "long",
             day: "numeric",
             year: "numeric",
             hour: "numeric",
@@ -4186,7 +4212,7 @@ function EstimateReviewPanel({
             if (isSignificant) {
               const flagY = rowY + Math.max(nameLines.length, reasonLines.length) * 14;
               setText(11, "#B45309", true);
-              pdf.text("⚠ Significant adjustment", cName, flagY);
+              pdf.text("Significant adjustment — variance exceeds 20%", cName, flagY);
             }
             y += rowH;
             pdf.setDrawColor("#F3F4F6");
@@ -4222,7 +4248,7 @@ function EstimateReviewPanel({
           if (Math.abs(netVarPct) > 20) {
             need(22);
             setText(11, "#B45309", true);
-            pdf.text("⚠  Significant adjustment", M, y + 12);
+            pdf.text("Significant adjustment — variance exceeds 20%", M, y + 12);
             y += 18;
           }
 
@@ -4304,7 +4330,7 @@ function EstimateReviewPanel({
           label: "Report generated",
           value: new Date().toLocaleString("en-US", {
             year: "numeric",
-            month: "short",
+            month: "long",
             day: "numeric",
             hour: "numeric",
             minute: "2-digit",
@@ -4338,7 +4364,7 @@ function EstimateReviewPanel({
         sectionLabel("Authorization Record");
         const authDate = new Date(authorization.authorizedAt).toLocaleString("en-US", {
           year: "numeric",
-          month: "short",
+          month: "long",
           day: "numeric",
           hour: "numeric",
           minute: "2-digit",
@@ -4400,7 +4426,7 @@ function EstimateReviewPanel({
           M,
           fy,
         );
-        pdf.text(`Claim #${claim.id} · ${dateStr}`, pageW - M, fy, { align: "right" });
+        pdf.text(`Claim #${claimRef} · ${dateStr}`, pageW - M, fy, { align: "right" });
       }
 
       pdf.save(fileName);
@@ -4425,6 +4451,27 @@ function EstimateReviewPanel({
 
   return (
     <div className="flex flex-col min-h-full gap-4">
+      {readOnly && (
+        <div
+          className="shrink-0 rounded-md border px-3 py-2.5"
+          style={{
+            backgroundColor: "#F3F4F6",
+            borderColor: COLORS.border,
+          }}
+        >
+          <div className="flex items-start gap-2">
+            <Lock size={14} className="mt-0.5 shrink-0" style={{ color: COLORS.muted }} />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-semibold" style={{ color: COLORS.text }}>
+                Submitted Estimate
+              </div>
+              <div className="text-[12px] mt-0.5 leading-snug" style={{ color: COLORS.muted }}>
+                This estimate has already been submitted and is now view-only.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Estimate table */}
       <div className="shrink-0 overflow-x-auto">
         {seniorReview && (
@@ -5191,31 +5238,14 @@ function EstimateReviewPanel({
               </div>
             )}
 
-            {/* Persistent Action Bar — always 3 actions, never disabled by warnings */}
-            <div className="shrink-0 flex items-center gap-2 pt-1">
-              {/* PRIMARY */}
-              {workflowMode === "SENIOR_AUTHORIZATION" && seniorSubmitted ? (
-                <div
-                  className="flex-1 flex items-center justify-center gap-1.5 rounded-md py-2.5 text-xs font-medium"
-                  style={{
-                    color: COLORS.muted,
-                    backgroundColor: "#F9FAFB",
-                    border: `1px solid ${COLORS.border}`,
-                  }}
-                >
-                  <Clock size={13} />
-                  Pending Senior Authorization
-                </div>
-              ) : (
+            {readOnly ? (
+              <div className="shrink-0 flex items-center gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={handlePrimary}
-                  className="flex-1 rounded-md py-2.5 text-sm font-semibold transition-colors"
-                  style={{
-                    backgroundColor: COLORS.blue,
-                    color: "white",
-                    border: "none",
-                  }}
+                  disabled={isGeneratingReport}
+                  onClick={() => generateReport(authorization !== null)}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
+                  style={{ backgroundColor: COLORS.blue }}
                   onMouseEnter={(e) =>
                     (e.currentTarget.style.backgroundColor = COLORS.blueHover)
                   }
@@ -5223,74 +5253,128 @@ function EstimateReviewPanel({
                     (e.currentTarget.style.backgroundColor = COLORS.blue)
                   }
                 >
-                  {primaryLabel}
+                  <FileText size={14} />
+                  {isGeneratingReport ? "Generating…" : "Download Estimate Report"}
                 </button>
-              )}
+                <button
+                  type="button"
+                  onClick={() => onOpenNewClaim?.()}
+                  className="rounded-md border px-3 py-2.5 text-sm font-medium transition-colors"
+                  style={{
+                    borderColor: COLORS.border,
+                    color: COLORS.text,
+                    backgroundColor: "white",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F9FAFB")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
+                >
+                  Open New Claim
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Persistent Action Bar — always 3 actions, never disabled by warnings */}
+                <div className="shrink-0 flex items-center gap-2 pt-1">
+                  {/* PRIMARY */}
+                  {workflowMode === "SENIOR_AUTHORIZATION" && seniorSubmitted ? (
+                    <div
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-md py-2.5 text-xs font-medium"
+                      style={{
+                        color: COLORS.muted,
+                        backgroundColor: "#F9FAFB",
+                        border: `1px solid ${COLORS.border}`,
+                      }}
+                    >
+                      <Clock size={13} />
+                      Pending Senior Authorization
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handlePrimary}
+                      className="flex-1 rounded-md py-2.5 text-sm font-semibold transition-colors"
+                      style={{
+                        backgroundColor: COLORS.blue,
+                        color: "white",
+                        border: "none",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor = COLORS.blueHover)
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor = COLORS.blue)
+                      }
+                    >
+                      {primaryLabel}
+                    </button>
+                  )}
 
-              {/* SECONDARY: Edit / Save Edits */}
-              <button
-                type="button"
-                onClick={handleEditToggle}
-                className="rounded-md border px-3 py-2.5 text-sm font-semibold transition-colors"
-                style={{
-                  borderColor: COLORS.blue,
-                  color: editMode ? "white" : COLORS.blue,
-                  backgroundColor: editMode ? COLORS.blue : "transparent",
-                }}
-              >
-                {editMode ? "Save Edits" : "Edit Estimate"}
-              </button>
+                  {/* SECONDARY: Edit / Save Edits */}
+                  <button
+                    type="button"
+                    onClick={handleEditToggle}
+                    className="rounded-md border px-3 py-2.5 text-sm font-semibold transition-colors"
+                    style={{
+                      borderColor: COLORS.blue,
+                      color: editMode ? "white" : COLORS.blue,
+                      backgroundColor: editMode ? COLORS.blue : "transparent",
+                    }}
+                  >
+                    {editMode ? "Save Edits" : "Edit Estimate"}
+                  </button>
 
-              {/* TERTIARY: Save & Request Information */}
-              <button
-                type="button"
-                onClick={() => setRequestInfoOpen(true)}
-                className="rounded-md border px-3 py-2.5 text-sm font-medium transition-colors"
-                style={{
-                  borderColor: COLORS.border,
-                  color: COLORS.text,
-                  backgroundColor: "white",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F9FAFB")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
-              >
-                Save & Request Information
-              </button>
-            </div>
+                  {/* TERTIARY: Save & Request Information */}
+                  <button
+                    type="button"
+                    onClick={() => setRequestInfoOpen(true)}
+                    className="rounded-md border px-3 py-2.5 text-sm font-medium transition-colors"
+                    style={{
+                      borderColor: COLORS.border,
+                      color: COLORS.text,
+                      backgroundColor: "white",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F9FAFB")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
+                  >
+                    Save & Request Information
+                  </button>
+                </div>
 
-            {/* Tertiary row: Generate Report + Add Internal Note */}
-            <div className="shrink-0 flex items-center justify-between pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  notesRef.current?.focus();
-                  notesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-                }}
-                className="text-xs font-medium underline-offset-2 hover:underline"
-                style={{ color: COLORS.muted }}
-              >
-                + Add Internal Note
-              </button>
-              <button
-                type="button"
-                disabled={isGeneratingReport}
-                onClick={() => {
-                  if (hasPendingOverrides) {
-                    setSubmitError(
-                      "Please provide a reason for all adjusted line items before submitting.",
-                    );
-                    return;
-                  }
-                  generateReport();
-                }}
-                className="inline-flex items-center gap-1 text-xs font-medium underline-offset-2 hover:underline"
-                style={{ color: COLORS.blue }}
-              >
-                <FileText size={12} />
-                {isGeneratingReport ? "Generating…" : "Generate Report"}
-                <ChevronRight size={12} />
-              </button>
-            </div>
+                {/* Tertiary row: Generate Report + Add Internal Note */}
+                <div className="shrink-0 flex items-center justify-between pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      notesRef.current?.focus();
+                      notesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }}
+                    className="text-xs font-medium underline-offset-2 hover:underline"
+                    style={{ color: COLORS.muted }}
+                  >
+                    + Add Internal Note
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isGeneratingReport}
+                    onClick={() => {
+                      if (hasPendingOverrides) {
+                        setSubmitError(
+                          "Please provide a reason for all adjusted line items before submitting.",
+                        );
+                        return;
+                      }
+                      generateReport();
+                    }}
+                    className="inline-flex items-center gap-1 text-xs font-medium underline-offset-2 hover:underline"
+                    style={{ color: COLORS.blue }}
+                  >
+                    <FileText size={12} />
+                    {isGeneratingReport ? "Generating…" : "Generate Report"}
+                    <ChevronRight size={12} />
+                  </button>
+                </div>
+              </>
+            )}
 
             {/* Approval Confirmation Modal */}
             <Dialog open={approvalConfirmOpen} onOpenChange={setApprovalConfirmOpen}>
