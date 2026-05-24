@@ -4408,6 +4408,13 @@ function EstimateReviewPanel({
     }
   };
 
+  // Keep parent ref updated with latest closure so post-cockpit screens can trigger PDF
+  useEffect(() => {
+    generateReportRef.current = generateReport;
+  });
+
+
+
   return (
     <div className="flex flex-col min-h-full gap-4">
       {/* Estimate table */}
