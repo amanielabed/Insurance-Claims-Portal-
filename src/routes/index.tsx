@@ -4302,7 +4302,7 @@ function EstimateReviewPanel({
           label: "Report generated",
           value: new Date().toLocaleString("en-US", {
             year: "numeric",
-            month: "short",
+            month: "long",
             day: "numeric",
             hour: "numeric",
             minute: "2-digit",
