@@ -1593,6 +1593,7 @@ function EligibilityCheck({
         coverage: result.coverage,
         deductible: result.deductible,
       });
+      if (!fullName.trim()) setFullName(result.fullName);
       setValidating(false);
 
     }, 700);
