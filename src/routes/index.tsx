@@ -396,6 +396,8 @@ function Index() {
   const [claimRef, setClaimRef] = useState<string>("");
   const [submittedAt, setSubmittedAt] = useState<number | null>(null);
   const [finalized, setFinalized] = useState(false);
+  const [viewMode, setViewMode] = useState<"flow" | "queue">("flow");
+  const [claimSummary, setClaimSummary] = useState<ClaimSummary | null>(null);
 
   const reset = () => {
     setClaimForm(null);
@@ -404,6 +406,8 @@ function Index() {
     setClaimRef("");
     setSubmittedAt(null);
     setFinalized(false);
+    setViewMode("flow");
+    setClaimSummary(null);
     setStep(1);
   };
 
@@ -420,6 +424,8 @@ function Index() {
     return step;
   })();
 
+  const inQueue = viewMode === "queue";
+
   return (
     <div
       className="flex flex-col h-screen"
@@ -427,10 +433,19 @@ function Index() {
     >
       <StepIndicator current={visualStep} />
       <div
-        key={showConfirmation ? "confirmation" : step}
+        key={inQueue ? "queue" : showConfirmation ? "confirmation" : step}
         className="flex-1 min-h-0 flex flex-col animate-fade-in"
       >
-        {step === 1 && (
+        {inQueue && (
+          <ClaimsQueueScreen
+            claimRef={claimRef}
+            claimForm={claimForm}
+            summary={claimSummary}
+            onViewClaim={() => setViewMode("flow")}
+            onStartNewClaim={reset}
+          />
+        )}
+        {!inQueue && step === 1 && (
           <InitiateClaimStep
             initial={claimForm}
             onContinue={(data) => {
@@ -439,7 +454,7 @@ function Index() {
             }}
           />
         )}
-        {step === 2 && !submitted && (
+        {!inQueue && step === 2 && !submitted && (
           <UploadPhotosStep
             initialPhotos={uploadedPhotos}
             onContinue={(photos) => {
@@ -452,7 +467,7 @@ function Index() {
             onBack={() => setStep(1)}
           />
         )}
-        {showConfirmation && (
+        {!inQueue && showConfirmation && (
           <SubmissionConfirmationStep
             claimRef={claimRef}
             submittedAt={submittedAt ?? Date.now()}
@@ -463,14 +478,16 @@ function Index() {
             }}
           />
         )}
-        {step === 3 && <DraftAssessmentStep claimForm={claimForm} onComplete={() => setStep(4)} />}
-        {step === 4 && (
+        {!inQueue && step === 3 && <DraftAssessmentStep claimForm={claimForm} onComplete={() => setStep(4)} />}
+        {!inQueue && step === 4 && (
           <ReviewEstimateStep
             claimForm={claimForm}
             uploadedPhotos={uploadedPhotos}
             claimRef={claimRef || `CLM-${new Date().getFullYear()}-000000`}
             onReset={reset}
             onFinalize={setFinalized}
+            onReturnToQueue={() => setViewMode("queue")}
+            onClaimSummaryChange={setClaimSummary}
           />
         )}
       </div>
