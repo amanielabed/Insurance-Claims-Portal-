@@ -4336,7 +4336,7 @@ function EstimateReviewPanel({
         sectionLabel("Authorization Record");
         const authDate = new Date(authorization.authorizedAt).toLocaleString("en-US", {
           year: "numeric",
-          month: "short",
+          month: "long",
           day: "numeric",
           hour: "numeric",
           minute: "2-digit",
