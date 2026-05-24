@@ -5199,6 +5199,63 @@ function EstimateReviewPanel({
               </button>
             </div>
 
+            {/* Approval Confirmation Modal */}
+            <Dialog open={approvalConfirmOpen} onOpenChange={setApprovalConfirmOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Confirm Estimate Approval</DialogTitle>
+                  <DialogDescription>
+                    You are approving a repair estimate of{" "}
+                    <span className="font-semibold" style={{ color: COLORS.text }}>
+                      {fmtCurrency(adjustedTotal)}
+                    </span>{" "}
+                    for{" "}
+                    <span className="font-semibold" style={{ color: COLORS.text }}>
+                      {approvalVehicle}
+                    </span>
+                    . This will authorize repair processing for the claim.
+                  </DialogDescription>
+                </DialogHeader>
+                {approvalHasDeductible && (
+                  <div
+                    className="rounded-md border px-3 py-2 text-sm"
+                    style={{
+                      backgroundColor: "#F9FAFB",
+                      borderColor: COLORS.border,
+                      color: COLORS.text,
+                    }}
+                  >
+                    Policy deductible:{" "}
+                    <span className="font-semibold tabular-nums">
+                      {fmtCurrency(approvalDeductibleAmount)}
+                    </span>
+                  </div>
+                )}
+                <DialogFooter>
+                  <button
+                    type="button"
+                    onClick={() => setApprovalConfirmOpen(false)}
+                    className="rounded-md border px-4 py-2 text-sm font-medium"
+                    style={{
+                      borderColor: COLORS.border,
+                      color: COLORS.text,
+                      backgroundColor: "white",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmApproval}
+                    className="rounded-md px-4 py-2 text-sm font-semibold text-white"
+                    style={{ backgroundColor: COLORS.blue }}
+                  >
+                    Confirm & Authorize
+                  </button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
             {/* Senior Authorization Confirmation Modal */}
             <Dialog open={seniorConfirmOpen} onOpenChange={setSeniorConfirmOpen}>
               <DialogContent>
