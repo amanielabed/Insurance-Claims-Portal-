@@ -2912,10 +2912,12 @@ function InformationRequestedScreen({
   claimRef,
   onReturnToQueue,
   onViewEstimate,
+  onReviewAnotherScenario,
 }: {
   claimRef: string;
   onReturnToQueue: () => void;
   onViewEstimate: () => void;
+  onReviewAnotherScenario: () => void;
 }) {
   return (
     <div className="max-w-2xl mx-auto">
