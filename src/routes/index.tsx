@@ -2337,7 +2337,15 @@ function DemoGuide() {
   );
 }
 
-function AssessmentReviewPanel({ claim }: { claim: Claim }) {
+function AssessmentReviewPanel({
+  claim,
+  concernsDismissed,
+  onDismissConcerns,
+}: {
+  claim: Claim;
+  concernsDismissed: boolean;
+  onDismissConcerns: () => void;
+}) {
   const isFastTrack = claim.delegationState === "FAST_TRACK";
   const isSenior = claim.delegationState === "SENIOR_REVIEW";
 
