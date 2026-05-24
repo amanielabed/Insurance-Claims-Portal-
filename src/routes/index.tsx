@@ -2399,8 +2399,10 @@ function AssessmentReviewPanel({
             border: `1px solid ${badgeMeta.border}`,
           }}
         >
-          {badgeMeta.icon ? (
-            <span className="text-sm leading-none">{badgeMeta.icon}</span>
+          {badgeMeta.icon === "alert" ? (
+            <AlertTriangle size={14} />
+          ) : badgeMeta.icon === "clock" ? (
+            <Clock size={14} />
           ) : (
             <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: badgeMeta.dot }} />
           )}
