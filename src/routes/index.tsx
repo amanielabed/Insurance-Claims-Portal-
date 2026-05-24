@@ -2358,8 +2358,8 @@ function AssessmentReviewPanel({
   const tooltipText = isFastTrack
     ? "Routed to Fast-Track: high photo clarity, single part affected, estimated value within standard threshold, no flagged components."
     : isSenior
-      ? "Routed to Senior Review: estimated value ($8,400) exceeds standard authorization threshold, multiple flagged components, structural integrity cannot be confirmed from photo evidence alone."
-      : "Routed to Manual Review: low resolution detected on rear quarter panel, frame rail damage cannot be confirmed from available angles, labor estimate range too wide to auto-authorize.";
+      ? "Routed to Senior Authorization: estimated value ($8,400) exceeds standard authorization threshold, multiple flagged components, structural integrity cannot be confirmed from photo evidence alone."
+      : "Routed to Verification Recommended: low resolution detected on rear quarter panel, frame rail damage cannot be confirmed from available angles, labor estimate range too wide to auto-authorize.";
 
   const routingBasis = isFastTrack
     ? [
