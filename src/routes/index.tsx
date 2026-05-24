@@ -2269,12 +2269,16 @@ function ReviewEstimateStep({
   claimRef,
   onReset,
   onFinalize,
+  onReturnToQueue,
+  onClaimSummaryChange,
 }: {
   claimForm: ClaimForm | null;
   uploadedPhotos: UploadedPhoto[];
   claimRef: string;
   onReset: () => void;
   onFinalize?: (finalized: boolean) => void;
+  onReturnToQueue?: () => void;
+  onClaimSummaryChange?: (summary: ClaimSummary | null) => void;
 }) {
   const [selectedId, setSelectedId] = useState(claimData[0].id);
   const claim = useMemo(
@@ -2288,6 +2292,7 @@ function ReviewEstimateStep({
   const [concernsDismissed, setConcernsDismissed] = useState(false);
   const [authorization, setAuthorization] = useState<AuthorizationDetails | null>(null);
   const [seniorPending, setSeniorPending] = useState(false);
+  const [infoRequested, setInfoRequested] = useState(false);
   const [viewingSubmitted, setViewingSubmitted] = useState(false);
   const generateReportRef = useRef<((forAuthorization?: boolean) => Promise<void>) | null>(null);
 
@@ -2298,13 +2303,40 @@ function ReviewEstimateStep({
     setConcernsDismissed(false);
     setAuthorization(null);
     setSeniorPending(false);
+    setInfoRequested(false);
     setViewingSubmitted(false);
   }, [selectedId, claim.delegationState]);
 
   // Notify parent when claim reaches a final workflow state
   useEffect(() => {
-    onFinalize?.(authorization !== null || seniorPending);
-  }, [authorization, seniorPending, onFinalize]);
+    onFinalize?.(authorization !== null || seniorPending || infoRequested);
+  }, [authorization, seniorPending, infoRequested, onFinalize]);
+
+  // Lift a compact claim summary so the Claims Queue can describe this claim
+  useEffect(() => {
+    if (authorization) {
+      onClaimSummaryChange?.({
+        status: "authorized",
+        lastAction: "Estimate approved and repair authorization issued.",
+      });
+    } else if (seniorPending) {
+      onClaimSummaryChange?.({
+        status: "pending_senior",
+        lastAction: "Estimate submitted for senior authorization.",
+      });
+    } else if (infoRequested) {
+      onClaimSummaryChange?.({
+        status: "info_requested",
+        lastAction: "Information request sent to policyholder.",
+      });
+    } else {
+      onClaimSummaryChange?.({
+        status: "saved_draft",
+        lastAction: "Draft estimate in review.",
+      });
+    }
+  }, [authorization, seniorPending, infoRequested, onClaimSummaryChange]);
+
 
   const isFastTrack = claim.delegationState === "FAST_TRACK";
 
