@@ -3509,10 +3509,12 @@ function EstimateReviewPanel({
   };
 
 
-  const generateReport = async () => {
+  const generateReport = async (forAuthorization: boolean = isAuthorized) => {
     const reportAdjusted = syncDraftValues();
     const reportTotal = reportAdjusted.reduce((s, n) => s + (isFinite(n) ? n : 0), 0);
-    const fileName = `Claim_${claim.id}_Assessment.pdf`;
+    const fileName = forAuthorization
+      ? `Claim_${claim.id}_Authorization.pdf`
+      : `Claim_${claim.id}_Assessment.pdf`;
 
     const workflowState: "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION" =
       seniorReview || claim.delegationState === "SENIOR_AUTHORIZATION"
