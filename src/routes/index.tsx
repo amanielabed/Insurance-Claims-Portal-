@@ -2283,7 +2283,7 @@ function ReviewEstimateStep({
                 Reviewing Claim for: {claimForm?.fullName?.trim() || "—"}
               </div>
               <div className="text-[11px] truncate" style={{ color: COLORS.muted }}>
-                Policy: {claimForm?.policyNumber?.trim() || "—"}
+                Claim #{claimRef} · Policy: {claimForm?.policyNumber?.trim() || "—"}
               </div>
             </div>
           </div>
