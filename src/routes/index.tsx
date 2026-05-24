@@ -3582,6 +3582,64 @@ function EstimateReviewPanel({
         "#6B7280",
       );
 
+      // ===== SECTION 3b — PAYMENT SUMMARY =====
+      sectionLabel("Payment Summary");
+      {
+        const cf2 = claimForm;
+        const cv2 = cf2?.coverage;
+        const ft2 = cf2?.fault;
+        const dedStr2 = cf2?.deductible?.trim() ?? "";
+        const dedNum2 = parseFloat(dedStr2.replace(/[^0-9.]/g, ""));
+        const hasDeductible2 = cv2 === "full" && ft2 === "policyholder";
+        const deductibleAmount2 = hasDeductible2 && isFinite(dedNum2) && dedNum2 > 0 ? dedNum2 : 1;
+        const coveragePayout2 = hasDeductible2 ? Math.max(0, reportTotal - deductibleAmount2) : reportTotal;
+        const isFullyCovered2 = cv2 === "full" && (ft2 === "other" || (ft2 === "policyholder" && (!dedStr2 || dedNum2 <= 0)));
+        const isThirdParty2 = cv2 === "third_party";
+
+        const payRows: [string, string][] = [
+          ["Repair Estimate Total", fmtCurrency(reportTotal)],
+        ];
+        if (isThirdParty2) {
+          payRows.push(["Policy Deductible", "N/A — third-party liability"]);
+        } else if (isFullyCovered2) {
+          payRows.push(["Policy Deductible", "$0"]);
+          payRows.push(["Coverage Status", "Fully Covered"]);
+        } else if (hasDeductible2) {
+          payRows.push(["Policy Deductible", `−${fmtCurrency(deductibleAmount2)}`]);
+          payRows.push(["Estimated Insurance Coverage", fmtCurrency(coveragePayout2)]);
+        } else {
+          payRows.push(["Policy Deductible", "Pending liability determination"]);
+        }
+
+        payRows.forEach(([label, val]) => {
+          need(24);
+          setText(11, "#6B7280");
+          pdf.text(label, labelX, y + 14);
+          setText(13, "#111827", true);
+          pdf.text(val, valX, y + 14);
+          y += 22;
+          pdf.setDrawColor("#F3F4F6");
+          pdf.setLineWidth(0.5);
+          pdf.line(M, y, pageW - M, y);
+        });
+
+        const helperText = isThirdParty2
+          ? "Third-party liability claim. The other party's insurance handles vehicle repairs. No deductible applies."
+          : isFullyCovered2
+            ? "No policyholder contribution required for this repair."
+            : hasDeductible2
+              ? "Your policy includes a deductible, which is the portion of the repair cost paid by the policyholder before insurance coverage applies."
+              : "Deductible amount will be determined once fault liability is finalized.";
+        const helperLines = pdf.splitTextToSize(helperText, W - 24) as string[];
+        const helperH = helperLines.length * 13 + 12;
+        need(helperH + 4);
+        pdf.setFillColor("#FAFAFB");
+        pdf.rect(M, y, W, helperH, "F");
+        setText(10, "#6B7280", false, true);
+        helperLines.forEach((ln, idx) => pdf.text(ln, M + 12, y + 14 + idx * 13));
+        y += helperH + 4;
+      }
+
       // ===== SECTION 4 — ESTIMATE SOURCES =====
       sectionLabel("Estimate Sources");
       const srcRows: { key: SourceKey; desc: string }[] = [
