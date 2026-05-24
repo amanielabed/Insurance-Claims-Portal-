@@ -57,10 +57,12 @@ interface ScenarioMeta {
   description: string;
   subtext?: string;
   state: "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION";
-  coverage: "full" | "third_party";
-  fault: "policyholder" | "other" | "unclear" | "single_vehicle";
+  coverage: "full";
+  fault: "policyholder" | "other";
   coverageLabel: string;
   faultLabel: string;
+  deductibleLabel: string;
+  deductibleValue: string;
   estimateRange: string;
 }
 
@@ -69,37 +71,43 @@ const SCENARIOS: ScenarioMeta[] = [
     id: "2026-001",
     label: "Fast-Track Approval (Demo)",
     description:
-      "Demonstrates fast-track routing — clear photo evidence, low repair complexity, and streamlined authorization workflow.",
+      "Full Coverage — minor cosmetic damage, direct agent approval.",
     state: "FAST_TRACK",
     coverage: "full",
-    fault: "policyholder",
-    coverageLabel: "Full Coverage",
-    faultLabel: "Policyholder at fault",
-    estimateRange: "~$187",
+    fault: "other",
+    coverageLabel: "Full Coverage Policy",
+    faultLabel: "Other party at fault",
+    deductibleLabel: "N/A — liability handled by at-fault party",
+    deductibleValue: "",
+    estimateRange: "$329.50",
   },
   {
     id: "2026-002",
     label: "Verification Required (Demo)",
     description:
-      "Demonstrates verification review routing — uncertain damage scope requiring additional verification before authorization.",
+      "Full Coverage — moderate collision damage, additional review recommended.",
     state: "VERIFICATION_RECOMMENDED",
     coverage: "full",
-    fault: "unclear",
-    coverageLabel: "Full Coverage",
-    faultLabel: "Fault unclear",
-    estimateRange: "$1,240–$2,100",
+    fault: "policyholder",
+    coverageLabel: "Full Coverage Policy",
+    faultLabel: "Policyholder at fault",
+    deductibleLabel: "$500 (retrieved from policy record)",
+    deductibleValue: "500",
+    estimateRange: "$1,240",
   },
   {
     id: "2026-003",
     label: "Senior Authorization Required (Demo)",
     description:
-      "Demonstrates senior authorization routing — high-value structural claim exceeding standard authorization thresholds.",
+      "Full Coverage — major structural collision, senior sign-off required.",
     subtext: "Authorization pending senior approval.",
     state: "SENIOR_AUTHORIZATION",
-    coverage: "third_party",
+    coverage: "full",
     fault: "policyholder",
-    coverageLabel: "Third-Party Coverage",
+    coverageLabel: "Full Coverage Policy",
     faultLabel: "Policyholder at fault",
+    deductibleLabel: "$500 (retrieved from policy record)",
+    deductibleValue: "500",
     estimateRange: "$8,400+",
   },
 ];
