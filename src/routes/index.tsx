@@ -5739,12 +5739,31 @@ function EstimateReviewPanel({
             >
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Request Information</DialogTitle>
+                  <DialogTitle>Save Progress</DialogTitle>
                   <DialogDescription>
-                    Select what to request from the policyholder
+                    Current estimate progress will be saved automatically.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col gap-2.5 py-2">
+                  <div
+                    className="flex items-center gap-3 pt-1 pb-1"
+                    aria-hidden="true"
+                  >
+                    <div
+                      className="h-px flex-1"
+                      style={{ backgroundColor: COLORS.border }}
+                    />
+                    <span
+                      className="text-xs font-medium uppercase tracking-wide"
+                      style={{ color: COLORS.muted }}
+                    >
+                      Request additional information from policyholder (optional)
+                    </span>
+                    <div
+                      className="h-px flex-1"
+                      style={{ backgroundColor: COLORS.border }}
+                    />
+                  </div>
                   {([
                     ["police_report", "Police report"],
                     ["additional_photos", "Additional damage photos"],
@@ -5806,23 +5825,23 @@ function EstimateReviewPanel({
                   </button>
                   <button
                     type="button"
-                    disabled={!anyRequestItemSelected}
                     onClick={() => {
+                      const hasRequest = anyRequestItemSelected;
                       setRequestInfoOpen(false);
                       resetRequestInfo();
-                      toast.success("Information request sent. Claim saved pending response.");
-                      onInfoRequest?.();
+                      if (hasRequest) {
+                        toast.success("Progress saved. Information request sent to policyholder.");
+                      } else {
+                        toast.success("Estimate progress saved.");
+                      }
                     }}
                     className="rounded-md px-4 py-2 text-sm font-semibold text-white"
-                    style={{
-                      backgroundColor: COLORS.blue,
-                      opacity: anyRequestItemSelected ? 1 : 0.55,
-                      cursor: anyRequestItemSelected ? "pointer" : "not-allowed",
-                    }}
+                    style={{ backgroundColor: COLORS.blue }}
                   >
-                    Send Request
+                    {anyRequestItemSelected ? "Save & Send Request" : "Save Progress"}
                   </button>
                 </DialogFooter>
+
               </DialogContent>
             </Dialog>
 
