@@ -2548,7 +2548,7 @@ function ResolutionActions({
         onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
       >
-        Continue Reviewing Claim Details
+        Continue Reviewing
       </button>
       <button
         type="button"
