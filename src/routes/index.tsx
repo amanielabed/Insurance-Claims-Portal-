@@ -4088,34 +4088,63 @@ function EstimateReviewPanel({
         </div>
       )}
 
-      {/* Documents */}
+      {/* Documentation Status */}
       {(() => {
         const pr = claimForm?.policeReport ?? "";
-        const label =
-          pr === "uploaded" ? "Uploaded" :
-          pr === "pending" ? "Pending" :
-          pr === "not_available" ? "Not Available" :
-          "Not Provided";
-        const tone =
+        const policePending = pr !== "uploaded";
+        const photosNeeded = claim.delegationState === "MANUAL_REVIEW";
+        const seniorNeeded = seniorReview;
+        const items: { label: string; status: string; tone: "ok" | "amber" | "red"; note?: string }[] = [];
+        items.push(
           pr === "uploaded"
+            ? { label: "Police Report", status: "On file", tone: "ok" }
+            : pr === "pending"
+              ? { label: "Police Report", status: "Pending", tone: "amber", note: "Police report still required before final approval." }
+              : pr === "not_available"
+                ? { label: "Police Report", status: "Not available", tone: "amber", note: "Police report still required before final approval." }
+                : { label: "Police Report", status: "Not provided", tone: "amber", note: "Police report still required before final approval." },
+        );
+        if (photosNeeded) {
+          items.push({ label: "Photo Evidence", status: "Additional photos required", tone: "amber", note: "Additional photos are needed to verify damage scope." });
+        }
+        if (seniorNeeded) {
+          items.push({ label: "Authorization", status: "Awaiting authorization", tone: "red", note: "Senior authorization required before approval." });
+        }
+        const worst = items.some((i) => i.tone === "red") ? "red" : items.some((i) => i.tone === "amber") ? "amber" : "ok";
+        const palette =
+          worst === "ok"
             ? { bg: "#F0FDF4", border: "#BBF7D0", fg: "#15803D", dot: "#16A34A" }
-            : { bg: "#FFFBEB", border: "#FCD34D", fg: "#92400E", dot: "#D97706" };
+            : worst === "amber"
+              ? { bg: "#FFFBEB", border: "#FCD34D", fg: "#92400E", dot: "#D97706" }
+              : { bg: "#FEF2F2", border: "#FECACA", fg: "#991B1B", dot: "#DC2626" };
         return (
           <div
             className="shrink-0 rounded-md border px-3 py-2.5"
-            style={{ backgroundColor: tone.bg, borderColor: tone.border }}
+            style={{ backgroundColor: palette.bg, borderColor: palette.border }}
           >
-            <Label>Documents</Label>
-            <div className="mt-1.5 flex items-center gap-2 text-xs" style={{ color: COLORS.text }}>
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tone.dot }} />
-              <span className="font-semibold">Police Report:</span>
-              <span style={{ color: tone.fg }}>{label}</span>
-            </div>
-            {pr !== "uploaded" && (
-              <p className="text-[11px] mt-1.5 leading-snug" style={{ color: tone.fg }}>
-                Final authorization paused — manual review required before sign-off.
-              </p>
-            )}
+            <Label>Documentation</Label>
+            <ul className="mt-1.5 flex flex-col gap-1.5">
+              {items.map((it, idx) => {
+                const itDot =
+                  it.tone === "ok" ? "#16A34A" : it.tone === "amber" ? "#D97706" : "#DC2626";
+                const itFg =
+                  it.tone === "ok" ? "#15803D" : it.tone === "amber" ? "#92400E" : "#991B1B";
+                return (
+                  <li key={idx}>
+                    <div className="flex items-center gap-2 text-xs" style={{ color: COLORS.text }}>
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: itDot }} />
+                      <span className="font-semibold">{it.label}:</span>
+                      <span style={{ color: itFg }}>{it.status}</span>
+                    </div>
+                    {it.note && (
+                      <p className="text-[11px] mt-0.5 ml-3.5 leading-snug" style={{ color: itFg }}>
+                        {it.note}
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         );
       })()}
