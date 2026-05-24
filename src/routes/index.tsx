@@ -5013,6 +5013,16 @@ function EstimateReviewPanel({
         const primaryLabel =
           workflowMode === "SENIOR_AUTHORIZATION" ? "Submit Estimate" : "Approve Estimate";
 
+        const _cf = claimForm;
+        const _cv = _cf?.coverage;
+        const _ft = _cf?.fault;
+        const _dedStr = _cf?.deductible?.trim() ?? "";
+        const _dedNum = parseFloat(_dedStr.replace(/[^0-9.]/g, ""));
+        const approvalHasDeductible = _cv === "full" && _ft === "policyholder" && isFinite(_dedNum) && _dedNum > 0;
+        const approvalDeductibleAmount = approvalHasDeductible ? _dedNum : 0;
+        const approvalVehicle =
+          [_cf?.year, _cf?.make, _cf?.model].filter(Boolean).join(" ").trim() || "this vehicle";
+
         const handlePrimary = () => {
           if (hasPendingOverrides) {
             setSubmitError(
@@ -5025,6 +5035,17 @@ function EstimateReviewPanel({
             return;
           }
           setApprovalConfirmOpen(true);
+        };
+
+        const confirmApproval = () => {
+          setApprovalConfirmOpen(false);
+          onAuthorize({
+            amount: adjustedTotal,
+            deductibleAmount: approvalDeductibleAmount,
+            hasDeductible: approvalHasDeductible,
+            authorizedAt: Date.now(),
+          });
+          toast.success("Estimate approved and routed for repair processing.");
         };
 
         const handleEditToggle = () => {
