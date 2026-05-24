@@ -2115,12 +2115,17 @@ function ReviewEstimateStep({
   const [scenarioOpen, setScenarioOpen] = useState(false);
   const [highlightedPart, setHighlightedPart] = useState<number | null>(null);
   const [concernsDismissed, setConcernsDismissed] = useState(false);
+  const [authorization, setAuthorization] = useState<AuthorizationDetails | null>(null);
+  const [seniorPending, setSeniorPending] = useState(false);
+  const generateReportRef = useRef<((forAuthorization?: boolean) => Promise<void>) | null>(null);
 
   // Sync escalation when switching claims — auto-load senior authorization for SENIOR_AUTHORIZATION scenarios
   useEffect(() => {
     setSeniorReview(claim.delegationState === "SENIOR_AUTHORIZATION");
     setHighlightedPart(null);
     setConcernsDismissed(false);
+    setAuthorization(null);
+    setSeniorPending(false);
   }, [selectedId, claim.delegationState]);
 
   const isFastTrack = claim.delegationState === "FAST_TRACK";
