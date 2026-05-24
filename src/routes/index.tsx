@@ -3252,7 +3252,7 @@ function EstimateReviewPanel({
               claim.type
             : claim.type,
         ],
-        ["Date of loss", cf?.dateOfLoss || "—"],
+        ["Date of loss", formatLossDate(cf?.dateOfLoss)],
       ];
       infoRows.forEach(([label, val]) => {
         need(24);
