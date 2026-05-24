@@ -2654,18 +2654,27 @@ function EstimateSubmittedScreen({
   claimRef,
   claimForm,
   amount,
+  submittedAt,
   onDownload,
   onContinueReviewing,
 }: {
   claimRef: string;
   claimForm: ClaimForm | null;
   amount: number;
+  submittedAt: number;
   onDownload: () => void;
   onContinueReviewing: () => void;
 }) {
   const vehicle =
     [claimForm?.year, claimForm?.make, claimForm?.model].filter(Boolean).join(" ").trim() || "—";
   const policyholder = claimForm?.fullName?.trim() || "—";
+  const dateLabel = new Date(submittedAt).toLocaleString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -2695,7 +2704,10 @@ function EstimateSubmittedScreen({
 
         <div className="mt-6">
           <ResolutionRow label="Policyholder" value={policyholder} />
+          <ResolutionRow label="Policy" value={claimForm?.policyNumber?.trim() || "—"} mono />
           <ResolutionRow label="Submitted Amount" value={fmtCurrency(amount)} mono />
+          <ResolutionRow label="Deductible" value="N/A" mono />
+          <ResolutionRow label="Submitted" value={dateLabel} />
         </div>
 
         <p
