@@ -33,7 +33,7 @@ interface Part {
 interface Claim {
   id: string;
   type: string;
-  delegationState: "FAST_TRACK" | "MANUAL_REVIEW" | "SENIOR_REVIEW";
+  delegationState: "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION";
   reviewConfidence: "High" | "Moderate" | "Low";
   riskLevel: "LOW" | "MEDIUM" | "HIGH";
   estimatedCost: number;
@@ -55,7 +55,7 @@ interface ScenarioMeta {
   label: string;
   description: string;
   subtext?: string;
-  state: "FAST_TRACK" | "MANUAL_REVIEW" | "SENIOR_REVIEW";
+  state: "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION";
   coverage: "full" | "third_party";
   fault: "policyholder" | "other" | "unclear" | "single_vehicle";
   coverageLabel: string;
@@ -81,7 +81,7 @@ const SCENARIOS: ScenarioMeta[] = [
     label: "Verification Required (Demo)",
     description:
       "Demonstrates manual review routing — uncertain damage scope requiring additional verification before authorization.",
-    state: "MANUAL_REVIEW",
+    state: "VERIFICATION_RECOMMENDED",
     coverage: "full",
     fault: "unclear",
     coverageLabel: "Full Coverage",
@@ -90,11 +90,11 @@ const SCENARIOS: ScenarioMeta[] = [
   },
   {
     id: "2026-003",
-    label: "Senior Review Required (Demo)",
+    label: "Senior Authorization Required (Demo)",
     description:
       "Demonstrates senior review routing — high-value structural claim exceeding standard authorization thresholds.",
     subtext: "Authorization pending senior approval.",
-    state: "SENIOR_REVIEW",
+    state: "SENIOR_AUTHORIZATION",
     coverage: "third_party",
     fault: "policyholder",
     coverageLabel: "Third-Party Coverage",
@@ -105,8 +105,8 @@ const SCENARIOS: ScenarioMeta[] = [
 
 const STATE_DOT: Record<ScenarioMeta["state"], string> = {
   FAST_TRACK: "#22C55E",
-  MANUAL_REVIEW: "#F59E0B",
-  SENIOR_REVIEW: "#DC2626",
+  VERIFICATION_RECOMMENDED: "#F59E0B",
+  SENIOR_AUTHORIZATION: "#DC2626",
 };
 
 const claimData: Claim[] = [
@@ -138,7 +138,7 @@ const claimData: Claim[] = [
   {
     id: "2026-002",
     type: "Rear Collision",
-    delegationState: "MANUAL_REVIEW",
+    delegationState: "VERIFICATION_RECOMMENDED",
     reviewConfidence: "Moderate",
     riskLevel: "HIGH",
     estimatedCost: 1240,
@@ -182,7 +182,7 @@ const claimData: Claim[] = [
   {
     id: "2026-003",
     type: "Multi-Panel Structural",
-    delegationState: "SENIOR_REVIEW",
+    delegationState: "SENIOR_AUTHORIZATION",
     reviewConfidence: "Low",
     riskLevel: "HIGH",
     estimatedCost: 8400,
@@ -1950,35 +1950,35 @@ function ReviewEstimateStep({
     [selectedId],
   );
 
-  const [seniorReview, setSeniorReview] = useState(claim.delegationState === "SENIOR_REVIEW");
+  const [seniorReview, setSeniorReview] = useState(claim.delegationState === "SENIOR_AUTHORIZATION");
   const [scenarioOpen, setScenarioOpen] = useState(false);
   const [highlightedPart, setHighlightedPart] = useState<number | null>(null);
   const [concernsDismissed, setConcernsDismissed] = useState(false);
 
-  // Sync escalation when switching claims — auto-load senior review for SENIOR_REVIEW scenarios
+  // Sync escalation when switching claims — auto-load senior review for SENIOR_AUTHORIZATION scenarios
   useEffect(() => {
-    setSeniorReview(claim.delegationState === "SENIOR_REVIEW");
+    setSeniorReview(claim.delegationState === "SENIOR_AUTHORIZATION");
     setHighlightedPart(null);
     setConcernsDismissed(false);
   }, [selectedId, claim.delegationState]);
 
   const isFastTrack = claim.delegationState === "FAST_TRACK";
 
-  const workflowState: "FAST_TRACK" | "MANUAL_REVIEW" | "SENIOR_REVIEW" =
-    seniorReview || claim.delegationState === "SENIOR_REVIEW"
-      ? "SENIOR_REVIEW"
+  const workflowState: "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION" =
+    seniorReview || claim.delegationState === "SENIOR_AUTHORIZATION"
+      ? "SENIOR_AUTHORIZATION"
       : claim.delegationState;
 
   const workflowLabel = {
     FAST_TRACK: "Fast-Track",
-    MANUAL_REVIEW: "Manual Review",
-    SENIOR_REVIEW: "Senior Review",
+    VERIFICATION_RECOMMENDED: "Verification Recommended",
+    SENIOR_AUTHORIZATION: "Senior Authorization",
   }[workflowState];
 
   const workflowStyles = {
     FAST_TRACK: { bar: COLORS.green, bg: COLORS.greenBg, fg: COLORS.greenText },
-    MANUAL_REVIEW: { bar: COLORS.amber, bg: COLORS.amberBg, fg: COLORS.amberText },
-    SENIOR_REVIEW: { bar: "#DC2626", bg: "#FEF2F2", fg: "#991B1B" },
+    VERIFICATION_RECOMMENDED: { bar: COLORS.amber, bg: COLORS.amberBg, fg: COLORS.amberText },
+    SENIOR_AUTHORIZATION: { bar: "#DC2626", bg: "#FEF2F2", fg: "#991B1B" },
   }[workflowState];
 
   const currentScenario = SCENARIOS.find((s) => s.id === selectedId) ?? SCENARIOS[0];
@@ -2189,7 +2189,7 @@ function ReviewEstimateStep({
 
       {/* Escalation banner */}
       <div key={workflowState + "-banner"} className="animate-fade-in">
-        {workflowState === "SENIOR_REVIEW" ? (
+        {workflowState === "SENIOR_AUTHORIZATION" ? (
           <div
             className="flex items-start gap-3 px-6 py-3 border-b shrink-0"
             style={{
@@ -2218,7 +2218,7 @@ function ReviewEstimateStep({
             >
               <span className="text-base leading-5">⚠</span>
               <div>
-                <div className="text-sm font-semibold">Manual Review Required</div>
+                <div className="text-sm font-semibold">Verification Recommended</div>
                 <div className="text-xs mt-0.5" style={{ color: "#92400E" }}>
                   Possible structural damage detected. Please verify before approval.
                 </div>
@@ -2316,7 +2316,7 @@ function DemoGuide() {
             </li>
             <li className="flex gap-2">
               <span style={{ color: COLORS.muted }}>←</span>
-              <span>Select Senior Review Required to view how higher-risk claims require additional review and authorization oversight</span>
+              <span>Select Senior Authorization Required to view how higher-risk claims require additional review and authorization oversight</span>
             </li>
           </ul>
         </div>
@@ -2347,13 +2347,13 @@ function AssessmentReviewPanel({
   onDismissConcerns: () => void;
 }) {
   const isFastTrack = claim.delegationState === "FAST_TRACK";
-  const isSenior = claim.delegationState === "SENIOR_REVIEW";
+  const isSenior = claim.delegationState === "SENIOR_AUTHORIZATION";
 
   const badgeMeta = isFastTrack
     ? { bg: COLORS.greenBg, fg: COLORS.greenText, border: "#BBF7D0", dot: COLORS.green, label: "Fast-Track Eligible", icon: null as string | null }
     : isSenior
-      ? { bg: "#FEF2F2", fg: "#991B1B", border: "#FECACA", dot: "#DC2626", label: "Senior Review Required", icon: "●" }
-      : { bg: COLORS.amberBg, fg: COLORS.amberText, border: COLORS.amberBorder, dot: COLORS.amber, label: "Manual Review Required", icon: "⚠" };
+      ? { bg: "#FEF2F2", fg: "#991B1B", border: "#FECACA", dot: "#DC2626", label: "Senior Authorization Required", icon: "●" }
+      : { bg: COLORS.amberBg, fg: COLORS.amberText, border: COLORS.amberBorder, dot: COLORS.amber, label: "Verification Recommended", icon: "⚠" };
 
   const tooltipText = isFastTrack
     ? "Routed to Fast-Track: high photo clarity, single part affected, estimated value within standard threshold, no flagged components."
@@ -2518,7 +2518,7 @@ function AssessmentReviewPanel({
       </div>
 
 
-      {/* Recommended Reviewer — MANUAL_REVIEW only */}
+      {/* Recommended Reviewer — VERIFICATION_RECOMMENDED only */}
       {!isFastTrack && claim.recommendedReviewer && (
         <div
           className="rounded-md border p-4"
@@ -3072,19 +3072,19 @@ function EstimateReviewPanel({
     const reportTotal = reportAdjusted.reduce((s, n) => s + (isFinite(n) ? n : 0), 0);
     const fileName = `Claim_${claim.id}_Assessment.pdf`;
 
-    const workflowState: "FAST_TRACK" | "MANUAL_REVIEW" | "SENIOR_REVIEW" =
-      seniorReview || claim.delegationState === "SENIOR_REVIEW"
-        ? "SENIOR_REVIEW"
+    const workflowState: "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION" =
+      seniorReview || claim.delegationState === "SENIOR_AUTHORIZATION"
+        ? "SENIOR_AUTHORIZATION"
         : claim.delegationState;
     const stateLabel = {
       FAST_TRACK: "Fast-Track",
-      MANUAL_REVIEW: "Manual Review",
-      SENIOR_REVIEW: "Senior Review",
+      VERIFICATION_RECOMMENDED: "Verification Recommended",
+      SENIOR_AUTHORIZATION: "Senior Authorization",
     }[workflowState];
     const stateBadge = {
       FAST_TRACK: { bg: "#DCFCE7", fg: "#15803D" },
-      MANUAL_REVIEW: { bg: "#FEF3C7", fg: "#B45309" },
-      SENIOR_REVIEW: { bg: "#FEE2E2", fg: "#B91C1C" },
+      VERIFICATION_RECOMMENDED: { bg: "#FEF3C7", fg: "#B45309" },
+      SENIOR_AUTHORIZATION: { bg: "#FEE2E2", fg: "#B91C1C" },
     }[workflowState];
 
     setIsGeneratingReport(true);
@@ -3238,7 +3238,7 @@ function EstimateReviewPanel({
       y += cardH + 12;
 
 
-      if (workflowState === "SENIOR_REVIEW") {
+      if (workflowState === "SENIOR_AUTHORIZATION") {
         const alertH = 52;
         need(alertH + 8);
         pdf.setFillColor("#FEF2F2");
@@ -3770,7 +3770,7 @@ function EstimateReviewPanel({
         authText = "Auto-authorized pending confirmation";
         authBg = "#DCFCE7";
         authFg = "#15803D";
-      } else if (workflowState === "SENIOR_REVIEW") {
+      } else if (workflowState === "SENIOR_AUTHORIZATION") {
         verifyText = "N/A — senior review claims bypass standard adjuster verification";
         authText = "Held — pending senior adjuster sign-off";
         authBg = "#FEF3C7";
@@ -4168,7 +4168,7 @@ function EstimateReviewPanel({
       {(() => {
         const pr = claimForm?.policeReport ?? "";
         const policePending = pr !== "uploaded";
-        const photosNeeded = claim.delegationState === "MANUAL_REVIEW";
+        const photosNeeded = claim.delegationState === "VERIFICATION_RECOMMENDED";
         const seniorNeeded = seniorReview;
         const items: { label: string; status: string; tone: "ok" | "amber" | "red"; note?: string }[] = [];
         items.push(
@@ -4372,7 +4372,7 @@ function EstimateReviewPanel({
         const otherPartyInvolved =
           fault === "other" || fault === "policyholder" || fault === "unclear";
         const policeMissing = (claimForm?.policeReport ?? "") !== "uploaded";
-        const photosFlagged = claim.delegationState === "MANUAL_REVIEW";
+        const photosFlagged = claim.delegationState === "VERIFICATION_RECOMMENDED";
         const verifyValue = claim.parts.reduce(
           (s, p, i) => (p.sources?.includes("verify") ? s + adjusted[i] : s),
           0,
