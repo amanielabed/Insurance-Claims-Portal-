@@ -2110,7 +2110,7 @@ function TextInput({
   );
 }
 
-const ADJUSTER_NAME = "Sarah Chen, Senior Claims Adjuster";
+const ADJUSTER_NAME = "Claims Agent";
 
 type AuthorizationDetails = {
   amount: number;
@@ -2283,14 +2283,6 @@ function ReviewEstimateStep({
         style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
       >
         <div className="flex items-center gap-4 min-w-0">
-          <button
-            onClick={onReset}
-            className="text-xs font-medium hover:underline underline-offset-2 shrink-0"
-            style={{ color: COLORS.muted }}
-          >
-            ← Start New Claim
-          </button>
-          <div className="h-6 w-px shrink-0" style={{ backgroundColor: COLORS.border }} />
           <div className="flex items-center gap-2 min-w-0">
             <span
               className="inline-block w-2 h-2 rounded-sm shrink-0"
@@ -2556,7 +2548,7 @@ function ResolutionActions({
         onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
       >
-        Continue Reviewing Claim Details
+        Continue Reviewing
       </button>
       <button
         type="button"
@@ -2609,7 +2601,7 @@ function ClaimAuthorizedScreen({
             Claim Authorized
           </h2>
           <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>
-            Claim #{claimRef} · {vehicle}
+            Repair authorization issued for Claim #{claimRef}
           </p>
           <div
             className="mt-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
@@ -2625,7 +2617,7 @@ function ClaimAuthorizedScreen({
 
         <div className="mt-6">
           <ResolutionRow label="Policyholder" value={policyholder} />
-          <ResolutionRow label="Policy" value={claimForm?.policyNumber?.trim() || "—"} mono />
+          <ResolutionRow label="Vehicle" value={vehicle} />
           <ResolutionRow label="Authorized Amount" value={fmtCurrency(authorization.amount)} mono />
           <ResolutionRow
             label="Deductible"
@@ -2636,6 +2628,7 @@ function ClaimAuthorizedScreen({
             }
             mono
           />
+          <ResolutionRow label="Repair Status" value="Authorized for Repair" />
           <ResolutionRow label="Authorization Date" value={dateLabel} />
           <ResolutionRow label="Authorized By" value={adjusterName} />
         </div>
