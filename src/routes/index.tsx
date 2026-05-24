@@ -3324,6 +3324,8 @@ function EstimateReviewPanel({
   onAuthorize,
   onSeniorSubmit,
   generateReportRef,
+  readOnly = false,
+  onOpenNewClaim,
 }: {
   claim: Claim;
   claimForm: ClaimForm | null;
@@ -3342,6 +3344,8 @@ function EstimateReviewPanel({
   onAuthorize: (details: AuthorizationDetails) => void;
   onSeniorSubmit: () => void;
   generateReportRef: React.MutableRefObject<((forAuthorization?: boolean) => Promise<void>) | null>;
+  readOnly?: boolean;
+  onOpenNewClaim?: () => void;
 }) {
   const [adjusted, setAdjusted] = useState<number[]>(() =>
     claim.parts.map((p) => p.draftEstimate),
