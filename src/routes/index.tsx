@@ -1912,7 +1912,7 @@ function EligibilityCheck({
             <div>
               <div className="text-[10px] uppercase mb-1" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>Coverage Type</div>
               <div className="text-sm font-medium" style={{ color: COLORS.text }}>
-                {validated.coverage === "full" ? "Full Coverage (Comprehensive)" : "Third-Party Coverage"}
+                Full Coverage Policy
               </div>
             </div>
             <div>
