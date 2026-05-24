@@ -3591,7 +3591,7 @@ function EstimateReviewPanel({
         const dedStr2 = cf2?.deductible?.trim() ?? "";
         const dedNum2 = parseFloat(dedStr2.replace(/[^0-9.]/g, ""));
         const hasDeductible2 = cv2 === "full" && ft2 === "policyholder";
-        const deductibleAmount2 = hasDeductible2 && isFinite(dedNum2) && dedNum2 > 0 ? dedNum2 : 1;
+        const deductibleAmount2 = hasDeductible2 && isFinite(dedNum2) && dedNum2 > 0 ? dedNum2 : 0;
         const coveragePayout2 = hasDeductible2 ? Math.max(0, reportTotal - deductibleAmount2) : reportTotal;
         const isFullyCovered2 = cv2 === "full" && (ft2 === "other" || (ft2 === "policyholder" && (!dedStr2 || dedNum2 <= 0)));
         const isThirdParty2 = cv2 === "third_party";
