@@ -4386,7 +4386,9 @@ function EstimateReviewPanel({
         pdf.line(M, fy - 12, pageW - M, fy - 12);
         setText(11, "#9CA3AF");
         pdf.text(
-          "Draft assessment generated for review purposes. Not a final repair authorization.",
+          forAuthorization
+            ? `Authorized repair estimate. Authorization issued for Claim #${claimRef}.`
+            : "Draft assessment generated for review purposes. Not a final repair authorization.",
           M,
           fy,
         );
