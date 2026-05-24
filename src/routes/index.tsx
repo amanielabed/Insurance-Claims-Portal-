@@ -2702,6 +2702,7 @@ function ClaimAuthorizedScreen({
   onDownload,
   onReturnToQueue,
   onStartNewClaim,
+  onReviewAnotherScenario,
 }: {
   claimRef: string;
   claimForm: ClaimForm | null;
@@ -2710,6 +2711,7 @@ function ClaimAuthorizedScreen({
   onDownload: () => void;
   onReturnToQueue: () => void;
   onStartNewClaim: () => void;
+  onReviewAnotherScenario: () => void;
 }) {
   const vehicle =
     [claimForm?.year, claimForm?.make, claimForm?.model].filter(Boolean).join(" ").trim() || "—";
