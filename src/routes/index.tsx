@@ -2715,11 +2715,9 @@ const SOURCE_META: Record<
 
 function CostBreakdownPanel({
   part,
-  source,
   onClose,
 }: {
   part: Claim["parts"][number];
-  source: SourceKey;
   onClose: () => void;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -2728,7 +2726,7 @@ function CostBreakdownPanel({
     function handleMouseDown(e: MouseEvent) {
       const target = e.target as HTMLElement;
       if (panelRef.current?.contains(target)) return;
-      if (target.closest("[data-source-badge]")) return;
+      if (target.closest("[data-line-item-toggle]")) return;
       onClose();
     }
     document.addEventListener("mousedown", handleMouseDown);
@@ -2740,151 +2738,51 @@ function CostBreakdownPanel({
   const hasMitchell = part.sources.includes("mitchell");
   const hasVerify = part.sources.includes("verify");
 
-  const complexityConfig =
-    part.flagged && hasVerify
-      ? { factor: 1.2, label: "×1.2" }
-      : part.flagged
-        ? { factor: 1.15, label: "×1.15" }
-        : part.suggestedRepairScope === "Repair"
-          ? { factor: 0.95, label: "×0.95" }
-          : { factor: 1.0, label: "×1.0" };
-  const complexityFactor = complexityConfig.factor;
+  const scope = part.suggestedRepairScope.toLowerCase();
+  const isReplace = scope.includes("replace");
+  const isInspectOnly = scope === "inspect";
+  const isRepair = !isReplace && !isInspectOnly;
 
-  const laborSubtotal = part.laborHours * 95 * complexityFactor;
-  const partsSubtotal = part.partsPrice;
-  const total = laborSubtotal + partsSubtotal;
+  const labour = part.laborHours * 95;
+  const total = part.draftEstimate;
 
-  // Section highlight rules:
-  // - mitchell click → labor section
-  // - ccc / oem click → parts section
-  // - verify click → both (extrapolated)
-  const highlightLabor = source === "mitchell" || source === "verify";
-  const highlightParts = source === "ccc" || source === "oem" || source === "verify";
-
-  type Row = { label: string; value: string; emphasis?: boolean };
-
-  const laborSourceLabel = hasMitchell
-    ? "Mitchell RepairCenter"
-    : "Extrapolated from regional average";
-  const laborRows: Row[] = [
-    { label: "Base labor hours", value: `${part.laborHours} hrs` },
-    { label: "Regional rate", value: `$95/hr (${laborSourceLabel})` },
-    ...(complexityFactor !== 1.0
-      ? [{ label: "Complexity Adjustment", value: complexityConfig.label }]
-      : []),
-    { label: "Labor subtotal", value: fmtCurrency(laborSubtotal), emphasis: true },
+  type Row = { label: string; value: string };
+  const rows: Row[] = [
+    {
+      label: "Labour",
+      value: `${part.laborHours} hrs × $95/hr = ${fmtCurrency(labour)}`,
+    },
   ];
 
-  let partsRows: Row[];
-  let partsSourceLabel: string;
-  if (hasCCC) {
-    partsSourceLabel = "CCC Intelligent Solutions";
-    const oemRef = fmtCurrency(partsSubtotal * 1.82);
-    partsRows = [
-      { label: "OEM part price", value: oemRef },
-      { label: "Aftermarket option", value: fmtCurrency(partsSubtotal) },
-      { label: "Selected basis", value: "Aftermarket" },
-      { label: "Rationale", value: "Cosmetic damage — aftermarket meets repair standard" },
-      { label: "Parts subtotal", value: fmtCurrency(partsSubtotal), emphasis: true },
-    ];
-  } else if (hasOEM && !hasVerify) {
-    partsSourceLabel = "OEM Repair Guidelines";
-    partsRows = [
-      { label: "OEM part reference", value: `${part.name} (OEM)` },
-      { label: "Manufacturer guideline", value: "Structural Repair Manual (2024 rev.)" },
-      { label: "Selected basis", value: "OEM" },
-      { label: "Parts subtotal", value: fmtCurrency(partsSubtotal), emphasis: true },
-    ];
+  let accountedForParts = 0;
+  if (isRepair) {
+    const paint = Math.round(part.partsPrice * 0.65 * 100) / 100;
+    const materials = Math.round((part.partsPrice - paint) * 100) / 100;
+    if (paint > 0) rows.push({ label: "Paint/refinish", value: fmtCurrency(paint) });
+    if (materials > 0) rows.push({ label: "Materials", value: fmtCurrency(materials) });
+    accountedForParts = paint + materials;
+  } else if (isReplace) {
+    const partLabel = hasOEM && !hasCCC ? "Part cost (OEM)" : "Part cost (aftermarket)";
+    rows.push({ label: partLabel, value: fmtCurrency(part.partsPrice) });
+    accountedForParts = part.partsPrice;
   } else {
-    // OEM + verify (flagged / extrapolated)
-    partsSourceLabel = "OEM guideline + Internal Comparables (extrapolated)";
-    partsRows = [
-      { label: "OEM part reference", value: `${part.name} (OEM)` },
-      { label: "Comparable claims ref", value: "Internal database, similar vehicle class" },
-      { label: "Applied basis", value: "Extrapolated midpoint — verify before authorizing" },
-      { label: "Parts subtotal", value: fmtCurrency(partsSubtotal), emphasis: true },
-    ];
+    rows.push({ label: "Inspection fee", value: fmtCurrency(part.partsPrice) });
+    accountedForParts = part.partsPrice;
+  }
+
+  const regional = Math.round((total - labour - accountedForParts) * 100) / 100;
+  if (Math.abs(regional) >= 0.01) {
+    rows.push({
+      label: "Regional adjustment",
+      value: `${regional < 0 ? "−" : ""}${fmtCurrency(Math.abs(regional))}`,
+    });
   }
 
   const sourceReferences: string[] = [];
-  if (hasMitchell)
-    sourceReferences.push("Mitchell RepairCenter | Regional Dataset v2026.1 | Updated March 2026");
-  if (hasCCC)
-    sourceReferences.push("CCC Intelligent Solutions | Parts Pricing v2026.1 | Updated March 2026");
-  if (hasOEM)
-    sourceReferences.push("OEM Repair Guidelines | Toyota Structural Manual 2024 | Updated Jan 2026");
-  if (hasVerify)
-    sourceReferences.push("Internal Comparables Database | v2026.1 | Updated March 2026");
-
-  const sectionStyle = (highlight: boolean): React.CSSProperties => ({
-    borderColor: highlight ? "#1F2937" : COLORS.border,
-    backgroundColor: COLORS.surface,
-    boxShadow: highlight ? "0 0 0 1px #1F2937" : "none",
-    transition: "box-shadow 150ms ease, border-color 150ms ease",
-  });
-
-  const renderRows = (rows: Row[], emphasizeAll: boolean) => (
-    <table className="w-full text-xs">
-      <tbody>
-        {rows.map((r, idx) => (
-          <tr
-            key={idx}
-            style={{
-              borderBottom:
-                idx === rows.length - 1 ? "none" : `1px solid ${COLORS.border}`,
-            }}
-          >
-            <td
-              className="py-1.5 px-2.5 align-top"
-              style={{ color: COLORS.muted, width: "45%" }}
-            >
-              {r.label}
-            </td>
-            <td
-              className="py-1.5 px-2.5 align-top tabular-nums"
-              style={{
-                color: COLORS.text,
-                fontWeight: r.emphasis ? 700 : emphasizeAll ? 600 : 400,
-              }}
-            >
-              {r.value}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-
-  const sectionHeader = (
-    title: string,
-    sourceLabel: string,
-    highlight: boolean,
-  ) => (
-    <div className="flex items-baseline justify-between mb-1.5">
-      <div
-        className="text-[11px] font-semibold uppercase tracking-wider"
-        style={{ color: highlight ? "#111827" : COLORS.muted }}
-      >
-        {title}
-        {highlight && (
-          <span
-            className="ml-1.5 inline-block w-1 h-1 rounded-full align-middle"
-            style={{ backgroundColor: "#111827" }}
-            aria-label="Relevant to clicked source"
-          />
-        )}
-      </div>
-      <div
-        className="text-[10px]"
-        style={{
-          color: highlight ? "#111827" : COLORS.muted,
-          fontWeight: highlight ? 600 : 400,
-        }}
-      >
-        sourced from {sourceLabel}
-      </div>
-    </div>
-  );
+  if (hasMitchell) sourceReferences.push("Mitchell RepairCenter — labour benchmark");
+  if (hasCCC) sourceReferences.push("CCC Intelligent Solutions — parts pricing");
+  if (hasOEM) sourceReferences.push("OEM Repair Guidelines — repair procedure");
+  if (hasVerify) sourceReferences.push("Internal Comparables Database — extrapolated reference");
 
   return (
     <div
@@ -2906,68 +2804,51 @@ function CostBreakdownPanel({
         className="text-[11px] font-semibold uppercase tracking-wider mb-3"
         style={{ color: COLORS.text }}
       >
-        How This Estimate Was Calculated
+        Cost Breakdown
       </div>
 
-      {/* Labor section */}
-      <div className="mb-3">
-        {sectionHeader("Section 1 — Labor", laborSourceLabel, highlightLabor)}
-        <div
-          className="rounded border overflow-hidden"
-          style={sectionStyle(highlightLabor)}
-        >
-          {renderRows(laborRows, highlightLabor)}
-        </div>
-        {complexityFactor !== 1.0 && (
-          <p className="mt-1.5 text-[11px]" style={{ color: COLORS.muted }}>
-            {complexityFactor > 1.0
-              ? "Adjusted for increased repair complexity and additional inspection requirements."
-              : "Adjusted downward for standard repair accessibility and lower repair complexity."}
-          </p>
-        )}
-      </div>
-
-      {/* Parts section */}
-      <div className="mb-3">
-        {sectionHeader("Section 2 — Parts", partsSourceLabel, highlightParts)}
-        <div
-          className="rounded border overflow-hidden"
-          style={sectionStyle(highlightParts)}
-        >
-          {renderRows(partsRows, highlightParts)}
-        </div>
-      </div>
-
-      {/* Divider + Total */}
-      <div
-        className="flex items-center justify-between pt-2.5 mt-1 border-t"
-        style={{ borderColor: "#111827", borderTopWidth: 1.5 }}
-      >
-        <div
-          className="text-[12px] font-semibold uppercase tracking-wider"
-          style={{ color: COLORS.text }}
-        >
-          Total
-        </div>
-        <div
-          className="text-sm font-bold tabular-nums"
-          style={{ color: COLORS.text }}
-        >
-          {fmtCurrency(total)}
-        </div>
-      </div>
-
-      <div
-        className="text-[11px] font-semibold uppercase tracking-wider mt-3 mb-1"
-        style={{ color: COLORS.muted }}
-      >
-        Source References
-      </div>
-      <ul className="text-xs space-y-0.5" style={{ color: COLORS.text }}>
-        {sourceReferences.map((ref, idx) => (
-          <li key={idx}>• {ref}</li>
+      <div className="space-y-1 text-sm" style={{ color: COLORS.text }}>
+        {rows.map((r, idx) => (
+          <div key={idx} className="flex items-baseline justify-between">
+            <span style={{ color: COLORS.muted }}>{r.label}:</span>
+            <span className="tabular-nums">{r.value}</span>
+          </div>
         ))}
-      </ul>
+      </div>
+
+      <div
+        className="flex items-baseline justify-between pt-2 mt-2 border-t"
+        style={{ borderColor: "#111827", borderTopWidth: 1 }}
+      >
+        <span className="text-sm font-semibold" style={{ color: COLORS.text }}>
+          Final line total
+        </span>
+        <span className="text-sm font-bold tabular-nums" style={{ color: COLORS.text }}>
+          {fmtCurrency(total)}
+        </span>
+      </div>
+
+      {isInspectOnly && (
+        <p className="mt-2 text-[11px] italic" style={{ color: COLORS.muted }}>
+          Estimate subject to physical inspection findings
+        </p>
+      )}
+
+      {sourceReferences.length > 0 && (
+        <div className="mt-3 pt-2 border-t" style={{ borderColor: COLORS.border }}>
+          <div
+            className="text-[11px] font-semibold uppercase tracking-wider mb-1"
+            style={{ color: COLORS.muted }}
+          >
+            Source References
+          </div>
+          <ul className="space-y-0.5" style={{ color: COLORS.muted, fontSize: "11px" }}>
+            {sourceReferences.map((ref, idx) => (
+              <li key={idx}>• {ref}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
@@ -3002,11 +2883,9 @@ function EstimateReviewPanel({
     claim.parts.map((p) => p.draftEstimate.toFixed(2)),
   );
   const [log, setLog] = useState<LogEntry[]>([]);
-  const [expanded, setExpanded] = useState<{ row: number; source: SourceKey } | null>(null);
-  const toggleSource = (row: number, source: SourceKey) =>
-    setExpanded((prev) =>
-      prev && prev.row === row && prev.source === source ? null : { row, source },
-    );
+  const [expanded, setExpanded] = useState<number | null>(null);
+  const toggleExpanded = (row: number) =>
+    setExpanded((prev) => (prev === row ? null : row));
   const [checks, setChecks] = useState<[boolean, boolean, boolean]>([false, false, false]);
   const allChecked = checks.every(Boolean);
   const toggle = (i: number) =>
@@ -3919,13 +3798,6 @@ function EstimateReviewPanel({
               >
                 Draft
               </th>
-              <th
-                className="text-left font-semibold uppercase tracking-wider text-[10px] pb-2 px-2"
-                style={{ color: COLORS.muted }}
-                title="Click any source badge to see the full calculation breakdown for that line item."
-              >
-                Cost Basis <span aria-hidden="true">ⓘ</span>
-              </th>
 
               <th
                 className="text-right font-semibold uppercase tracking-wider text-[10px] pb-2 px-2"
@@ -3955,7 +3827,7 @@ function EstimateReviewPanel({
                     ? COLORS.amberText
                     : COLORS.greenText;
               const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
-              const isExpanded = expanded?.row === i;
+              const isExpanded = expanded === i;
               const isHighlighted = highlightedPart === i;
               const hasOverlay = (OVERLAYS[claim.id] ?? []).some((o) => o.partIndex === i);
               const override = overrides[i];
@@ -3983,27 +3855,51 @@ function EstimateReviewPanel({
                   }}
                 >
                   <td className="py-2.5 pr-2 align-top">
-                    <div className="font-medium" style={{ color: COLORS.text }}>
-                      {part.name}
-                      {hasOverlay && (
-                        <span
-                          className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full align-middle"
-                          style={{ backgroundColor: "#2563EB" }}
-                          aria-label="Linked to image overlay"
-                        />
-                      )}
-                    </div>
-                    {part.flagged && (
-                      <div
-                        className="text-[11px] italic mt-0.5 leading-snug"
-                        style={{ color: "#B45309" }}
+                    <button
+                      type="button"
+                      data-line-item-toggle
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExpanded(i);
+                      }}
+                      className="flex items-start gap-1.5 text-left hover:opacity-80 transition-opacity"
+                      aria-expanded={isExpanded}
+                      aria-label={`${isExpanded ? "Hide" : "Show"} cost breakdown for ${part.name}`}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="inline-block text-[10px] mt-1 transition-transform"
+                        style={{
+                          color: COLORS.muted,
+                          transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                        }}
                       >
-                        ⚠ Estimate extrapolated — no direct database match for this damage type on this vehicle. Verify scope before authorizing.
-                      </div>
-                    )}
-                    <div className="text-xs mt-0.5" style={{ color: COLORS.muted }}>
-                      {part.suggestedRepairScope} · {part.laborHours} hrs
-                    </div>
+                        ▶
+                      </span>
+                      <span>
+                        <span className="font-medium" style={{ color: COLORS.text }}>
+                          {part.name}
+                          {hasOverlay && (
+                            <span
+                              className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full align-middle"
+                              style={{ backgroundColor: "#2563EB" }}
+                              aria-label="Linked to image overlay"
+                            />
+                          )}
+                        </span>
+                        {part.flagged && (
+                          <div
+                            className="text-[11px] italic mt-0.5 leading-snug"
+                            style={{ color: "#B45309" }}
+                          >
+                            ⚠ Estimate extrapolated — no direct database match for this damage type on this vehicle. Verify scope before authorizing.
+                          </div>
+                        )}
+                        <div className="text-xs mt-0.5" style={{ color: COLORS.muted }}>
+                          {part.suggestedRepairScope} · {part.laborHours} hrs
+                        </div>
+                      </span>
+                    </button>
                   </td>
 
                   <td
@@ -4011,31 +3907,6 @@ function EstimateReviewPanel({
                     style={{ color: COLORS.muted }}
                   >
                     {fmtCurrency(draft)}
-                  </td>
-                  <td className="py-2.5 px-2 align-top">
-                    <div className="flex flex-wrap gap-1">
-                      {part.sources.map((src) => {
-                        const meta = SOURCE_META[src];
-                        const active = expanded?.row === i && expanded.source === src;
-                        return (
-                          <button
-                            key={src}
-                            type="button"
-                            data-source-badge
-                            onClick={(e) => { e.stopPropagation(); toggleSource(i, src); }}
-                            className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border transition-colors cursor-pointer"
-                            style={{
-                              backgroundColor: meta.bg,
-                              color: meta.fg,
-                              borderColor: active ? meta.fg : meta.border,
-                            }}
-                          >
-                            {meta.short}
-                          </button>
-
-                        );
-                      })}
-                    </div>
                   </td>
                   <td className="py-2.5 px-2 text-right align-top">
                     <div className="flex items-center justify-end gap-1.5">
@@ -4090,7 +3961,7 @@ function EstimateReviewPanel({
                 </tr>
                 {pendingRationale && (
                   <tr style={{ borderBottom: `1px solid ${COLORS.border}`, backgroundColor: "#FEF3C7" }}>
-                    <td colSpan={5} className="px-3 pb-3 pt-1">
+                    <td colSpan={4} className="px-3 pb-3 pt-1">
                       <div
                         className="rounded-md border p-3"
                         style={{
@@ -4154,10 +4025,9 @@ function EstimateReviewPanel({
                 )}
                 {isExpanded && (
                   <tr style={{ borderBottom: `1px solid ${COLORS.border}` }}>
-                    <td colSpan={5} className="px-2 pb-3">
+                    <td colSpan={4} className="px-2 pb-3">
                       <CostBreakdownPanel
                         part={part}
-                        source={expanded.source}
                         onClose={() => setExpanded(null)}
                       />
                     </td>
