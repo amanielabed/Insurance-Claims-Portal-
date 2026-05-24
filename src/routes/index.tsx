@@ -3776,17 +3776,10 @@ function EstimateReviewPanel({
         authBg = "#FEF3C7";
         authFg = "#B45309";
       } else {
-        const completed = checks.filter(Boolean).length;
-        verifyText = `${completed} of 3 completed`;
-        if (completed === 3) {
-          authText = "Submitted for authorization";
-          authBg = "#DBEAFE";
-          authFg = "#1D4ED8";
-        } else {
-          authText = "Pending adjuster approval";
-          authBg = "#FEF3C7";
-          authFg = "#B45309";
-        }
+        verifyText = "Reviewed by adjuster";
+        authText = "Submitted for authorization";
+        authBg = "#DBEAFE";
+        authFg = "#1D4ED8";
       }
       const vRows: {
         label: string;
