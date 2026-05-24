@@ -563,9 +563,10 @@ function SubmissionConfirmationStep({
 }
 
 
-function StepIndicator({ current, submitted }: { current: number; submitted?: boolean }) {
-  const submissionDone = submitted || current > 2;
-  const reviewActive = submitted || current >= 3;
+function StepIndicator({ current }: { current: number }) {
+  const submissionActive = current <= SUBMISSION_STEPS;
+  const submissionDone = current > SUBMISSION_STEPS;
+  const reviewActive = current > SUBMISSION_STEPS;
   return (
     <div
       className="shrink-0 border-b px-6 py-3"
@@ -573,15 +574,24 @@ function StepIndicator({ current, submitted }: { current: number; submitted?: bo
     >
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-2 mb-1.5">
-          <div className="flex-1 flex items-center gap-2" style={{ flexBasis: "50%" }}>
+          <div className="flex items-center gap-2" style={{ flex: SUBMISSION_STEPS }}>
             <span
               className="text-[10px] font-semibold tracking-wider uppercase"
-              style={{ color: submissionDone ? COLORS.greenText : current <= 2 ? COLORS.text : COLORS.muted }}
+              style={{
+                color: submissionDone
+                  ? COLORS.greenText
+                  : submissionActive
+                    ? COLORS.text
+                    : COLORS.muted,
+              }}
             >
               Claim Submission
             </span>
           </div>
-          <div className="flex-1 flex items-center gap-2" style={{ flexBasis: "50%" }}>
+          <div
+            className="flex items-center gap-2"
+            style={{ flex: STEPS.length - SUBMISSION_STEPS }}
+          >
             <span
               className="text-[10px] font-semibold tracking-wider uppercase"
               style={{ color: reviewActive ? COLORS.text : COLORS.muted }}
@@ -593,8 +603,8 @@ function StepIndicator({ current, submitted }: { current: number; submitted?: bo
         <ol className="flex items-center gap-2">
           {STEPS.map((label, i) => {
             const n = i + 1;
-            const active = n === current && !submitted;
-            const done = n < current || (submitted && n <= 2);
+            const active = n === current;
+            const done = n < current;
             const fg = active ? COLORS.blue : done ? COLORS.greenText : COLORS.muted;
             const bg = active ? COLORS.blue : done ? COLORS.green : "#E5E7EB";
             const textColor = active || done ? "#FFFFFF" : COLORS.muted;
@@ -605,7 +615,7 @@ function StepIndicator({ current, submitted }: { current: number; submitted?: bo
                     className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-semibold shrink-0 transition-colors duration-300"
                     style={{ backgroundColor: bg, color: textColor }}
                   >
-                    {done ? "✓" : n}
+                    {done ? <Check size={12} strokeWidth={3} /> : n}
                   </span>
                   <span
                     className="text-xs font-semibold truncate transition-colors duration-300"
@@ -619,13 +629,13 @@ function StepIndicator({ current, submitted }: { current: number; submitted?: bo
                     className="flex-1 h-px"
                     style={{
                       backgroundColor:
-                        n === 2
+                        n === SUBMISSION_STEPS
                           ? submissionDone && reviewActive
                             ? COLORS.green
                             : "#E5E7EB"
                           : done
-                          ? COLORS.green
-                          : "#E5E7EB",
+                            ? COLORS.green
+                            : "#E5E7EB",
                     }}
                   />
                 )}
