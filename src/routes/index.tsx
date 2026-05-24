@@ -2283,14 +2283,6 @@ function ReviewEstimateStep({
         style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
       >
         <div className="flex items-center gap-4 min-w-0">
-          <button
-            onClick={onReset}
-            className="text-xs font-medium hover:underline underline-offset-2 shrink-0"
-            style={{ color: COLORS.muted }}
-          >
-            ← Start New Claim
-          </button>
-          <div className="h-6 w-px shrink-0" style={{ backgroundColor: COLORS.border }} />
           <div className="flex items-center gap-2 min-w-0">
             <span
               className="inline-block w-2 h-2 rounded-sm shrink-0"
