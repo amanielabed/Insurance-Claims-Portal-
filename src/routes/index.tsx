@@ -4227,6 +4227,7 @@ function EstimateReviewPanel({
           Optional. Add observations, verification details, repair rationale, or claim-specific notes.
         </p>
         <textarea
+          ref={notesRef}
           value={adjusterNotes}
           onChange={(e) => handleNotesChange(e.target.value)}
           maxLength={NOTES_LIMIT}
