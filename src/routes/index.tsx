@@ -364,11 +364,14 @@ const fmtCurrency = (n: number) =>
   `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const STEPS = [
-  "Initiate Claim",
+  "Submit Claim",
   "Upload Photos",
+  "Claim Submitted",
   "Draft Assessment",
-  "Review Estimate",
+  "Claims Agent Review",
+  "Final Resolution",
 ] as const;
+const SUBMISSION_STEPS = 3;
 
 export interface UploadedPhoto {
   slotId: string;
