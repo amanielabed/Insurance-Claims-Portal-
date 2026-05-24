@@ -2125,14 +2125,6 @@ function ReviewEstimateStep({
   claimRef,
   onReset,
   onFinalize,
-  onReturnToQueue,
-  onClaimSummaryChange,
-function ReviewEstimateStep({
-  claimForm,
-  uploadedPhotos,
-  claimRef,
-  onReset,
-  onFinalize,
 }: {
   claimForm: ClaimForm | null;
   uploadedPhotos: UploadedPhoto[];
