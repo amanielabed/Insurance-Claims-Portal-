@@ -2894,6 +2894,15 @@ function PendingSeniorAuthorizationScreen({
           <FileText size={14} />
           Download Estimate Report
         </button>
+        <button
+          type="button"
+          onClick={onReviewAnotherScenario}
+          className="rounded-md border px-4 py-2 text-sm font-medium"
+          style={{ borderColor: COLORS.border, color: COLORS.muted, backgroundColor: "white" }}
+        >
+          Review Another Scenario
+        </button>
+
       </div>
     </div>
   );
