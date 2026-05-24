@@ -4220,7 +4220,7 @@ function EstimateReviewPanel({
           if (Math.abs(netVarPct) > 20) {
             need(22);
             setText(11, "#B45309", true);
-            pdf.text("⚠  Significant adjustment", M, y + 12);
+            pdf.text("Significant adjustment — variance exceeds 20%", M, y + 12);
             y += 18;
           }
 
