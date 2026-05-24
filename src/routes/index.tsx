@@ -4321,6 +4321,61 @@ function EstimateReviewPanel({
         pdf.line(M, y, pageW - M, y);
       });
 
+      // ===== AUTHORIZATION RECORD (post-approval only) =====
+      if (forAuthorization && authorization) {
+        if (y + 200 > pageH - M - 30) {
+          pdf.addPage();
+          y = M;
+        }
+        sectionLabel("Authorization Record");
+        const authDate = new Date(authorization.authorizedAt).toLocaleString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        });
+        const aRows: { label: string; value: string; badge?: { bg: string; fg: string } }[] = [
+          {
+            label: "Status",
+            value: "Authorized",
+            badge: { bg: "#DCFCE7", fg: "#15803D" },
+          },
+          { label: "Authorized Amount", value: fmtCurrency(authorization.amount) },
+          {
+            label: "Deductible",
+            value: authorization.hasDeductible
+              ? fmtCurrency(authorization.deductibleAmount)
+              : "No deductible",
+          },
+          { label: "Authorization Date", value: authDate },
+          { label: "Authorized By", value: adjusterName },
+          { label: "Repair Status", value: "Authorized for Repair" },
+          {
+            label: "Next Step",
+            value: "Repair facility may begin authorized repairs.",
+          },
+        ];
+        aRows.forEach((r) => {
+          need(26);
+          setText(11, "#6B7280");
+          pdf.text(r.label, M, y + 14);
+          if (r.badge) {
+            drawBadge(r.value, M + 180, y + 12, r.badge.bg, r.badge.fg);
+          } else {
+            setText(13, "#111827");
+            const vLines = pdf.splitTextToSize(r.value, W - 180) as string[];
+            vLines.forEach((ln, idx) => pdf.text(ln, M + 180, y + 14 + idx * 14));
+            if (vLines.length > 1) y += (vLines.length - 1) * 14;
+          }
+          y += 22;
+          pdf.setDrawColor("#F3F4F6");
+          pdf.setLineWidth(0.5);
+          pdf.line(M, y, pageW - M, y);
+        });
+      }
+
+
       // ===== FOOTER on every page =====
       const totalPages = pdf.getNumberOfPages();
       for (let p = 1; p <= totalPages; p++) {
