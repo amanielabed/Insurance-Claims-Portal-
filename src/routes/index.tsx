@@ -545,46 +545,77 @@ function SubmissionConfirmationStep({
 }
 
 
-function StepIndicator({ current }: { current: number }) {
+function StepIndicator({ current, submitted }: { current: number; submitted?: boolean }) {
+  const submissionDone = submitted || current > 2;
+  const reviewActive = submitted || current >= 3;
   return (
     <div
       className="shrink-0 border-b px-6 py-3"
       style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
     >
-      <ol className="flex items-center gap-2 max-w-5xl mx-auto">
-        {STEPS.map((label, i) => {
-          const n = i + 1;
-          const active = n === current;
-          const done = n < current;
-          const fg = active ? COLORS.blue : done ? COLORS.greenText : COLORS.muted;
-          const bg = active ? COLORS.blue : done ? COLORS.green : "#E5E7EB";
-          const textColor = active || done ? "#FFFFFF" : COLORS.muted;
-          return (
-            <li key={label} className="flex items-center gap-2 flex-1">
-              <div className="flex items-center gap-2 min-w-0">
-                <span
-                  className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-semibold shrink-0 transition-colors duration-300"
-                  style={{ backgroundColor: bg, color: textColor }}
-                >
-                  {done ? "✓" : n}
-                </span>
-                <span
-                  className="text-xs font-semibold truncate transition-colors duration-300"
-                  style={{ color: fg }}
-                >
-                  {label}
-                </span>
-              </div>
-              {n < STEPS.length && (
-                <span
-                  className="flex-1 h-px"
-                  style={{ backgroundColor: done ? COLORS.green : "#E5E7EB" }}
-                />
-              )}
-            </li>
-          );
-        })}
-      </ol>
+      <div className="max-w-5xl mx-auto">
+        <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex-1 flex items-center gap-2" style={{ flexBasis: "50%" }}>
+            <span
+              className="text-[10px] font-semibold tracking-wider uppercase"
+              style={{ color: submissionDone ? COLORS.greenText : current <= 2 ? COLORS.text : COLORS.muted }}
+            >
+              Claim Submission
+            </span>
+          </div>
+          <div className="flex-1 flex items-center gap-2" style={{ flexBasis: "50%" }}>
+            <span
+              className="text-[10px] font-semibold tracking-wider uppercase"
+              style={{ color: reviewActive ? COLORS.text : COLORS.muted }}
+            >
+              Claims Review
+            </span>
+          </div>
+        </div>
+        <ol className="flex items-center gap-2">
+          {STEPS.map((label, i) => {
+            const n = i + 1;
+            const active = n === current && !submitted;
+            const done = n < current || (submitted && n <= 2);
+            const fg = active ? COLORS.blue : done ? COLORS.greenText : COLORS.muted;
+            const bg = active ? COLORS.blue : done ? COLORS.green : "#E5E7EB";
+            const textColor = active || done ? "#FFFFFF" : COLORS.muted;
+            return (
+              <li key={label} className="flex items-center gap-2 flex-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-semibold shrink-0 transition-colors duration-300"
+                    style={{ backgroundColor: bg, color: textColor }}
+                  >
+                    {done ? "✓" : n}
+                  </span>
+                  <span
+                    className="text-xs font-semibold truncate transition-colors duration-300"
+                    style={{ color: fg }}
+                  >
+                    {label}
+                  </span>
+                </div>
+                {n < STEPS.length && (
+                  <span
+                    className="flex-1 h-px"
+                    style={{
+                      backgroundColor:
+                        n === 2
+                          ? submissionDone && reviewActive
+                            ? COLORS.green
+                            : "#E5E7EB"
+                          : done
+                          ? COLORS.green
+                          : "#E5E7EB",
+                    }}
+                  />
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </div>
   );
 }
