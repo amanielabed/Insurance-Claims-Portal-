@@ -2126,11 +2126,13 @@ function ReviewEstimateStep({
   uploadedPhotos,
   claimRef,
   onReset,
+  onFinalize,
 }: {
   claimForm: ClaimForm | null;
   uploadedPhotos: UploadedPhoto[];
   claimRef: string;
   onReset: () => void;
+  onFinalize?: (finalized: boolean) => void;
 }) {
   const [selectedId, setSelectedId] = useState(claimData[0].id);
   const claim = useMemo(
