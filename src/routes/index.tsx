@@ -1107,7 +1107,7 @@ const demoForm = (): ClaimForm => {
   const lookup = lookupPolicy(policyNumber)!;
   return {
     policyNumber,
-    fullName: "Jordan M. Whitaker",
+    fullName: lookup.fullName,
     dateOfLoss: new Date().toISOString().slice(0, 10),
     contactPhone: "(415) 555-0142",
     incidentType: "Rear-end collision",
