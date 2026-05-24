@@ -2140,6 +2140,7 @@ function ReviewEstimateStep({
   const [concernsDismissed, setConcernsDismissed] = useState(false);
   const [authorization, setAuthorization] = useState<AuthorizationDetails | null>(null);
   const [seniorPending, setSeniorPending] = useState(false);
+  const [viewingSubmitted, setViewingSubmitted] = useState(false);
   const generateReportRef = useRef<((forAuthorization?: boolean) => Promise<void>) | null>(null);
 
   // Sync escalation when switching claims — auto-load senior authorization for SENIOR_AUTHORIZATION scenarios
@@ -2149,6 +2150,7 @@ function ReviewEstimateStep({
     setConcernsDismissed(false);
     setAuthorization(null);
     setSeniorPending(false);
+    setViewingSubmitted(false);
   }, [selectedId, claim.delegationState]);
 
   // Notify parent when claim reaches a final workflow state
