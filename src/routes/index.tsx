@@ -1715,6 +1715,12 @@ function EligibilityCheck({
               <div className="text-[10px] uppercase mb-1" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>Policy Number</div>
               <div className="text-sm font-medium" style={{ color: COLORS.text }}>{validated.policyNumber}</div>
             </div>
+            {fullName.trim() && (
+              <div>
+                <div className="text-[10px] uppercase mb-1" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>Policyholder</div>
+                <div className="text-sm font-medium" style={{ color: COLORS.text }}>{fullName}</div>
+              </div>
+            )}
             <div className="sm:col-span-2">
               <div className="text-[10px] uppercase mb-1" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>Vehicle</div>
               <div className="text-sm font-medium" style={{ color: COLORS.text }}>
