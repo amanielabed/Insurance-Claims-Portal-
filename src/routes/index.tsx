@@ -2894,6 +2894,8 @@ function EstimateReviewPanel({
   onTriggerSeniorReview,
   highlightedPart,
   onHighlight,
+  concernsDismissed,
+  hasConcerns,
 }: {
   claim: Claim;
   claimForm: ClaimForm | null;
@@ -2903,6 +2905,8 @@ function EstimateReviewPanel({
   onTriggerSeniorReview: () => void;
   highlightedPart: number | null;
   onHighlight: (partIndex: number) => void;
+  concernsDismissed: boolean;
+  hasConcerns: boolean;
 }) {
   const [adjusted, setAdjusted] = useState<number[]>(() =>
     claim.parts.map((p) => p.draftEstimate),
@@ -2914,14 +2918,6 @@ function EstimateReviewPanel({
   const [expanded, setExpanded] = useState<number | null>(null);
   const toggleExpanded = (row: number) =>
     setExpanded((prev) => (prev === row ? null : row));
-  const [checks, setChecks] = useState<[boolean, boolean, boolean]>([false, false, false]);
-  const allChecked = checks.every(Boolean);
-  const toggle = (i: number) =>
-    setChecks((prev) => {
-      const next = [...prev] as [boolean, boolean, boolean];
-      next[i] = !next[i];
-      return next;
-    });
 
   const NOTES_LIMIT = 500;
   const [adjusterNotes, setAdjusterNotes] = useState("");
@@ -2946,8 +2942,7 @@ function EstimateReviewPanel({
     }, 700);
   };
 
-  const [editMode, setEditMode] = useState(false);
-  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [seniorSubmitted, setSeniorSubmitted] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   // Rationale tracking for adjuster overrides
