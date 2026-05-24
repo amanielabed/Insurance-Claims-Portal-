@@ -3362,7 +3362,7 @@ function EstimateReviewPanel({
   onSeniorSubmit,
   generateReportRef,
   readOnly = false,
-  onOpenNewClaim,
+  
   onInfoRequest,
 }: {
   claim: Claim;
