@@ -4623,7 +4623,7 @@ function EstimateReviewPanel({
                     </span>{" "}
                     for{" "}
                     <span className="font-semibold" style={{ color: COLORS.text }}>
-                      {[claimForm?.vehicleYear, claimForm?.vehicleMake, claimForm?.vehicleModel]
+                      {[claimForm?.year, claimForm?.make, claimForm?.model]
                         .filter(Boolean)
                         .join(" ") || "this vehicle"}
                     </span>{" "}
