@@ -3568,6 +3568,7 @@ function EstimateReviewPanel({
   generateReportRef,
   readOnly = false,
   onOpenNewClaim,
+  onInfoRequest,
 }: {
   claim: Claim;
   claimForm: ClaimForm | null;
