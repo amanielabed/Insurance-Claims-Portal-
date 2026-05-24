@@ -2217,7 +2217,7 @@ function ReviewEstimateStep({
                 color: COLORS.amberText,
               }}
             >
-              <span className="text-base leading-5">⚠</span>
+              <AlertTriangle size={16} className="mt-0.5 shrink-0" />
               <div>
                 <div className="text-sm font-semibold">Verification Recommended</div>
                 <div className="text-xs mt-0.5" style={{ color: "#92400E" }}>
