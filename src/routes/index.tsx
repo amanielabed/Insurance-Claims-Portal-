@@ -444,6 +444,7 @@ function Index() {
           <ReviewEstimateStep
             claimForm={claimForm}
             uploadedPhotos={uploadedPhotos}
+            claimRef={claimRef || `CLM-${new Date().getFullYear()}-000000`}
             onReset={reset}
           />
         )}
