@@ -1039,6 +1039,7 @@ const INCIDENT_TYPES = [
 ] as const;
 
 type PolicyLookup = {
+  fullName: string;
   year: string;
   make: string;
   model: string;
@@ -1049,9 +1050,9 @@ type PolicyLookup = {
 function lookupPolicy(policyNumber: string): PolicyLookup | null {
   const p = policyNumber.trim().toUpperCase();
   if (p.startsWith("POL-2026"))
-    return { year: "2023", make: "Toyota", model: "Camry XSE", coverage: "full", deductible: "500" };
+    return { fullName: "Sarah Al-Mansouri", year: "2023", make: "Toyota", model: "Camry XSE", coverage: "full", deductible: "500" };
   if (p.startsWith("POL-2025"))
-    return { year: "2021", make: "Honda", model: "CR-V EX", coverage: "third_party", deductible: null };
+    return { fullName: "Omar Al-Kuwari", year: "2021", make: "Honda", model: "CR-V EX", coverage: "third_party", deductible: null };
   return null;
 }
 
