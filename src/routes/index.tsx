@@ -2601,7 +2601,7 @@ function ClaimAuthorizedScreen({
             Claim Authorized
           </h2>
           <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>
-            Claim #{claimRef} · {vehicle}
+            Repair authorization issued for Claim #{claimRef}
           </p>
           <div
             className="mt-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
@@ -2617,7 +2617,7 @@ function ClaimAuthorizedScreen({
 
         <div className="mt-6">
           <ResolutionRow label="Policyholder" value={policyholder} />
-          <ResolutionRow label="Policy" value={claimForm?.policyNumber?.trim() || "—"} mono />
+          <ResolutionRow label="Vehicle" value={vehicle} />
           <ResolutionRow label="Authorized Amount" value={fmtCurrency(authorization.amount)} mono />
           <ResolutionRow
             label="Deductible"
@@ -2628,6 +2628,7 @@ function ClaimAuthorizedScreen({
             }
             mono
           />
+          <ResolutionRow label="Repair Status" value="Authorized for Repair" />
           <ResolutionRow label="Authorization Date" value={dateLabel} />
           <ResolutionRow label="Authorized By" value={adjusterName} />
         </div>
