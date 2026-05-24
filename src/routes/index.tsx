@@ -2199,7 +2199,7 @@ function ReviewEstimateStep({
               color: "#991B1B",
             }}
           >
-            <span className="text-base leading-5">●</span>
+            <Clock size={16} className="mt-0.5 shrink-0" />
             <div>
               <div className="text-sm font-semibold">Senior Authorization Required</div>
               <div className="text-xs mt-0.5" style={{ color: "#B91C1C" }}>
