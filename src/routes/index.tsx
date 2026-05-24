@@ -5024,7 +5024,7 @@ function EstimateReviewPanel({
             setSeniorConfirmOpen(true);
             return;
           }
-          toast.success("Estimate approved and routed for repair processing.");
+          setApprovalConfirmOpen(true);
         };
 
         const handleEditToggle = () => {
