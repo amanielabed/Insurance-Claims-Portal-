@@ -444,6 +444,7 @@ function Index() {
           <ReviewEstimateStep
             claimForm={claimForm}
             uploadedPhotos={uploadedPhotos}
+            claimRef={claimRef || `CLM-${new Date().getFullYear()}-000000`}
             onReset={reset}
           />
         )}
@@ -2084,13 +2085,24 @@ function TextInput({
   );
 }
 
+const ADJUSTER_NAME = "Sarah Chen, Senior Claims Adjuster";
+
+type AuthorizationDetails = {
+  amount: number;
+  deductibleAmount: number;
+  hasDeductible: boolean;
+  authorizedAt: number;
+};
+
 function ReviewEstimateStep({
   claimForm,
   uploadedPhotos,
+  claimRef,
   onReset,
 }: {
   claimForm: ClaimForm | null;
   uploadedPhotos: UploadedPhoto[];
+  claimRef: string;
   onReset: () => void;
 }) {
   const [selectedId, setSelectedId] = useState(claimData[0].id);
@@ -2103,12 +2115,17 @@ function ReviewEstimateStep({
   const [scenarioOpen, setScenarioOpen] = useState(false);
   const [highlightedPart, setHighlightedPart] = useState<number | null>(null);
   const [concernsDismissed, setConcernsDismissed] = useState(false);
+  const [authorization, setAuthorization] = useState<AuthorizationDetails | null>(null);
+  const [seniorPending, setSeniorPending] = useState(false);
+  const generateReportRef = useRef<((forAuthorization?: boolean) => Promise<void>) | null>(null);
 
   // Sync escalation when switching claims — auto-load senior authorization for SENIOR_AUTHORIZATION scenarios
   useEffect(() => {
     setSeniorReview(claim.delegationState === "SENIOR_AUTHORIZATION");
     setHighlightedPart(null);
     setConcernsDismissed(false);
+    setAuthorization(null);
+    setSeniorPending(false);
   }, [selectedId, claim.delegationState]);
 
   const isFastTrack = claim.delegationState === "FAST_TRACK";
@@ -2377,9 +2394,43 @@ function ReviewEstimateStep({
         )}
       </div>
 
+      {(authorization || seniorPending) && (
+        <div className="flex-1 min-h-0 overflow-auto p-6 animate-fade-in">
+          {authorization ? (
+            <ClaimAuthorizedScreen
+              claimRef={claimRef}
+              claimForm={effectiveClaimForm}
+              authorization={authorization}
+              adjusterName={ADJUSTER_NAME}
+              onDownload={() => generateReportRef.current?.(true)}
+              onReturnToQueue={() => {
+                toast("Returning to claims queue…");
+                setTimeout(() => onReset(), 600);
+              }}
+              onStartNewClaim={onReset}
+            />
+          ) : (
+            <PendingSeniorAuthorizationScreen
+              claimRef={claimRef}
+              onReturnToQueue={() => {
+                toast("Returning to claims queue…");
+                setTimeout(() => onReset(), 600);
+              }}
+              onViewEstimate={() => setSeniorPending(false)}
+              onDownloadEstimate={() => generateReportRef.current?.(false)}
+            />
+          )}
+        </div>
+      )}
+
       <main
         key={claim.id}
         className="flex-1 min-h-0 grid grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(420px,1.35fr)] gap-4 p-4 animate-fade-in"
+        style={
+          authorization || seniorPending
+            ? { display: "none" }
+            : undefined
+        }
       >
         {/* Damage Photo */}
         <Panel title="Damage Photo">
@@ -2408,6 +2459,8 @@ function ReviewEstimateStep({
             claim={claim}
             claimForm={effectiveClaimForm}
             uploadedPhotos={uploadedPhotos}
+            claimRef={claimRef}
+            adjusterName={ADJUSTER_NAME}
             isFastTrack={isFastTrack}
             seniorReview={seniorReview}
             onTriggerSeniorReview={() => setSeniorReview(true)}
@@ -2417,11 +2470,208 @@ function ReviewEstimateStep({
             }
             concernsDismissed={concernsDismissed}
             hasConcerns={(claim.verificationConcerns?.length ?? 0) > 0}
+            authorization={authorization}
+            seniorPending={seniorPending}
+            onAuthorize={(details) => setAuthorization(details)}
+            onSeniorSubmit={() => setSeniorPending(true)}
+            generateReportRef={generateReportRef}
           />
         </Panel>
       </main>
 
       <DemoGuide />
+    </div>
+  );
+}
+
+function ClaimAuthorizedScreen({
+  claimRef,
+  claimForm,
+  authorization,
+  adjusterName,
+  onDownload,
+  onReturnToQueue,
+  onStartNewClaim,
+}: {
+  claimRef: string;
+  claimForm: ClaimForm | null;
+  authorization: AuthorizationDetails;
+  adjusterName: string;
+  onDownload: () => void;
+  onReturnToQueue: () => void;
+  onStartNewClaim: () => void;
+}) {
+  const vehicle =
+    [claimForm?.year, claimForm?.make, claimForm?.model].filter(Boolean).join(" ").trim() || "—";
+  const policyholder = claimForm?.fullName?.trim() || "—";
+  const dateLabel = new Date(authorization.authorizedAt).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const Row = ({ label, value, mono }: { label: string; value: string; mono?: boolean }) => (
+    <div
+      className="flex items-start justify-between gap-4 py-2.5 border-b"
+      style={{ borderColor: COLORS.border }}
+    >
+      <span className="text-sm" style={{ color: COLORS.muted }}>{label}</span>
+      <span
+        className={`text-sm font-medium text-right ${mono ? "tabular-nums" : ""}`}
+        style={{ color: COLORS.text }}
+      >
+        {value}
+      </span>
+    </div>
+  );
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div
+        className="rounded-lg border p-8"
+        style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
+      >
+        <div className="flex flex-col items-center text-center">
+          <CheckCircle size={48} strokeWidth={1.5} style={{ color: COLORS.green }} />
+          <h2 className="mt-4 text-xl font-semibold" style={{ color: COLORS.text }}>
+            Claim Authorized
+          </h2>
+          <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>
+            Repair authorization issued for Claim #{claimRef}
+          </p>
+          <div
+            className="mt-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
+            style={{ backgroundColor: COLORS.greenBg, color: COLORS.greenText }}
+          >
+            <span
+              className="inline-block w-1.5 h-1.5 rounded-full"
+              style={{ backgroundColor: COLORS.green }}
+            />
+            Authorized
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <Row label="Policyholder" value={policyholder} />
+          <Row label="Vehicle" value={vehicle} />
+          <Row label="Authorized Amount" value={fmtCurrency(authorization.amount)} mono />
+          <Row
+            label="Deductible"
+            value={
+              authorization.hasDeductible
+                ? fmtCurrency(authorization.deductibleAmount)
+                : "No deductible"
+            }
+            mono
+          />
+          <Row label="Repair Status" value="Authorized for Repair" />
+          <Row label="Authorization Date" value={dateLabel} />
+          <Row label="Authorized By" value={adjusterName} />
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={onDownload}
+          className="inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-semibold text-white"
+          style={{ backgroundColor: COLORS.blue }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
+        >
+          <FileText size={14} />
+          Download Authorization Report
+        </button>
+        <button
+          type="button"
+          onClick={onReturnToQueue}
+          className="rounded-md border px-4 py-2 text-sm font-medium"
+          style={{ borderColor: COLORS.blue, color: COLORS.blue, backgroundColor: "white" }}
+        >
+          Return to Claims Queue
+        </button>
+        <button
+          type="button"
+          onClick={onStartNewClaim}
+          className="rounded-md px-3 py-2 text-xs font-medium underline-offset-2 hover:underline"
+          style={{ color: COLORS.muted }}
+        >
+          Start New Claim (demo)
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PendingSeniorAuthorizationScreen({
+  claimRef,
+  onReturnToQueue,
+  onViewEstimate,
+  onDownloadEstimate,
+}: {
+  claimRef: string;
+  onReturnToQueue: () => void;
+  onViewEstimate: () => void;
+  onDownloadEstimate: () => void;
+}) {
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div
+        className="rounded-lg border p-8 text-center"
+        style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
+      >
+        <div className="flex justify-center">
+          <Clock size={48} strokeWidth={1.5} style={{ color: COLORS.amber }} />
+        </div>
+        <h2 className="mt-4 text-xl font-semibold" style={{ color: COLORS.text }}>
+          Pending Senior Authorization
+        </h2>
+        <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>
+          Claim #{claimRef} has been submitted for senior adjuster review.
+        </p>
+        <p className="mt-4 text-sm leading-relaxed" style={{ color: COLORS.muted }}>
+          The estimate has been submitted for final authorization review.
+        </p>
+        <div
+          className="mt-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
+          style={{ backgroundColor: COLORS.amberBg, color: COLORS.amberText }}
+        >
+          <span
+            className="inline-block w-1.5 h-1.5 rounded-full"
+            style={{ backgroundColor: COLORS.amber }}
+          />
+          Pending Senior Approval
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={onReturnToQueue}
+          className="rounded-md border px-4 py-2 text-sm font-semibold"
+          style={{ borderColor: COLORS.blue, color: COLORS.blue, backgroundColor: "white" }}
+        >
+          Return to Claims Queue
+        </button>
+        <button
+          type="button"
+          onClick={onViewEstimate}
+          className="rounded-md border px-4 py-2 text-sm font-medium"
+          style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: "white" }}
+        >
+          View Submitted Estimate
+        </button>
+        <button
+          type="button"
+          onClick={onDownloadEstimate}
+          className="inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium"
+          style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: "white", border: `1px solid ${COLORS.border}` }}
+        >
+          <FileText size={14} />
+          Download Estimate Report
+        </button>
+      </div>
     </div>
   );
 }
@@ -3043,6 +3293,8 @@ function EstimateReviewPanel({
   claim,
   claimForm,
   uploadedPhotos,
+  claimRef,
+  adjusterName,
   isFastTrack,
   seniorReview,
   onTriggerSeniorReview,
@@ -3050,10 +3302,17 @@ function EstimateReviewPanel({
   onHighlight,
   concernsDismissed,
   hasConcerns,
+  authorization,
+  seniorPending,
+  onAuthorize,
+  onSeniorSubmit,
+  generateReportRef,
 }: {
   claim: Claim;
   claimForm: ClaimForm | null;
   uploadedPhotos: UploadedPhoto[];
+  claimRef: string;
+  adjusterName: string;
   isFastTrack: boolean;
   seniorReview: boolean;
   onTriggerSeniorReview: () => void;
@@ -3061,6 +3320,11 @@ function EstimateReviewPanel({
   onHighlight: (partIndex: number) => void;
   concernsDismissed: boolean;
   hasConcerns: boolean;
+  authorization: AuthorizationDetails | null;
+  seniorPending: boolean;
+  onAuthorize: (details: AuthorizationDetails) => void;
+  onSeniorSubmit: () => void;
+  generateReportRef: React.MutableRefObject<((forAuthorization?: boolean) => Promise<void>) | null>;
 }) {
   const [adjusted, setAdjusted] = useState<number[]>(() =>
     claim.parts.map((p) => p.draftEstimate),
@@ -3096,10 +3360,12 @@ function EstimateReviewPanel({
     }, 700);
   };
 
-  const [seniorSubmitted, setSeniorSubmitted] = useState(false);
   const [seniorConfirmOpen, setSeniorConfirmOpen] = useState(false);
+  const [approvalConfirmOpen, setApprovalConfirmOpen] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const seniorSubmitted = seniorPending;
+  const isAuthorized = authorization !== null;
 
   // Request Information modal state
   const [requestInfoOpen, setRequestInfoOpen] = useState(false);
@@ -3243,10 +3509,12 @@ function EstimateReviewPanel({
   };
 
 
-  const generateReport = async () => {
+  const generateReport = async (forAuthorization: boolean = isAuthorized) => {
     const reportAdjusted = syncDraftValues();
     const reportTotal = reportAdjusted.reduce((s, n) => s + (isFinite(n) ? n : 0), 0);
-    const fileName = `Claim_${claim.id}_Assessment.pdf`;
+    const fileName = forAuthorization
+      ? `Claim_${claim.id}_Authorization.pdf`
+      : `Claim_${claim.id}_Assessment.pdf`;
 
     const workflowState: "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION" =
       seniorReview || claim.delegationState === "SENIOR_AUTHORIZATION"
@@ -4053,6 +4321,61 @@ function EstimateReviewPanel({
         pdf.line(M, y, pageW - M, y);
       });
 
+      // ===== AUTHORIZATION RECORD (post-approval only) =====
+      if (forAuthorization && authorization) {
+        if (y + 200 > pageH - M - 30) {
+          pdf.addPage();
+          y = M;
+        }
+        sectionLabel("Authorization Record");
+        const authDate = new Date(authorization.authorizedAt).toLocaleString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        });
+        const aRows: { label: string; value: string; badge?: { bg: string; fg: string } }[] = [
+          {
+            label: "Status",
+            value: "Authorized",
+            badge: { bg: "#DCFCE7", fg: "#15803D" },
+          },
+          { label: "Authorized Amount", value: fmtCurrency(authorization.amount) },
+          {
+            label: "Deductible",
+            value: authorization.hasDeductible
+              ? fmtCurrency(authorization.deductibleAmount)
+              : "No deductible",
+          },
+          { label: "Authorization Date", value: authDate },
+          { label: "Authorized By", value: adjusterName },
+          { label: "Repair Status", value: "Authorized for Repair" },
+          {
+            label: "Next Step",
+            value: "Repair facility may begin authorized repairs.",
+          },
+        ];
+        aRows.forEach((r) => {
+          need(26);
+          setText(11, "#6B7280");
+          pdf.text(r.label, M, y + 14);
+          if (r.badge) {
+            drawBadge(r.value, M + 180, y + 12, r.badge.bg, r.badge.fg);
+          } else {
+            setText(13, "#111827");
+            const vLines = pdf.splitTextToSize(r.value, W - 180) as string[];
+            vLines.forEach((ln, idx) => pdf.text(ln, M + 180, y + 14 + idx * 14));
+            if (vLines.length > 1) y += (vLines.length - 1) * 14;
+          }
+          y += 22;
+          pdf.setDrawColor("#F3F4F6");
+          pdf.setLineWidth(0.5);
+          pdf.line(M, y, pageW - M, y);
+        });
+      }
+
+
       // ===== FOOTER on every page =====
       const totalPages = pdf.getNumberOfPages();
       for (let p = 1; p <= totalPages; p++) {
@@ -4063,7 +4386,9 @@ function EstimateReviewPanel({
         pdf.line(M, fy - 12, pageW - M, fy - 12);
         setText(11, "#9CA3AF");
         pdf.text(
-          "Draft assessment generated for review purposes. Not a final repair authorization.",
+          forAuthorization
+            ? `Authorized repair estimate. Authorization issued for Claim #${claimRef}.`
+            : "Draft assessment generated for review purposes. Not a final repair authorization.",
           M,
           fy,
         );
@@ -4082,6 +4407,13 @@ function EstimateReviewPanel({
       setIsGeneratingReport(false);
     }
   };
+
+  // Keep parent ref updated with latest closure so post-cockpit screens can trigger PDF
+  useEffect(() => {
+    generateReportRef.current = generateReport;
+  });
+
+
 
   return (
     <div className="flex flex-col min-h-full gap-4">
@@ -4747,6 +5079,16 @@ function EstimateReviewPanel({
         const primaryLabel =
           workflowMode === "SENIOR_AUTHORIZATION" ? "Submit Estimate" : "Approve Estimate";
 
+        const _cf = claimForm;
+        const _cv = _cf?.coverage;
+        const _ft = _cf?.fault;
+        const _dedStr = _cf?.deductible?.trim() ?? "";
+        const _dedNum = parseFloat(_dedStr.replace(/[^0-9.]/g, ""));
+        const approvalHasDeductible = _cv === "full" && _ft === "policyholder" && isFinite(_dedNum) && _dedNum > 0;
+        const approvalDeductibleAmount = approvalHasDeductible ? _dedNum : 0;
+        const approvalVehicle =
+          [_cf?.year, _cf?.make, _cf?.model].filter(Boolean).join(" ").trim() || "this vehicle";
+
         const handlePrimary = () => {
           if (hasPendingOverrides) {
             setSubmitError(
@@ -4758,6 +5100,17 @@ function EstimateReviewPanel({
             setSeniorConfirmOpen(true);
             return;
           }
+          setApprovalConfirmOpen(true);
+        };
+
+        const confirmApproval = () => {
+          setApprovalConfirmOpen(false);
+          onAuthorize({
+            amount: adjustedTotal,
+            deductibleAmount: approvalDeductibleAmount,
+            hasDeductible: approvalHasDeductible,
+            authorizedAt: Date.now(),
+          });
           toast.success("Estimate approved and routed for repair processing.");
         };
 
@@ -4912,6 +5265,63 @@ function EstimateReviewPanel({
               </button>
             </div>
 
+            {/* Approval Confirmation Modal */}
+            <Dialog open={approvalConfirmOpen} onOpenChange={setApprovalConfirmOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Confirm Estimate Approval</DialogTitle>
+                  <DialogDescription>
+                    You are approving a repair estimate of{" "}
+                    <span className="font-semibold" style={{ color: COLORS.text }}>
+                      {fmtCurrency(adjustedTotal)}
+                    </span>{" "}
+                    for{" "}
+                    <span className="font-semibold" style={{ color: COLORS.text }}>
+                      {approvalVehicle}
+                    </span>
+                    . This will authorize repair processing for the claim.
+                  </DialogDescription>
+                </DialogHeader>
+                {approvalHasDeductible && (
+                  <div
+                    className="rounded-md border px-3 py-2 text-sm"
+                    style={{
+                      backgroundColor: "#F9FAFB",
+                      borderColor: COLORS.border,
+                      color: COLORS.text,
+                    }}
+                  >
+                    Policy deductible:{" "}
+                    <span className="font-semibold tabular-nums">
+                      {fmtCurrency(approvalDeductibleAmount)}
+                    </span>
+                  </div>
+                )}
+                <DialogFooter>
+                  <button
+                    type="button"
+                    onClick={() => setApprovalConfirmOpen(false)}
+                    className="rounded-md border px-4 py-2 text-sm font-medium"
+                    style={{
+                      borderColor: COLORS.border,
+                      color: COLORS.text,
+                      backgroundColor: "white",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmApproval}
+                    className="rounded-md px-4 py-2 text-sm font-semibold text-white"
+                    style={{ backgroundColor: COLORS.blue }}
+                  >
+                    Confirm & Authorize
+                  </button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
             {/* Senior Authorization Confirmation Modal */}
             <Dialog open={seniorConfirmOpen} onOpenChange={setSeniorConfirmOpen}>
               <DialogContent>
@@ -4951,7 +5361,7 @@ function EstimateReviewPanel({
                     type="button"
                     onClick={() => {
                       setSeniorConfirmOpen(false);
-                      setSeniorSubmitted(true);
+                      onSeniorSubmit();
                       toast.success("Estimate submitted for senior adjuster authorization.");
                     }}
                     className="rounded-md px-4 py-2 text-sm font-semibold text-white"
