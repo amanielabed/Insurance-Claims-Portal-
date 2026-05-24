@@ -4722,19 +4722,19 @@ function EstimateReviewPanel({
         const ft = cf?.fault;
         const dedStr = cf?.deductible?.trim() ?? "";
         const dedNum = parseFloat(dedStr.replace(/[^0-9.]/g, ""));
-        const hasDeductible = cv === "full" && ft === "policyholder";
+        const hasDeductible = ft === "policyholder";
         const deductibleAmount = hasDeductible && isFinite(dedNum) && dedNum > 0 ? dedNum : 0;
         const coveragePayout = hasDeductible ? Math.max(0, adjustedTotal - deductibleAmount) : adjustedTotal;
-
-        const isFullyCovered = cv === "full" && (ft === "other" || (ft === "policyholder" && (!dedStr || dedNum <= 0)));
-        const isThirdParty = cv === "third_party";
+        const isOtherPartyAtFault = ft === "other";
+        const isFullyCovered = isOtherPartyAtFault || (ft === "policyholder" && (!dedStr || dedNum <= 0));
+        void cv;
 
         return (
           <div
             className="shrink-0 rounded-md border p-3"
             style={{
-              backgroundColor: isFullyCovered ? "#F0FDF4" : isThirdParty ? "#F8FAFC" : "#FFFBEB",
-              borderColor: isFullyCovered ? "#BBF7D0" : isThirdParty ? "#E5E7EB" : "#FDE68A",
+              backgroundColor: isFullyCovered ? "#F0FDF4" : "#FFFBEB",
+              borderColor: isFullyCovered ? "#BBF7D0" : "#FDE68A",
             }}
           >
             <div
@@ -4751,13 +4751,21 @@ function EstimateReviewPanel({
                 </span>
               </div>
 
-              {isThirdParty ? (
-                <div className="flex items-center justify-between text-sm">
-                  <span style={{ color: COLORS.text }}>Policy Deductible</span>
-                  <span className="tabular-nums font-medium" style={{ color: COLORS.muted }}>
-                    N/A
-                  </span>
-                </div>
+              {isOtherPartyAtFault ? (
+                <>
+                  <div className="flex items-center justify-between text-sm">
+                    <span style={{ color: COLORS.text }}>Policy Deductible</span>
+                    <span className="tabular-nums font-medium" style={{ color: COLORS.greenText }}>
+                      N/A
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span style={{ color: COLORS.text }}>Coverage Status</span>
+                    <span className="font-medium" style={{ color: COLORS.greenText }}>
+                      Fully Covered
+                    </span>
+                  </div>
+                </>
               ) : isFullyCovered ? (
                 <>
                   <div className="flex items-center justify-between text-sm">
@@ -4801,13 +4809,13 @@ function EstimateReviewPanel({
             </div>
 
             <p className="text-[11px] mt-2.5 leading-snug" style={{ color: COLORS.muted }}>
-              {isThirdParty
-                ? "Third-party liability claim. The other party's insurance handles vehicle repairs. No deductible applies."
+              {isOtherPartyAtFault
+                ? "No policyholder contribution required. The at-fault party's coverage applies."
                 : isFullyCovered
                   ? "No policyholder contribution required for this repair."
                   : hasDeductible
                     ? "Your policy includes a deductible, which is the portion of the repair cost paid by the policyholder before insurance coverage applies."
-                    : "Deductible amount will be determined once fault liability is finalized."}
+                    : "Deductible amount will be determined during final review."}
             </p>
           </div>
         );
