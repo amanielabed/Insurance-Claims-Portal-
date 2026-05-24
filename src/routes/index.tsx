@@ -1551,8 +1551,7 @@ function InitiateClaimStep({
               </div>
             )}
             <p className="text-[11px] mt-2" style={{ color: COLORS.muted }}>
-              This form is for own-vehicle damage claims only. For third-party or liability claims,
-              contact your claims supervisor.
+              This form is for own-vehicle damage claims only.
             </p>
           </Field>
           <Field
