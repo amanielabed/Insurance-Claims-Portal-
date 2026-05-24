@@ -3855,27 +3855,51 @@ function EstimateReviewPanel({
                   }}
                 >
                   <td className="py-2.5 pr-2 align-top">
-                    <div className="font-medium" style={{ color: COLORS.text }}>
-                      {part.name}
-                      {hasOverlay && (
-                        <span
-                          className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full align-middle"
-                          style={{ backgroundColor: "#2563EB" }}
-                          aria-label="Linked to image overlay"
-                        />
-                      )}
-                    </div>
-                    {part.flagged && (
-                      <div
-                        className="text-[11px] italic mt-0.5 leading-snug"
-                        style={{ color: "#B45309" }}
+                    <button
+                      type="button"
+                      data-line-item-toggle
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExpanded(i);
+                      }}
+                      className="flex items-start gap-1.5 text-left hover:opacity-80 transition-opacity"
+                      aria-expanded={isExpanded}
+                      aria-label={`${isExpanded ? "Hide" : "Show"} cost breakdown for ${part.name}`}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="inline-block text-[10px] mt-1 transition-transform"
+                        style={{
+                          color: COLORS.muted,
+                          transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                        }}
                       >
-                        ⚠ Estimate extrapolated — no direct database match for this damage type on this vehicle. Verify scope before authorizing.
-                      </div>
-                    )}
-                    <div className="text-xs mt-0.5" style={{ color: COLORS.muted }}>
-                      {part.suggestedRepairScope} · {part.laborHours} hrs
-                    </div>
+                        ▶
+                      </span>
+                      <span>
+                        <span className="font-medium" style={{ color: COLORS.text }}>
+                          {part.name}
+                          {hasOverlay && (
+                            <span
+                              className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full align-middle"
+                              style={{ backgroundColor: "#2563EB" }}
+                              aria-label="Linked to image overlay"
+                            />
+                          )}
+                        </span>
+                        {part.flagged && (
+                          <div
+                            className="text-[11px] italic mt-0.5 leading-snug"
+                            style={{ color: "#B45309" }}
+                          >
+                            ⚠ Estimate extrapolated — no direct database match for this damage type on this vehicle. Verify scope before authorizing.
+                          </div>
+                        )}
+                        <div className="text-xs mt-0.5" style={{ color: COLORS.muted }}>
+                          {part.suggestedRepairScope} · {part.laborHours} hrs
+                        </div>
+                      </span>
+                    </button>
                   </td>
 
                   <td
@@ -3883,31 +3907,6 @@ function EstimateReviewPanel({
                     style={{ color: COLORS.muted }}
                   >
                     {fmtCurrency(draft)}
-                  </td>
-                  <td className="py-2.5 px-2 align-top">
-                    <div className="flex flex-wrap gap-1">
-                      {part.sources.map((src) => {
-                        const meta = SOURCE_META[src];
-                        const active = expanded?.row === i && expanded.source === src;
-                        return (
-                          <button
-                            key={src}
-                            type="button"
-                            data-source-badge
-                            onClick={(e) => { e.stopPropagation(); toggleSource(i, src); }}
-                            className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border transition-colors cursor-pointer"
-                            style={{
-                              backgroundColor: meta.bg,
-                              color: meta.fg,
-                              borderColor: active ? meta.fg : meta.border,
-                            }}
-                          >
-                            {meta.short}
-                          </button>
-
-                        );
-                      })}
-                    </div>
                   </td>
                   <td className="py-2.5 px-2 text-right align-top">
                     <div className="flex items-center justify-end gap-1.5">
