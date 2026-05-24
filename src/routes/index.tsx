@@ -2000,14 +2000,14 @@ function EligibilityCheck({
                   <>
                     <div>
                       <div className="text-[11px] uppercase" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
-                        Deductible Status
+                        Deductible
                       </div>
                       <div className="text-sm font-medium" style={{ color: COLORS.text }}>
-                        Pending liability determination
+                        N/A — handled by at-fault party
                       </div>
                     </div>
                     <div className="text-[11px] italic" style={{ color: COLORS.muted }}>
-                      If the other party is determined to be at fault, deductible recovery may apply.
+                      No policyholder contribution required when the other party is at fault.
                     </div>
                   </>
                 )}
