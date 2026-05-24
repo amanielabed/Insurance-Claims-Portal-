@@ -3367,7 +3367,7 @@ function EstimateReviewPanel({
   authorization: AuthorizationDetails | null;
   seniorPending: boolean;
   onAuthorize: (details: AuthorizationDetails) => void;
-  onSeniorSubmit: () => void;
+  onSeniorSubmit: (amount: number) => void;
   generateReportRef: React.MutableRefObject<((forAuthorization?: boolean) => Promise<void>) | null>;
   readOnly?: boolean;
   onOpenNewClaim?: () => void;
