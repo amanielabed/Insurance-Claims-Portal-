@@ -2441,6 +2441,7 @@ function ReviewEstimateStep({
               claimRef={claimRef}
               claimForm={effectiveClaimForm}
               amount={seniorPending!.amount}
+              submittedAt={seniorPending!.submittedAt}
               onDownload={() => generateReportRef.current?.(false)}
               onContinueReviewing={continueReviewing}
             />
