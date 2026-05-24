@@ -5238,31 +5238,14 @@ function EstimateReviewPanel({
               </div>
             )}
 
-            {/* Persistent Action Bar — always 3 actions, never disabled by warnings */}
-            <div className="shrink-0 flex items-center gap-2 pt-1">
-              {/* PRIMARY */}
-              {workflowMode === "SENIOR_AUTHORIZATION" && seniorSubmitted ? (
-                <div
-                  className="flex-1 flex items-center justify-center gap-1.5 rounded-md py-2.5 text-xs font-medium"
-                  style={{
-                    color: COLORS.muted,
-                    backgroundColor: "#F9FAFB",
-                    border: `1px solid ${COLORS.border}`,
-                  }}
-                >
-                  <Clock size={13} />
-                  Pending Senior Authorization
-                </div>
-              ) : (
+            {readOnly ? (
+              <div className="shrink-0 flex items-center gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={handlePrimary}
-                  className="flex-1 rounded-md py-2.5 text-sm font-semibold transition-colors"
-                  style={{
-                    backgroundColor: COLORS.blue,
-                    color: "white",
-                    border: "none",
-                  }}
+                  disabled={isGeneratingReport}
+                  onClick={() => generateReport(authorization !== null)}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
+                  style={{ backgroundColor: COLORS.blue }}
                   onMouseEnter={(e) =>
                     (e.currentTarget.style.backgroundColor = COLORS.blueHover)
                   }
@@ -5270,74 +5253,128 @@ function EstimateReviewPanel({
                     (e.currentTarget.style.backgroundColor = COLORS.blue)
                   }
                 >
-                  {primaryLabel}
+                  <FileText size={14} />
+                  {isGeneratingReport ? "Generating…" : "Download Estimate Report"}
                 </button>
-              )}
+                <button
+                  type="button"
+                  onClick={() => onOpenNewClaim?.()}
+                  className="rounded-md border px-3 py-2.5 text-sm font-medium transition-colors"
+                  style={{
+                    borderColor: COLORS.border,
+                    color: COLORS.text,
+                    backgroundColor: "white",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F9FAFB")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
+                >
+                  Open New Claim
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Persistent Action Bar — always 3 actions, never disabled by warnings */}
+                <div className="shrink-0 flex items-center gap-2 pt-1">
+                  {/* PRIMARY */}
+                  {workflowMode === "SENIOR_AUTHORIZATION" && seniorSubmitted ? (
+                    <div
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-md py-2.5 text-xs font-medium"
+                      style={{
+                        color: COLORS.muted,
+                        backgroundColor: "#F9FAFB",
+                        border: `1px solid ${COLORS.border}`,
+                      }}
+                    >
+                      <Clock size={13} />
+                      Pending Senior Authorization
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handlePrimary}
+                      className="flex-1 rounded-md py-2.5 text-sm font-semibold transition-colors"
+                      style={{
+                        backgroundColor: COLORS.blue,
+                        color: "white",
+                        border: "none",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor = COLORS.blueHover)
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor = COLORS.blue)
+                      }
+                    >
+                      {primaryLabel}
+                    </button>
+                  )}
 
-              {/* SECONDARY: Edit / Save Edits */}
-              <button
-                type="button"
-                onClick={handleEditToggle}
-                className="rounded-md border px-3 py-2.5 text-sm font-semibold transition-colors"
-                style={{
-                  borderColor: COLORS.blue,
-                  color: editMode ? "white" : COLORS.blue,
-                  backgroundColor: editMode ? COLORS.blue : "transparent",
-                }}
-              >
-                {editMode ? "Save Edits" : "Edit Estimate"}
-              </button>
+                  {/* SECONDARY: Edit / Save Edits */}
+                  <button
+                    type="button"
+                    onClick={handleEditToggle}
+                    className="rounded-md border px-3 py-2.5 text-sm font-semibold transition-colors"
+                    style={{
+                      borderColor: COLORS.blue,
+                      color: editMode ? "white" : COLORS.blue,
+                      backgroundColor: editMode ? COLORS.blue : "transparent",
+                    }}
+                  >
+                    {editMode ? "Save Edits" : "Edit Estimate"}
+                  </button>
 
-              {/* TERTIARY: Save & Request Information */}
-              <button
-                type="button"
-                onClick={() => setRequestInfoOpen(true)}
-                className="rounded-md border px-3 py-2.5 text-sm font-medium transition-colors"
-                style={{
-                  borderColor: COLORS.border,
-                  color: COLORS.text,
-                  backgroundColor: "white",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F9FAFB")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
-              >
-                Save & Request Information
-              </button>
-            </div>
+                  {/* TERTIARY: Save & Request Information */}
+                  <button
+                    type="button"
+                    onClick={() => setRequestInfoOpen(true)}
+                    className="rounded-md border px-3 py-2.5 text-sm font-medium transition-colors"
+                    style={{
+                      borderColor: COLORS.border,
+                      color: COLORS.text,
+                      backgroundColor: "white",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F9FAFB")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
+                  >
+                    Save & Request Information
+                  </button>
+                </div>
 
-            {/* Tertiary row: Generate Report + Add Internal Note */}
-            <div className="shrink-0 flex items-center justify-between pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  notesRef.current?.focus();
-                  notesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-                }}
-                className="text-xs font-medium underline-offset-2 hover:underline"
-                style={{ color: COLORS.muted }}
-              >
-                + Add Internal Note
-              </button>
-              <button
-                type="button"
-                disabled={isGeneratingReport}
-                onClick={() => {
-                  if (hasPendingOverrides) {
-                    setSubmitError(
-                      "Please provide a reason for all adjusted line items before submitting.",
-                    );
-                    return;
-                  }
-                  generateReport();
-                }}
-                className="inline-flex items-center gap-1 text-xs font-medium underline-offset-2 hover:underline"
-                style={{ color: COLORS.blue }}
-              >
-                <FileText size={12} />
-                {isGeneratingReport ? "Generating…" : "Generate Report"}
-                <ChevronRight size={12} />
-              </button>
-            </div>
+                {/* Tertiary row: Generate Report + Add Internal Note */}
+                <div className="shrink-0 flex items-center justify-between pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      notesRef.current?.focus();
+                      notesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }}
+                    className="text-xs font-medium underline-offset-2 hover:underline"
+                    style={{ color: COLORS.muted }}
+                  >
+                    + Add Internal Note
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isGeneratingReport}
+                    onClick={() => {
+                      if (hasPendingOverrides) {
+                        setSubmitError(
+                          "Please provide a reason for all adjusted line items before submitting.",
+                        );
+                        return;
+                      }
+                      generateReport();
+                    }}
+                    className="inline-flex items-center gap-1 text-xs font-medium underline-offset-2 hover:underline"
+                    style={{ color: COLORS.blue }}
+                  >
+                    <FileText size={12} />
+                    {isGeneratingReport ? "Generating…" : "Generate Report"}
+                    <ChevronRight size={12} />
+                  </button>
+                </div>
+              </>
+            )}
 
             {/* Approval Confirmation Modal */}
             <Dialog open={approvalConfirmOpen} onOpenChange={setApprovalConfirmOpen}>
