@@ -489,9 +489,9 @@ function SubmissionConfirmationStep({
   claimForm: ClaimForm | null;
   onOpenForReview: () => void;
 }) {
-  const submittedLabel = new Date(submittedAt).toLocaleString(undefined, {
+  const submittedLabel = new Date(submittedAt).toLocaleString("en-US", {
     year: "numeric",
-    month: "short",
+    month: "long",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
