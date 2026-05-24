@@ -5498,7 +5498,7 @@ function EstimateReviewPanel({
                     type="button"
                     onClick={() => {
                       setSeniorConfirmOpen(false);
-                      onSeniorSubmit();
+                      onSeniorSubmit(adjustedTotal);
                       toast.success("Estimate submitted for senior adjuster authorization.");
                     }}
                     className="rounded-md px-4 py-2 text-sm font-semibold text-white"
