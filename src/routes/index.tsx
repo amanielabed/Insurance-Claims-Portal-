@@ -2245,7 +2245,11 @@ function ReviewEstimateStep({
 
         {/* Center: Assessment Review */}
         <Panel title="Assessment Review">
-          <AssessmentReviewPanel claim={claim} />
+          <AssessmentReviewPanel
+            claim={claim}
+            concernsDismissed={concernsDismissed}
+            onDismissConcerns={() => setConcernsDismissed(true)}
+          />
         </Panel>
 
         {/* Right: Estimate Review */}
@@ -2262,6 +2266,8 @@ function ReviewEstimateStep({
             onHighlight={(idx) =>
               setHighlightedPart((cur) => (cur === idx ? null : idx))
             }
+            concernsDismissed={concernsDismissed}
+            hasConcerns={(claim.verificationConcerns?.length ?? 0) > 0}
           />
         </Panel>
       </main>
