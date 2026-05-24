@@ -387,6 +387,7 @@ function Index() {
   const [submitted, setSubmitted] = useState(false);
   const [claimRef, setClaimRef] = useState<string>("");
   const [submittedAt, setSubmittedAt] = useState<number | null>(null);
+  const [finalized, setFinalized] = useState(false);
 
   const reset = () => {
     setClaimForm(null);
@@ -394,17 +395,29 @@ function Index() {
     setSubmitted(false);
     setClaimRef("");
     setSubmittedAt(null);
+    setFinalized(false);
     setStep(1);
   };
 
   const showConfirmation = step === 2 && submitted;
+
+  // Map internal step (1-4) + flags to a visual 6-step position
+  const visualStep = (() => {
+    if (step === 1) return 1;
+    if (step === 2 && !submitted) return 2;
+    if (showConfirmation) return 3;
+    if (step === 3) return 4;
+    if (step === 4 && !finalized) return 5;
+    if (step === 4 && finalized) return 6;
+    return step;
+  })();
 
   return (
     <div
       className="flex flex-col h-screen"
       style={{ backgroundColor: COLORS.bg, color: COLORS.text }}
     >
-      <StepIndicator current={step} submitted={submitted} />
+      <StepIndicator current={visualStep} />
       <div
         key={showConfirmation ? "confirmation" : step}
         className="flex-1 min-h-0 flex flex-col animate-fade-in"
@@ -449,6 +462,7 @@ function Index() {
             uploadedPhotos={uploadedPhotos}
             claimRef={claimRef || `CLM-${new Date().getFullYear()}-000000`}
             onReset={reset}
+            onFinalize={setFinalized}
           />
         )}
       </div>
