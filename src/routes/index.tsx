@@ -3595,15 +3595,22 @@ function EstimateReviewPanel({
           pdf.text("No adjustments made. Draft estimate approved as reviewed.", M + 12, y + 18);
           y += 36;
         } else {
-          // Table header
-          const cName = M;
-          const cDraft = M + 230;
-          const cAdj = M + 305;
-          const cVar = M + 380;
-          const cPct = M + 445;
-          const cReason = M + 495;
+          // Page break if table would start within 150pt of bottom
+          if (y + 150 > pageH - M - 30) {
+            pdf.addPage();
+            y = M;
+          }
+          // Override table columns: Item 25%, Draft 13%, Adjusted 13%, Var 12%, Var% 10%, Rationale 27%
+          const cName = M;                           // text left
+          const itemMaxW = Math.round(W * 0.25) - 6;
+          const cDraft = M + Math.round(W * 0.38);   // right-align
+          const cAdj = M + Math.round(W * 0.51);     // right-align
+          const cVar = M + Math.round(W * 0.63);     // right-align
+          const cPct = M + Math.round(W * 0.73);     // right-align
+          const cReason = M + Math.round(W * 0.73) + 6; // text left
+          const reasonMaxW = pageW - M - cReason;
           need(24);
-          setText(10, "#6B7280", true);
+          setText(9, "#6B7280", true);
           pdf.text("LINE ITEM", cName, y + 10);
           pdf.text("DRAFT", cDraft, y + 10, { align: "right" });
           pdf.text("ADJUSTED", cAdj, y + 10, { align: "right" });
@@ -3615,6 +3622,7 @@ function EstimateReviewPanel({
           pdf.setLineWidth(0.5);
           pdf.line(M, y, pageW - M, y);
           y += 4;
+
 
           let draftSum = 0;
           let adjSum = 0;
