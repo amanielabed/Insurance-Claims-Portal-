@@ -2070,20 +2070,12 @@ function ReviewEstimateStep({
               style={{ backgroundColor: COLORS.blue }}
             />
             <div className="min-w-0">
-              {claimForm ? (
-                <>
-                  <div className="text-sm font-semibold tracking-tight truncate">
-                    Reviewing Claim for: {claimForm.fullName}
-                  </div>
-                  <div className="text-[11px] truncate" style={{ color: COLORS.muted }}>
-                    Policy: {claimForm.policyNumber}
-                  </div>
-                </>
-              ) : (
-                <h1 className="text-sm font-semibold tracking-tight">
-                  Claims Review Cockpit
-                </h1>
-              )}
+              <div className="text-sm font-semibold tracking-tight truncate">
+                Reviewing Claim for: {claimForm?.fullName?.trim() || "—"}
+              </div>
+              <div className="text-[11px] truncate" style={{ color: COLORS.muted }}>
+                Policy: {claimForm?.policyNumber?.trim() || "—"}
+              </div>
             </div>
           </div>
         </div>
