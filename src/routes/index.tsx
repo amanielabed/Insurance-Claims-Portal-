@@ -1516,7 +1516,7 @@ function InitiateClaimStep({
 
 
 type FaultVal = "policyholder" | "other" | "unclear" | "single_vehicle" | "";
-type ValidatedPolicy = { policyNumber: string; year: string; make: string; model: string; holderName: string; coverage: "full" | "third_party"; deductible: string | null };
+type ValidatedPolicy = { policyNumber: string; year: string; make: string; model: string; coverage: "full" | "third_party"; deductible: string | null };
 interface EligibilityResult {
   tone: "amber" | "blue" | "green" | "red";
   title: string;
