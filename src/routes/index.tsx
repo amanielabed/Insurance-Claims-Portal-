@@ -3072,7 +3072,7 @@ function EstimateReviewPanel({
       const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
-      const M = 48;
+      const M = 40;
       const W = pageW - M * 2;
       let y = M;
 
@@ -3081,6 +3081,12 @@ function EstimateReviewPanel({
           pdf.addPage();
           y = M;
         }
+      };
+      const formatLossDate = (s: string | undefined): string => {
+        if (!s || !s.trim()) return "—";
+        const d = new Date(s);
+        if (isNaN(d.getTime())) return s;
+        return d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
       };
       const setText = (size: number, color = "#111827", bold = false, italic = false) => {
         const style = bold ? (italic ? "bolditalic" : "bold") : italic ? "italic" : "normal";
