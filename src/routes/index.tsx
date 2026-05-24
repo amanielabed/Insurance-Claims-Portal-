@@ -1240,6 +1240,8 @@ function InitiateClaimStep({
           <EligibilityCheck
             policyNumber={eligPolicy}
             setPolicyNumber={setEligPolicy}
+            fullName={form.fullName}
+            setFullName={(v) => update("fullName", v)}
             fault={fault}
             setFault={(v) => { setFault(v); }}
             validated={validated}
@@ -1528,10 +1530,12 @@ interface EligibilityResult {
 }
 
 function EligibilityCheck({
-  policyNumber, setPolicyNumber, fault, setFault, validated, setValidated, eligibility, onContinue,
+  policyNumber, setPolicyNumber, fullName, setFullName, fault, setFault, validated, setValidated, eligibility, onContinue,
 }: {
   policyNumber: string;
   setPolicyNumber: (v: string) => void;
+  fullName: string;
+  setFullName: (v: string) => void;
   fault: FaultVal;
   setFault: (v: FaultVal) => void;
   validated: ValidatedPolicy | null;
@@ -1667,6 +1671,21 @@ function EligibilityCheck({
         </div>
       </FormSection>
 
+      <FormSection title="Policyholder Name">
+        <div className="md:col-span-2">
+          <label className="text-xs font-medium block mb-1.5" style={{ color: COLORS.text }}>
+            Full Name
+          </label>
+          <div className="max-w-md">
+            <TextInput
+              value={fullName || ""}
+              onChange={(v) => setFullName(v)}
+              placeholder="Jane Doe"
+            />
+          </div>
+        </div>
+      </FormSection>
+
       <FormSection title="Preliminary Fault Assessment">
         <div className="md:col-span-2">
           <p className="text-sm font-medium mb-2" style={{ color: COLORS.text }}>
@@ -1713,6 +1732,12 @@ function EligibilityCheck({
               <div className="text-[10px] uppercase mb-1" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>Policy Number</div>
               <div className="text-sm font-medium" style={{ color: COLORS.text }}>{validated.policyNumber}</div>
             </div>
+            {fullName.trim() && (
+              <div>
+                <div className="text-[10px] uppercase mb-1" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>Policyholder</div>
+                <div className="text-sm font-medium" style={{ color: COLORS.text }}>{fullName}</div>
+              </div>
+            )}
             <div className="sm:col-span-2">
               <div className="text-[10px] uppercase mb-1" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>Vehicle</div>
               <div className="text-sm font-medium" style={{ color: COLORS.text }}>
