@@ -2143,7 +2143,7 @@ function ReviewEstimateStep({
   const [highlightedPart, setHighlightedPart] = useState<number | null>(null);
   const [concernsDismissed, setConcernsDismissed] = useState(false);
   const [authorization, setAuthorization] = useState<AuthorizationDetails | null>(null);
-  const [seniorPending, setSeniorPending] = useState<{ amount: number } | null>(null);
+  const [seniorPending, setSeniorPending] = useState<{ amount: number; submittedAt: number } | null>(null);
   const [viewingSubmitted, setViewingSubmitted] = useState(false);
   const generateReportRef = useRef<((forAuthorization?: boolean) => Promise<void>) | null>(null);
 
