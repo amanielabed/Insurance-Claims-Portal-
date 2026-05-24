@@ -3776,15 +3776,32 @@ function EstimateReviewPanel({
 
       const photoData = await Promise.all(uploadedPhotos.map((p) => toDataUrl(p.url)));
 
+      const photoGap = 12;
+      const photosPerRow = 3;
+      const photoW = (W - photoGap * (photosPerRow - 1)) / photosPerRow;
+      const photoH = photoW * 0.72;
+
       if (uploadedPhotos.length === 0) {
-        setText(12, "#6B7280", false, true);
-        pdf.text("No photos were uploaded for this claim.", M, y + 14);
-        y += 24;
+        // Demo mode / no real uploads — render neutral placeholder rectangles
+        const placeholderCaptions = [
+          "Primary Damage View",
+          "Wide Context Shot",
+          "Secondary Damage Angle",
+        ];
+        const blockH = photoH + 20;
+        need(blockH + 6);
+        placeholderCaptions.forEach((caption, i) => {
+          const px = M + i * (photoW + photoGap);
+          const py = y;
+          pdf.setFillColor("#F3F4F6");
+          pdf.setDrawColor("#E5E7EB");
+          pdf.setLineWidth(0.5);
+          pdf.roundedRect(px, py, photoW, photoH, 3, 3, "FD");
+          setText(11, "#9CA3AF");
+          pdf.text(caption, px + photoW / 2, py + photoH / 2 + 3, { align: "center" });
+        });
+        y += blockH;
       } else {
-        const photoGap = 12;
-        const photosPerRow = 3;
-        const photoW = (W - photoGap * (photosPerRow - 1)) / photosPerRow;
-        const photoH = photoW * 0.72;
         const captionH = 44;
         const blockH = photoH + captionH + 6;
 
