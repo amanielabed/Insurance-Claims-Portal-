@@ -2600,6 +2600,7 @@ function ReviewEstimateStep({
               onDownload={() => generateReportRef.current?.(true)}
               onReturnToQueue={() => onReturnToQueue?.()}
               onStartNewClaim={onReset}
+              onReviewAnotherScenario={reviewAnotherScenario}
             />
           ) : seniorPending ? (
             <PendingSeniorAuthorizationScreen
@@ -2607,16 +2608,19 @@ function ReviewEstimateStep({
               onReturnToQueue={() => onReturnToQueue?.()}
               onViewEstimate={() => setViewingSubmitted(true)}
               onDownloadEstimate={() => generateReportRef.current?.(false)}
+              onReviewAnotherScenario={reviewAnotherScenario}
             />
           ) : (
             <InformationRequestedScreen
               claimRef={claimRef}
               onReturnToQueue={() => onReturnToQueue?.()}
               onViewEstimate={() => setViewingSubmitted(true)}
+              onReviewAnotherScenario={reviewAnotherScenario}
             />
           )}
         </div>
       )}
+
 
       <main
         key={claim.id}
