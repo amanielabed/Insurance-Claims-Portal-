@@ -1240,6 +1240,8 @@ function InitiateClaimStep({
           <EligibilityCheck
             policyNumber={eligPolicy}
             setPolicyNumber={setEligPolicy}
+            fullName={form.fullName}
+            setFullName={(v) => update("fullName", v)}
             fault={fault}
             setFault={(v) => { setFault(v); }}
             validated={validated}
