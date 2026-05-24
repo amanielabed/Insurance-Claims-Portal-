@@ -5295,20 +5295,6 @@ function EstimateReviewPanel({
                   <FileText size={14} />
                   {isGeneratingReport ? "Generating…" : "Download Estimate Report"}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => onOpenNewClaim?.()}
-                  className="rounded-md border px-3 py-2.5 text-sm font-medium transition-colors"
-                  style={{
-                    borderColor: COLORS.border,
-                    color: COLORS.text,
-                    backgroundColor: "white",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F9FAFB")}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
-                >
-                  Open New Claim
-                </button>
               </div>
             ) : (
               <>
