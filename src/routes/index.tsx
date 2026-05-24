@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AlertTriangle, CheckCircle, Clock, FileText, ChevronRight } from "lucide-react";
 import claimSimpleImage from "@/assets/claim-simple.jpg";
 import claimComplexImage from "@/assets/claim-complex.jpg";
 
@@ -33,7 +34,7 @@ interface Part {
 interface Claim {
   id: string;
   type: string;
-  delegationState: "FAST_TRACK" | "MANUAL_REVIEW" | "SENIOR_REVIEW";
+  delegationState: "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION";
   reviewConfidence: "High" | "Moderate" | "Low";
   riskLevel: "LOW" | "MEDIUM" | "HIGH";
   estimatedCost: number;
@@ -55,7 +56,7 @@ interface ScenarioMeta {
   label: string;
   description: string;
   subtext?: string;
-  state: "FAST_TRACK" | "MANUAL_REVIEW" | "SENIOR_REVIEW";
+  state: "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION";
   coverage: "full" | "third_party";
   fault: "policyholder" | "other" | "unclear" | "single_vehicle";
   coverageLabel: string;
@@ -80,8 +81,8 @@ const SCENARIOS: ScenarioMeta[] = [
     id: "2026-002",
     label: "Verification Required (Demo)",
     description:
-      "Demonstrates manual review routing — uncertain damage scope requiring additional verification before authorization.",
-    state: "MANUAL_REVIEW",
+      "Demonstrates verification review routing — uncertain damage scope requiring additional verification before authorization.",
+    state: "VERIFICATION_RECOMMENDED",
     coverage: "full",
     fault: "unclear",
     coverageLabel: "Full Coverage",
@@ -90,11 +91,11 @@ const SCENARIOS: ScenarioMeta[] = [
   },
   {
     id: "2026-003",
-    label: "Senior Review Required (Demo)",
+    label: "Senior Authorization Required (Demo)",
     description:
-      "Demonstrates senior review routing — high-value structural claim exceeding standard authorization thresholds.",
+      "Demonstrates senior authorization routing — high-value structural claim exceeding standard authorization thresholds.",
     subtext: "Authorization pending senior approval.",
-    state: "SENIOR_REVIEW",
+    state: "SENIOR_AUTHORIZATION",
     coverage: "third_party",
     fault: "policyholder",
     coverageLabel: "Third-Party Coverage",
@@ -105,8 +106,8 @@ const SCENARIOS: ScenarioMeta[] = [
 
 const STATE_DOT: Record<ScenarioMeta["state"], string> = {
   FAST_TRACK: "#22C55E",
-  MANUAL_REVIEW: "#F59E0B",
-  SENIOR_REVIEW: "#DC2626",
+  VERIFICATION_RECOMMENDED: "#F59E0B",
+  SENIOR_AUTHORIZATION: "#DC2626",
 };
 
 const claimData: Claim[] = [
@@ -138,7 +139,7 @@ const claimData: Claim[] = [
   {
     id: "2026-002",
     type: "Rear Collision",
-    delegationState: "MANUAL_REVIEW",
+    delegationState: "VERIFICATION_RECOMMENDED",
     reviewConfidence: "Moderate",
     riskLevel: "HIGH",
     estimatedCost: 1240,
@@ -146,7 +147,7 @@ const claimData: Claim[] = [
     confidenceLabel:
       "Low resolution on rear quarter panel. Possible hidden structural damage behind deformation.",
     actionMessage:
-      "Manual review required. Payment should remain paused until verification is complete.",
+      "Verification recommended. Payment should remain paused until verification is complete.",
     imagePlaceholder: "Rear collision damage",
     imageUrl: claimComplexImage,
     parts: [
@@ -182,7 +183,7 @@ const claimData: Claim[] = [
   {
     id: "2026-003",
     type: "Multi-Panel Structural",
-    delegationState: "SENIOR_REVIEW",
+    delegationState: "SENIOR_AUTHORIZATION",
     reviewConfidence: "Low",
     riskLevel: "HIGH",
     estimatedCost: 8400,
@@ -1439,7 +1440,7 @@ function InitiateClaimStep({
                 className="mt-2 rounded-md border px-3 py-2 text-xs"
                 style={{ backgroundColor: "#FFFBEB", borderColor: "#FCD34D", color: "#92400E" }}
               >
-                Manual review required before authorization.
+                Verification recommended before authorization.
               </div>
             )}
             <p className="text-[11px] mt-2" style={{ color: COLORS.muted }}>
@@ -1950,35 +1951,35 @@ function ReviewEstimateStep({
     [selectedId],
   );
 
-  const [seniorReview, setSeniorReview] = useState(claim.delegationState === "SENIOR_REVIEW");
+  const [seniorReview, setSeniorReview] = useState(claim.delegationState === "SENIOR_AUTHORIZATION");
   const [scenarioOpen, setScenarioOpen] = useState(false);
   const [highlightedPart, setHighlightedPart] = useState<number | null>(null);
   const [concernsDismissed, setConcernsDismissed] = useState(false);
 
-  // Sync escalation when switching claims — auto-load senior review for SENIOR_REVIEW scenarios
+  // Sync escalation when switching claims — auto-load senior authorization for SENIOR_AUTHORIZATION scenarios
   useEffect(() => {
-    setSeniorReview(claim.delegationState === "SENIOR_REVIEW");
+    setSeniorReview(claim.delegationState === "SENIOR_AUTHORIZATION");
     setHighlightedPart(null);
     setConcernsDismissed(false);
   }, [selectedId, claim.delegationState]);
 
   const isFastTrack = claim.delegationState === "FAST_TRACK";
 
-  const workflowState: "FAST_TRACK" | "MANUAL_REVIEW" | "SENIOR_REVIEW" =
-    seniorReview || claim.delegationState === "SENIOR_REVIEW"
-      ? "SENIOR_REVIEW"
+  const workflowState: "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION" =
+    seniorReview || claim.delegationState === "SENIOR_AUTHORIZATION"
+      ? "SENIOR_AUTHORIZATION"
       : claim.delegationState;
 
   const workflowLabel = {
     FAST_TRACK: "Fast-Track",
-    MANUAL_REVIEW: "Manual Review",
-    SENIOR_REVIEW: "Senior Review",
+    VERIFICATION_RECOMMENDED: "Verification Recommended",
+    SENIOR_AUTHORIZATION: "Senior Authorization",
   }[workflowState];
 
   const workflowStyles = {
     FAST_TRACK: { bar: COLORS.green, bg: COLORS.greenBg, fg: COLORS.greenText },
-    MANUAL_REVIEW: { bar: COLORS.amber, bg: COLORS.amberBg, fg: COLORS.amberText },
-    SENIOR_REVIEW: { bar: "#DC2626", bg: "#FEF2F2", fg: "#991B1B" },
+    VERIFICATION_RECOMMENDED: { bar: COLORS.amber, bg: COLORS.amberBg, fg: COLORS.amberText },
+    SENIOR_AUTHORIZATION: { bar: "#DC2626", bg: "#FEF2F2", fg: "#991B1B" },
   }[workflowState];
 
   const currentScenario = SCENARIOS.find((s) => s.id === selectedId) ?? SCENARIOS[0];
@@ -2189,7 +2190,7 @@ function ReviewEstimateStep({
 
       {/* Escalation banner */}
       <div key={workflowState + "-banner"} className="animate-fade-in">
-        {workflowState === "SENIOR_REVIEW" ? (
+        {workflowState === "SENIOR_AUTHORIZATION" ? (
           <div
             className="flex items-start gap-3 px-6 py-3 border-b shrink-0"
             style={{
@@ -2198,7 +2199,7 @@ function ReviewEstimateStep({
               color: "#991B1B",
             }}
           >
-            <span className="text-base leading-5">●</span>
+            <Clock size={16} className="mt-0.5 shrink-0" />
             <div>
               <div className="text-sm font-semibold">Senior Authorization Required</div>
               <div className="text-xs mt-0.5" style={{ color: "#B91C1C" }}>
@@ -2216,9 +2217,9 @@ function ReviewEstimateStep({
                 color: COLORS.amberText,
               }}
             >
-              <span className="text-base leading-5">⚠</span>
+              <AlertTriangle size={16} className="mt-0.5 shrink-0" />
               <div>
-                <div className="text-sm font-semibold">Manual Review Required</div>
+                <div className="text-sm font-semibold">Verification Recommended</div>
                 <div className="text-xs mt-0.5" style={{ color: "#92400E" }}>
                   Possible structural damage detected. Please verify before approval.
                 </div>
@@ -2312,11 +2313,11 @@ function DemoGuide() {
             </li>
             <li className="flex gap-2">
               <span style={{ color: COLORS.muted }}>←</span>
-              <span>Select Verification Required to view manual review gates and verification checks</span>
+              <span>Select Verification Required to view verification recommended steps</span>
             </li>
             <li className="flex gap-2">
               <span style={{ color: COLORS.muted }}>←</span>
-              <span>Select Senior Review Required to view how higher-risk claims require additional review and authorization oversight</span>
+              <span>Select Senior Authorization Required to view how higher-risk claims require additional review and authorization oversight</span>
             </li>
           </ul>
         </div>
@@ -2347,19 +2348,20 @@ function AssessmentReviewPanel({
   onDismissConcerns: () => void;
 }) {
   const isFastTrack = claim.delegationState === "FAST_TRACK";
-  const isSenior = claim.delegationState === "SENIOR_REVIEW";
+  const isSenior = claim.delegationState === "SENIOR_AUTHORIZATION";
 
-  const badgeMeta = isFastTrack
-    ? { bg: COLORS.greenBg, fg: COLORS.greenText, border: "#BBF7D0", dot: COLORS.green, label: "Fast-Track Eligible", icon: null as string | null }
+  type BadgeIcon = "alert" | "clock" | null;
+  const badgeMeta: { bg: string; fg: string; border: string; dot: string; label: string; icon: BadgeIcon } = isFastTrack
+    ? { bg: COLORS.greenBg, fg: COLORS.greenText, border: "#BBF7D0", dot: COLORS.green, label: "Fast-Track Eligible", icon: null }
     : isSenior
-      ? { bg: "#FEF2F2", fg: "#991B1B", border: "#FECACA", dot: "#DC2626", label: "Senior Review Required", icon: "●" }
-      : { bg: COLORS.amberBg, fg: COLORS.amberText, border: COLORS.amberBorder, dot: COLORS.amber, label: "Manual Review Required", icon: "⚠" };
+      ? { bg: "#FEF2F2", fg: "#991B1B", border: "#FECACA", dot: "#DC2626", label: "Senior Authorization Required", icon: "clock" }
+      : { bg: COLORS.amberBg, fg: COLORS.amberText, border: COLORS.amberBorder, dot: COLORS.amber, label: "Verification Recommended", icon: "alert" };
 
   const tooltipText = isFastTrack
     ? "Routed to Fast-Track: high photo clarity, single part affected, estimated value within standard threshold, no flagged components."
     : isSenior
-      ? "Routed to Senior Review: estimated value ($8,400) exceeds standard authorization threshold, multiple flagged components, structural integrity cannot be confirmed from photo evidence alone."
-      : "Routed to Manual Review: low resolution detected on rear quarter panel, frame rail damage cannot be confirmed from available angles, labor estimate range too wide to auto-authorize.";
+      ? "Routed to Senior Authorization: estimated value ($8,400) exceeds standard authorization threshold, multiple flagged components, structural integrity cannot be confirmed from photo evidence alone."
+      : "Routed to Verification Recommended: low resolution detected on rear quarter panel, frame rail damage cannot be confirmed from available angles, labor estimate range too wide to auto-authorize.";
 
   const routingBasis = isFastTrack
     ? [
@@ -2397,8 +2399,10 @@ function AssessmentReviewPanel({
             border: `1px solid ${badgeMeta.border}`,
           }}
         >
-          {badgeMeta.icon ? (
-            <span className="text-sm leading-none">{badgeMeta.icon}</span>
+          {badgeMeta.icon === "alert" ? (
+            <AlertTriangle size={14} />
+          ) : badgeMeta.icon === "clock" ? (
+            <Clock size={14} />
           ) : (
             <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: badgeMeta.dot }} />
           )}
@@ -2432,8 +2436,9 @@ function AssessmentReviewPanel({
       {/* Senior review passive status */}
       {isSenior && (
         <div className="flex flex-col gap-0.5">
-          <div className="text-sm font-semibold" style={{ color: "#DC2626" }}>
-            <span className="mr-1.5">●</span>Senior review in progress
+          <div className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: "#DC2626" }}>
+            <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: "#DC2626" }} />
+            Senior authorization in progress
           </div>
           <div className="text-xs" style={{ color: COLORS.muted }}>
             Claim prepared for authorization review.
@@ -2490,9 +2495,10 @@ function AssessmentReviewPanel({
               No additional review triggers detected.
             </p>
           ) : concernsDismissed ? (
-            <p className="text-xs" style={{ color: COLORS.muted }}>
-              ✓ Verification concerns noted by adjuster.
-            </p>
+            <div className="flex items-center gap-1.5 text-xs" style={{ color: COLORS.muted }}>
+              <CheckCircle size={12} />
+              Verification concerns noted by adjuster.
+            </div>
           ) : (
             <div className="flex flex-col gap-1.5">
               <p className="text-xs font-medium" style={{ color: COLORS.amberText }}>
@@ -2518,7 +2524,7 @@ function AssessmentReviewPanel({
       </div>
 
 
-      {/* Recommended Reviewer — MANUAL_REVIEW only */}
+      {/* Recommended Reviewer — VERIFICATION_RECOMMENDED only */}
       {!isFastTrack && claim.recommendedReviewer && (
         <div
           className="rounded-md border p-4"
@@ -2943,7 +2949,29 @@ function EstimateReviewPanel({
   };
 
   const [seniorSubmitted, setSeniorSubmitted] = useState(false);
+  const [seniorConfirmOpen, setSeniorConfirmOpen] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+
+  // Request Information modal state
+  const [requestInfoOpen, setRequestInfoOpen] = useState(false);
+  const [requestItems, setRequestItems] = useState({
+    police_report: false,
+    additional_photos: false,
+    supporting_docs: false,
+    customer_clarification: false,
+  });
+  const [requestMessage, setRequestMessage] = useState("");
+  const resetRequestInfo = () => {
+    setRequestItems({
+      police_report: false,
+      additional_photos: false,
+      supporting_docs: false,
+      customer_clarification: false,
+    });
+    setRequestMessage("");
+  };
+  const anyRequestItemSelected = Object.values(requestItems).some(Boolean);
 
   // Rationale tracking for adjuster overrides
   type RationaleCode =
@@ -3072,19 +3100,19 @@ function EstimateReviewPanel({
     const reportTotal = reportAdjusted.reduce((s, n) => s + (isFinite(n) ? n : 0), 0);
     const fileName = `Claim_${claim.id}_Assessment.pdf`;
 
-    const workflowState: "FAST_TRACK" | "MANUAL_REVIEW" | "SENIOR_REVIEW" =
-      seniorReview || claim.delegationState === "SENIOR_REVIEW"
-        ? "SENIOR_REVIEW"
+    const workflowState: "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION" =
+      seniorReview || claim.delegationState === "SENIOR_AUTHORIZATION"
+        ? "SENIOR_AUTHORIZATION"
         : claim.delegationState;
     const stateLabel = {
       FAST_TRACK: "Fast-Track",
-      MANUAL_REVIEW: "Manual Review",
-      SENIOR_REVIEW: "Senior Review",
+      VERIFICATION_RECOMMENDED: "Verification Recommended",
+      SENIOR_AUTHORIZATION: "Senior Authorization",
     }[workflowState];
     const stateBadge = {
       FAST_TRACK: { bg: "#DCFCE7", fg: "#15803D" },
-      MANUAL_REVIEW: { bg: "#FEF3C7", fg: "#B45309" },
-      SENIOR_REVIEW: { bg: "#FEE2E2", fg: "#B91C1C" },
+      VERIFICATION_RECOMMENDED: { bg: "#FEF3C7", fg: "#B45309" },
+      SENIOR_AUTHORIZATION: { bg: "#FEE2E2", fg: "#B91C1C" },
     }[workflowState];
 
     setIsGeneratingReport(true);
@@ -3238,7 +3266,7 @@ function EstimateReviewPanel({
       y += cardH + 12;
 
 
-      if (workflowState === "SENIOR_REVIEW") {
+      if (workflowState === "SENIOR_AUTHORIZATION") {
         const alertH = 52;
         need(alertH + 8);
         pdf.setFillColor("#FEF2F2");
@@ -3770,8 +3798,8 @@ function EstimateReviewPanel({
         authText = "Auto-authorized pending confirmation";
         authBg = "#DCFCE7";
         authFg = "#15803D";
-      } else if (workflowState === "SENIOR_REVIEW") {
-        verifyText = "N/A — senior review claims bypass standard adjuster verification";
+      } else if (workflowState === "SENIOR_AUTHORIZATION") {
+        verifyText = "N/A — senior authorization claims bypass standard adjuster verification";
         authText = "Held — pending senior adjuster sign-off";
         authBg = "#FEF3C7";
         authFg = "#B45309";
@@ -4006,6 +4034,7 @@ function EstimateReviewPanel({
                         type="number"
                         step="0.01"
                         value={drafts[i]}
+                        readOnly={!editMode}
                         onChange={(e) =>
                           setDrafts((prev) => {
                             const n = [...prev];
@@ -4019,10 +4048,10 @@ function EstimateReviewPanel({
                         }}
                         className="w-24 text-right tabular-nums rounded border px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         style={{
-                          borderColor: "#93C5FD",
-                          backgroundColor: COLORS.surface,
-                          color: COLORS.text,
-                          cursor: "text",
+                          borderColor: editMode ? "#93C5FD" : "#D1D5DB",
+                          backgroundColor: editMode ? COLORS.surface : "#F9FAFB",
+                          color: editMode ? COLORS.text : COLORS.muted,
+                          cursor: editMode ? "text" : "not-allowed",
                         }}
                       />
                     </div>
@@ -4168,7 +4197,7 @@ function EstimateReviewPanel({
       {(() => {
         const pr = claimForm?.policeReport ?? "";
         const policePending = pr !== "uploaded";
-        const photosNeeded = claim.delegationState === "MANUAL_REVIEW";
+        const photosNeeded = claim.delegationState === "VERIFICATION_RECOMMENDED";
         const seniorNeeded = seniorReview;
         const items: { label: string; status: string; tone: "ok" | "amber" | "red"; note?: string }[] = [];
         items.push(
@@ -4368,96 +4397,51 @@ function EstimateReviewPanel({
         </div>
       )}
       {(() => {
-        const fault = claimForm?.fault;
-        const otherPartyInvolved =
-          fault === "other" || fault === "policyholder" || fault === "unclear";
         const policeMissing = (claimForm?.policeReport ?? "") !== "uploaded";
-        const photosFlagged = claim.delegationState === "MANUAL_REVIEW";
+        const photosFlagged = claim.delegationState === "VERIFICATION_RECOMMENDED";
+        const structuralVisibility =
+          claim.delegationState === "VERIFICATION_RECOMMENDED" ||
+          claim.delegationState === "SENIOR_AUTHORIZATION";
+        const uncertainScope = claim.parts.some(
+          (p, i) => p.sources?.includes("verify") || p.flagged,
+        );
         const verifyValue = claim.parts.reduce(
           (s, p, i) => (p.sources?.includes("verify") ? s + adjusted[i] : s),
           0,
         );
         const verifyShare = adjustedTotal > 0 ? verifyValue / adjustedTotal : 0;
-        const seniorRequired = seniorReview || adjustedTotal > 5000 || verifyShare > 0.4;
 
-        const mode: "senior" | "photos" | "documents" | "approve" = seniorRequired
-          ? "senior"
-          : photosFlagged
-            ? "photos"
-            : policeMissing && otherPartyInvolved
-              ? "documents"
-              : "approve";
+        // Workflow state: SENIOR_AUTHORIZATION is automatic; otherwise FAST_TRACK vs VERIFICATION_RECOMMENDED
+        const seniorAuthRequired =
+          seniorReview || adjustedTotal > 5000 || verifyShare > 0.4;
+        type WorkflowMode = "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION";
+        const workflowMode: WorkflowMode = seniorAuthRequired
+          ? "SENIOR_AUTHORIZATION"
+          : policeMissing || photosFlagged || uncertainScope
+            ? "VERIFICATION_RECOMMENDED"
+            : "FAST_TRACK";
 
-        const banner =
-          mode === "approve"
-            ? {
-                text: "This estimate is ready for approval.",
-                bg: "#F0FDF4",
-                border: "#BBF7D0",
-                fg: "#15803D",
-                sub: null as string | null,
-              }
-            : mode === "documents"
-              ? {
-                  text:
-                    "Supporting documentation required before final approval. Current estimate progress will be saved while awaiting documents.",
-                  bg: COLORS.amberBg,
-                  border: COLORS.amberBorder,
-                  fg: COLORS.amberText,
-                  sub: null,
-                }
-              : mode === "photos"
-                ? {
-                    text: "Additional photos are needed to verify the full damage scope.",
-                    bg: COLORS.amberBg,
-                    border: COLORS.amberBorder,
-                    fg: COLORS.amberText,
-                    sub: null,
-                  }
-                : {
-                    text:
-                      "This estimate requires senior adjuster authorization before repair can proceed.",
-                    bg: "#FEF2F2",
-                    border: "#FECACA",
-                    fg: "#991B1B",
-                    sub: null,
-                  };
+        // Build verification-recommended items list (informational only)
+        const verificationItems: string[] = [];
+        if (policeMissing) verificationItems.push("Police report has not been uploaded.");
+        if (photosFlagged)
+          verificationItems.push(
+            "Additional image coverage may improve damage verification.",
+          );
+        if (structuralVisibility && (photosFlagged || seniorAuthRequired))
+          verificationItems.push(
+            "Structural visibility is partially obstructed on one or more repair areas.",
+          );
+        if (uncertainScope)
+          verificationItems.push(
+            "Some estimate ranges were generated using comparable repair scenarios.",
+          );
 
-        const primary =
-          mode === "approve"
-            ? {
-                label: "Approve Estimate",
-                bg: COLORS.blue,
-                hover: COLORS.blueHover,
-                fg: "white",
-                border: "none",
-              }
-            : mode === "documents"
-              ? {
-                  label: "Save & Request Documents",
-                  bg: "#D97706",
-                  hover: "#B45309",
-                  fg: "white",
-                  border: "none",
-                }
-              : mode === "photos"
-                ? {
-                    label: "Save & Request Additional Photos",
-                    bg: "#D97706",
-                    hover: "#B45309",
-                    fg: "white",
-                    border: "none",
-                  }
-                : {
-                    label: "Submit for Senior Authorization",
-                    bg: COLORS.blue,
-                    hover: COLORS.blueHover,
-                    fg: "white",
-                    border: "none",
-                  };
+        const showVerificationPanel =
+          workflowMode !== "FAST_TRACK" && verificationItems.length > 0;
 
-        const concernsBlock = hasConcerns && !concernsDismissed;
-        const primaryDisabled = concernsBlock || (mode === "senior" && seniorSubmitted);
+        const primaryLabel =
+          workflowMode === "SENIOR_AUTHORIZATION" ? "Submit Estimate" : "Approve Estimate";
 
         const handlePrimary = () => {
           if (hasPendingOverrides) {
@@ -4466,75 +4450,143 @@ function EstimateReviewPanel({
             );
             return;
           }
-          if (mode === "senior") {
-            setSeniorSubmitted(true);
-            toast.success("Estimate submitted for senior adjuster authorization.");
-            return;
-          }
-          if (mode === "documents") {
-            toast.success("Document request sent to policyholder.");
-            return;
-          }
-          if (mode === "photos") {
-            toast.success("Additional photo request sent to policyholder.");
+          if (workflowMode === "SENIOR_AUTHORIZATION") {
+            setSeniorConfirmOpen(true);
             return;
           }
           toast.success("Estimate approved and routed for repair processing.");
         };
 
+        const handleEditToggle = () => {
+          if (editMode) syncDraftValues();
+          setEditMode((v) => !v);
+        };
+
         return (
           <>
-            {/* State banner */}
-            <div
-              className="shrink-0 rounded-md border px-3 py-2 text-xs leading-snug"
-              style={{
-                backgroundColor: banner.bg,
-                borderColor: banner.border,
-                color: banner.fg,
-              }}
-            >
-              {banner.text}
-            </div>
+            {/* Verification Recommended Panel — informational only, never blocks */}
+            {showVerificationPanel && (
+              <div
+                className="shrink-0 rounded-md border-l-2 border px-3 py-2.5"
+                style={{
+                  backgroundColor: COLORS.amberBg,
+                  borderColor: COLORS.amberBorder,
+                  borderLeftColor: COLORS.amber,
+                }}
+              >
+                <div className="flex items-start gap-2">
+                  <AlertTriangle
+                    size={14}
+                    className="mt-0.5 shrink-0"
+                    style={{ color: COLORS.amberText }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className="text-xs font-semibold"
+                      style={{ color: COLORS.amberText }}
+                    >
+                      Verification Recommended
+                    </div>
+                    <ul className="mt-1 flex flex-col gap-1">
+                      {verificationItems.map((item, idx) => (
+                        <li
+                          key={idx}
+                          className="flex items-start gap-1.5 text-[12px] leading-snug"
+                          style={{ color: "#92400E" }}
+                        >
+                          <span
+                            className="mt-1.5 w-1 h-1 rounded-full shrink-0"
+                            style={{ backgroundColor: COLORS.amber }}
+                          />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
 
+            {/* Persistent Action Bar — always 3 actions, never disabled by warnings */}
             <div className="shrink-0 flex items-center gap-2 pt-1">
-              {/* Primary action OR submitted indicator */}
-              {mode === "senior" && seniorSubmitted ? (
+              {/* PRIMARY */}
+              {workflowMode === "SENIOR_AUTHORIZATION" && seniorSubmitted ? (
                 <div
-                  className="flex-1 rounded-md py-2.5 text-xs font-medium text-center"
-                  style={{ color: COLORS.muted, backgroundColor: "#F9FAFB", border: `1px solid ${COLORS.border}` }}
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-md py-2.5 text-xs font-medium"
+                  style={{
+                    color: COLORS.muted,
+                    backgroundColor: "#F9FAFB",
+                    border: `1px solid ${COLORS.border}`,
+                  }}
                 >
-                  <span style={{ color: "#DC2626" }}>●</span> Submitted — pending senior approval
+                  <Clock size={13} />
+                  Pending Senior Authorization
                 </div>
               ) : (
                 <button
                   type="button"
                   onClick={handlePrimary}
-                  disabled={primaryDisabled}
                   className="flex-1 rounded-md py-2.5 text-sm font-semibold transition-colors"
                   style={{
-                    backgroundColor: primary.bg,
-                    color: primary.fg,
-                    border: primary.border,
-                    opacity: primaryDisabled ? 0.55 : 1,
-                    cursor: primaryDisabled ? "not-allowed" : "pointer",
+                    backgroundColor: COLORS.blue,
+                    color: "white",
+                    border: "none",
                   }}
-                  onMouseEnter={(e) => {
-                    if (!primaryDisabled) e.currentTarget.style.backgroundColor = primary.hover;
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!primaryDisabled) e.currentTarget.style.backgroundColor = primary.bg;
-                  }}
-                  title={
-                    concernsBlock
-                      ? "Acknowledge verification concerns before proceeding."
-                      : undefined
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = COLORS.blueHover)
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = COLORS.blue)
                   }
                 >
-                  {primary.label}
+                  {primaryLabel}
                 </button>
               )}
 
-              {/* Secondary: Generate Report */}
+              {/* SECONDARY: Edit / Save Edits */}
+              <button
+                type="button"
+                onClick={handleEditToggle}
+                className="rounded-md border px-3 py-2.5 text-sm font-semibold transition-colors"
+                style={{
+                  borderColor: COLORS.blue,
+                  color: editMode ? "white" : COLORS.blue,
+                  backgroundColor: editMode ? COLORS.blue : "transparent",
+                }}
+              >
+                {editMode ? "Save Edits" : "Edit Estimate"}
+              </button>
+
+              {/* TERTIARY: Save & Request Information */}
+              <button
+                type="button"
+                onClick={() => setRequestInfoOpen(true)}
+                className="rounded-md border px-3 py-2.5 text-sm font-medium transition-colors"
+                style={{
+                  borderColor: COLORS.border,
+                  color: COLORS.text,
+                  backgroundColor: "white",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F9FAFB")}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
+              >
+                Save & Request Information
+              </button>
+            </div>
+
+            {/* Tertiary row: Generate Report + Add Internal Note */}
+            <div className="shrink-0 flex items-center justify-between pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  notesRef.current?.focus();
+                  notesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
+                className="text-xs font-medium underline-offset-2 hover:underline"
+                style={{ color: COLORS.muted }}
+              >
+                + Add Internal Note
+              </button>
               <button
                 type="button"
                 disabled={isGeneratingReport}
@@ -4547,40 +4599,161 @@ function EstimateReviewPanel({
                   }
                   generateReport();
                 }}
-                className="rounded-md border px-3 py-2.5 text-sm font-semibold transition-colors"
-                style={{
-                  borderColor: COLORS.border,
-                  color: COLORS.text,
-                  backgroundColor: "white",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F9FAFB")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
+                className="inline-flex items-center gap-1 text-xs font-medium underline-offset-2 hover:underline"
+                style={{ color: COLORS.blue }}
               >
+                <FileText size={12} />
                 {isGeneratingReport ? "Generating…" : "Generate Report"}
+                <ChevronRight size={12} />
               </button>
             </div>
 
-            {/* Secondary muted text below documents button */}
-            {mode === "documents" && (
-              <p className="shrink-0 text-[11px]" style={{ color: COLORS.muted }}>
-                Claim remains open. Policyholder will be notified.
-              </p>
-            )}
+            {/* Senior Authorization Confirmation Modal */}
+            <Dialog open={seniorConfirmOpen} onOpenChange={setSeniorConfirmOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Submit Estimate for Senior Authorization</DialogTitle>
+                  <DialogDescription>
+                    You are submitting a draft estimate of{" "}
+                    <span
+                      className="font-semibold"
+                      style={{ color: COLORS.text }}
+                    >
+                      {fmtCurrency(adjustedTotal)}
+                    </span>{" "}
+                    for{" "}
+                    <span className="font-semibold" style={{ color: COLORS.text }}>
+                      {[claimForm?.year, claimForm?.make, claimForm?.model]
+                        .filter(Boolean)
+                        .join(" ") || "this vehicle"}
+                    </span>{" "}
+                    for senior adjuster authorization.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <button
+                    type="button"
+                    onClick={() => setSeniorConfirmOpen(false)}
+                    className="rounded-md border px-4 py-2 text-sm font-medium"
+                    style={{
+                      borderColor: COLORS.border,
+                      color: COLORS.text,
+                      backgroundColor: "white",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSeniorConfirmOpen(false);
+                      setSeniorSubmitted(true);
+                      toast.success("Estimate submitted for senior adjuster authorization.");
+                    }}
+                    className="rounded-md px-4 py-2 text-sm font-semibold text-white"
+                    style={{ backgroundColor: COLORS.blue }}
+                  >
+                    Confirm Submission
+                  </button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
-            {/* Tertiary: Add Internal Note */}
-            <div className="shrink-0 flex justify-end pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  notesRef.current?.focus();
-                  notesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-                }}
-                className="text-xs font-medium underline-offset-2 hover:underline"
-                style={{ color: COLORS.muted }}
-              >
-                + Add Internal Note
-              </button>
-            </div>
+            {/* Request Information Modal */}
+            <Dialog
+              open={requestInfoOpen}
+              onOpenChange={(open) => {
+                setRequestInfoOpen(open);
+                if (!open) resetRequestInfo();
+              }}
+            >
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Request Information</DialogTitle>
+                  <DialogDescription>
+                    Select what to request from the policyholder
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col gap-2.5 py-2">
+                  {([
+                    ["police_report", "Police report"],
+                    ["additional_photos", "Additional damage photos"],
+                    ["supporting_docs", "Supporting documentation"],
+                    ["customer_clarification", "Customer clarification"],
+                  ] as [keyof typeof requestItems, string][]).map(([key, label]) => (
+                    <label
+                      key={key}
+                      className="flex items-center gap-2.5 text-sm cursor-pointer rounded-md px-2 py-1.5 hover:bg-slate-50"
+                      style={{ color: COLORS.text }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={requestItems[key]}
+                        onChange={(e) =>
+                          setRequestItems((prev) => ({ ...prev, [key]: e.target.checked }))
+                        }
+                        className="w-4 h-4 rounded border-slate-300"
+                      />
+                      {label}
+                    </label>
+                  ))}
+                  <div className="flex flex-col gap-1 mt-2">
+                    <label
+                      className="text-xs font-medium"
+                      style={{ color: COLORS.muted }}
+                    >
+                      Message to policyholder (optional)
+                    </label>
+                    <textarea
+                      value={requestMessage}
+                      onChange={(e) => setRequestMessage(e.target.value.slice(0, 500))}
+                      rows={3}
+                      placeholder="Example: Please upload a copy of the police report related to this incident."
+                      className="w-full rounded-md border px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      style={{
+                        borderColor: COLORS.border,
+                        backgroundColor: COLORS.surface,
+                        color: COLORS.text,
+                      }}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRequestInfoOpen(false);
+                      resetRequestInfo();
+                    }}
+                    className="rounded-md border px-4 py-2 text-sm font-medium"
+                    style={{
+                      borderColor: COLORS.border,
+                      color: COLORS.text,
+                      backgroundColor: "white",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!anyRequestItemSelected}
+                    onClick={() => {
+                      setRequestInfoOpen(false);
+                      resetRequestInfo();
+                      toast.success("Information request sent. Claim saved pending response.");
+                    }}
+                    className="rounded-md px-4 py-2 text-sm font-semibold text-white"
+                    style={{
+                      backgroundColor: COLORS.blue,
+                      opacity: anyRequestItemSelected ? 1 : 0.55,
+                      cursor: anyRequestItemSelected ? "pointer" : "not-allowed",
+                    }}
+                  >
+                    Send Request
+                  </button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </>
         );
       })()}
