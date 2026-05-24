@@ -3589,6 +3589,7 @@ function EstimateReviewPanel({
   generateReportRef: React.MutableRefObject<((forAuthorization?: boolean) => Promise<void>) | null>;
   readOnly?: boolean;
   onOpenNewClaim?: () => void;
+  onInfoRequest?: () => void;
 }) {
   const [adjusted, setAdjusted] = useState<number[]>(() =>
     claim.parts.map((p) => p.draftEstimate),
