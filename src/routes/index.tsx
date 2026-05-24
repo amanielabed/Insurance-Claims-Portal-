@@ -1953,11 +1953,13 @@ function ReviewEstimateStep({
   const [seniorReview, setSeniorReview] = useState(claim.delegationState === "SENIOR_REVIEW");
   const [scenarioOpen, setScenarioOpen] = useState(false);
   const [highlightedPart, setHighlightedPart] = useState<number | null>(null);
+  const [concernsDismissed, setConcernsDismissed] = useState(false);
 
   // Sync escalation when switching claims — auto-load senior review for SENIOR_REVIEW scenarios
   useEffect(() => {
     setSeniorReview(claim.delegationState === "SENIOR_REVIEW");
     setHighlightedPart(null);
+    setConcernsDismissed(false);
   }, [selectedId, claim.delegationState]);
 
   const isFastTrack = claim.delegationState === "FAST_TRACK";
@@ -2243,7 +2245,11 @@ function ReviewEstimateStep({
 
         {/* Center: Assessment Review */}
         <Panel title="Assessment Review">
-          <AssessmentReviewPanel claim={claim} />
+          <AssessmentReviewPanel
+            claim={claim}
+            concernsDismissed={concernsDismissed}
+            onDismissConcerns={() => setConcernsDismissed(true)}
+          />
         </Panel>
 
         {/* Right: Estimate Review */}
@@ -2260,6 +2266,8 @@ function ReviewEstimateStep({
             onHighlight={(idx) =>
               setHighlightedPart((cur) => (cur === idx ? null : idx))
             }
+            concernsDismissed={concernsDismissed}
+            hasConcerns={(claim.verificationConcerns?.length ?? 0) > 0}
           />
         </Panel>
       </main>
@@ -2329,7 +2337,15 @@ function DemoGuide() {
   );
 }
 
-function AssessmentReviewPanel({ claim }: { claim: Claim }) {
+function AssessmentReviewPanel({
+  claim,
+  concernsDismissed,
+  onDismissConcerns,
+}: {
+  claim: Claim;
+  concernsDismissed: boolean;
+  onDismissConcerns: () => void;
+}) {
   const isFastTrack = claim.delegationState === "FAST_TRACK";
   const isSenior = claim.delegationState === "SENIOR_REVIEW";
 
@@ -2473,10 +2489,14 @@ function AssessmentReviewPanel({ claim }: { claim: Claim }) {
             <p className="text-sm" style={{ color: COLORS.muted }}>
               No additional review triggers detected.
             </p>
+          ) : concernsDismissed ? (
+            <p className="text-xs" style={{ color: COLORS.muted }}>
+              ✓ Verification concerns noted by adjuster.
+            </p>
           ) : (
             <div className="flex flex-col gap-1.5">
               <p className="text-xs font-medium" style={{ color: COLORS.amberText }}>
-                Verification concerns:
+                Review before approving:
               </p>
               {claim.verificationConcerns?.map((concern, i) => (
                 <div key={i} className="flex items-start gap-2 text-sm" style={{ color: "#374151" }}>
@@ -2484,6 +2504,14 @@ function AssessmentReviewPanel({ claim }: { claim: Claim }) {
                   {concern}
                 </div>
               ))}
+              <button
+                type="button"
+                onClick={onDismissConcerns}
+                className="self-start text-xs font-medium underline-offset-2 hover:underline mt-1"
+                style={{ color: COLORS.blue }}
+              >
+                Noted — proceed
+              </button>
             </div>
           )}
         </div>
@@ -2866,6 +2894,8 @@ function EstimateReviewPanel({
   onTriggerSeniorReview,
   highlightedPart,
   onHighlight,
+  concernsDismissed,
+  hasConcerns,
 }: {
   claim: Claim;
   claimForm: ClaimForm | null;
@@ -2875,6 +2905,8 @@ function EstimateReviewPanel({
   onTriggerSeniorReview: () => void;
   highlightedPart: number | null;
   onHighlight: (partIndex: number) => void;
+  concernsDismissed: boolean;
+  hasConcerns: boolean;
 }) {
   const [adjusted, setAdjusted] = useState<number[]>(() =>
     claim.parts.map((p) => p.draftEstimate),
@@ -2886,14 +2918,6 @@ function EstimateReviewPanel({
   const [expanded, setExpanded] = useState<number | null>(null);
   const toggleExpanded = (row: number) =>
     setExpanded((prev) => (prev === row ? null : row));
-  const [checks, setChecks] = useState<[boolean, boolean, boolean]>([false, false, false]);
-  const allChecked = checks.every(Boolean);
-  const toggle = (i: number) =>
-    setChecks((prev) => {
-      const next = [...prev] as [boolean, boolean, boolean];
-      next[i] = !next[i];
-      return next;
-    });
 
   const NOTES_LIMIT = 500;
   const [adjusterNotes, setAdjusterNotes] = useState("");
@@ -2918,8 +2942,7 @@ function EstimateReviewPanel({
     }, 700);
   };
 
-  const [editMode, setEditMode] = useState(false);
-  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [seniorSubmitted, setSeniorSubmitted] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   // Rationale tracking for adjuster overrides
@@ -3753,17 +3776,10 @@ function EstimateReviewPanel({
         authBg = "#FEF3C7";
         authFg = "#B45309";
       } else {
-        const completed = checks.filter(Boolean).length;
-        verifyText = `${completed} of 3 completed`;
-        if (completed === 3) {
-          authText = "Submitted for authorization";
-          authBg = "#DBEAFE";
-          authFg = "#1D4ED8";
-        } else {
-          authText = "Pending adjuster approval";
-          authBg = "#FEF3C7";
-          authFg = "#B45309";
-        }
+        verifyText = "Reviewed by adjuster";
+        authText = "Submitted for authorization";
+        authBg = "#DBEAFE";
+        authFg = "#1D4ED8";
       }
       const vRows: {
         label: string;
@@ -3990,7 +4006,6 @@ function EstimateReviewPanel({
                         type="number"
                         step="0.01"
                         value={drafts[i]}
-                        readOnly={!editMode}
                         onChange={(e) =>
                           setDrafts((prev) => {
                             const n = [...prev];
@@ -4004,10 +4019,10 @@ function EstimateReviewPanel({
                         }}
                         className="w-24 text-right tabular-nums rounded border px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         style={{
-                          borderColor: editMode ? "#93C5FD" : "#D1D5DB",
-                          backgroundColor: editMode ? COLORS.surface : "#F9FAFB",
-                          color: editMode ? COLORS.text : COLORS.muted,
-                          cursor: editMode ? "text" : "not-allowed",
+                          borderColor: "#93C5FD",
+                          backgroundColor: COLORS.surface,
+                          color: COLORS.text,
+                          cursor: "text",
                         }}
                       />
                     </div>
@@ -4353,50 +4368,96 @@ function EstimateReviewPanel({
         </div>
       )}
       {(() => {
-        const pr = claimForm?.policeReport ?? "";
-        const policePending = pr !== "uploaded";
-        const photosNeeded = claim.delegationState === "MANUAL_REVIEW";
-        // Priority: senior > photos > police > approve
-        const mode: "senior" | "photos" | "police" | "approve" = seniorReview
+        const fault = claimForm?.fault;
+        const otherPartyInvolved =
+          fault === "other" || fault === "policyholder" || fault === "unclear";
+        const policeMissing = (claimForm?.policeReport ?? "") !== "uploaded";
+        const photosFlagged = claim.delegationState === "MANUAL_REVIEW";
+        const verifyValue = claim.parts.reduce(
+          (s, p, i) => (p.sources?.includes("verify") ? s + adjusted[i] : s),
+          0,
+        );
+        const verifyShare = adjustedTotal > 0 ? verifyValue / adjustedTotal : 0;
+        const seniorRequired = seniorReview || adjustedTotal > 5000 || verifyShare > 0.4;
+
+        const mode: "senior" | "photos" | "documents" | "approve" = seniorRequired
           ? "senior"
-          : photosNeeded
+          : photosFlagged
             ? "photos"
-            : policePending
-              ? "police"
+            : policeMissing && otherPartyInvolved
+              ? "documents"
               : "approve";
 
-        const primary =
-          mode === "senior"
+        const banner =
+          mode === "approve"
             ? {
-                label: "Submit for Senior Authorization",
-                bg: "#DC2626",
-                hover: "#B91C1C",
+                text: "This estimate is ready for approval.",
+                bg: "#F0FDF4",
+                border: "#BBF7D0",
+                fg: "#15803D",
+                sub: null as string | null,
+              }
+            : mode === "documents"
+              ? {
+                  text:
+                    "Supporting documentation required before final approval. Current estimate progress will be saved while awaiting documents.",
+                  bg: COLORS.amberBg,
+                  border: COLORS.amberBorder,
+                  fg: COLORS.amberText,
+                  sub: null,
+                }
+              : mode === "photos"
+                ? {
+                    text: "Additional photos are needed to verify the full damage scope.",
+                    bg: COLORS.amberBg,
+                    border: COLORS.amberBorder,
+                    fg: COLORS.amberText,
+                    sub: null,
+                  }
+                : {
+                    text:
+                      "This estimate requires senior adjuster authorization before repair can proceed.",
+                    bg: "#FEF2F2",
+                    border: "#FECACA",
+                    fg: "#991B1B",
+                    sub: null,
+                  };
+
+        const primary =
+          mode === "approve"
+            ? {
+                label: "Approve Estimate",
+                bg: COLORS.blue,
+                hover: COLORS.blueHover,
                 fg: "white",
                 border: "none",
               }
-            : mode === "photos"
+            : mode === "documents"
               ? {
-                  label: "Save & Request Additional Photos",
-                  bg: "#FFFBEB",
-                  hover: "#FEF3C7",
-                  fg: "#92400E",
-                  border: "1px solid #FCD34D",
+                  label: "Save & Request Documents",
+                  bg: "#D97706",
+                  hover: "#B45309",
+                  fg: "white",
+                  border: "none",
                 }
-              : mode === "police"
+              : mode === "photos"
                 ? {
-                    label: "Save & Request Police Report",
-                    bg: "#FFFBEB",
-                    hover: "#FEF3C7",
-                    fg: "#92400E",
-                    border: "1px solid #FCD34D",
+                    label: "Save & Request Additional Photos",
+                    bg: "#D97706",
+                    hover: "#B45309",
+                    fg: "white",
+                    border: "none",
                   }
                 : {
-                    label: "Approve Draft Estimate",
+                    label: "Submit for Senior Authorization",
                     bg: COLORS.blue,
                     hover: COLORS.blueHover,
                     fg: "white",
                     border: "none",
                   };
+
+        const concernsBlock = hasConcerns && !concernsDismissed;
+        const primaryDisabled = concernsBlock || (mode === "senior" && seniorSubmitted);
 
         const handlePrimary = () => {
           if (hasPendingOverrides) {
@@ -4406,67 +4467,72 @@ function EstimateReviewPanel({
             return;
           }
           if (mode === "senior") {
-            toast.success(`Claim #${claim.id} submitted for senior adjuster review.`, {
-              description: "Estimate saved pending senior authorization.",
-            });
+            setSeniorSubmitted(true);
+            toast.success("Estimate submitted for senior adjuster authorization.");
+            return;
+          }
+          if (mode === "documents") {
+            toast.success("Document request sent to policyholder.");
             return;
           }
           if (mode === "photos") {
-            toast.success("Additional photo request sent to policyholder.", {
-              description: "Estimate saved pending documentation.",
-            });
+            toast.success("Additional photo request sent to policyholder.");
             return;
           }
-          if (mode === "police") {
-            toast.success("Request sent to policyholder for police report upload.", {
-              description: "Estimate saved pending documentation.",
-            });
-            return;
-          }
-          if (isFastTrack) {
-            toast.success(`Claim #${claim.id} approved and submitted.`, {
-              description: `Estimate authorization issued for ${fmtCurrency(adjustedTotal)}.`,
-            });
-          } else {
-            setAuthDialogOpen(true);
-          }
+          toast.success("Estimate approved and routed for repair processing.");
         };
 
         return (
           <>
-            <div className="shrink-0 flex items-center gap-2 pt-1">
-              {/* Primary action */}
-              <button
-                type="button"
-                onClick={handlePrimary}
-                className="flex-1 rounded-md py-2.5 text-sm font-semibold transition-colors"
-                style={{
-                  backgroundColor: primary.bg,
-                  color: primary.fg,
-                  border: primary.border,
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = primary.hover)}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = primary.bg)}
-              >
-                {primary.label}
-              </button>
+            {/* State banner */}
+            <div
+              className="shrink-0 rounded-md border px-3 py-2 text-xs leading-snug"
+              style={{
+                backgroundColor: banner.bg,
+                borderColor: banner.border,
+                color: banner.fg,
+              }}
+            >
+              {banner.text}
+            </div>
 
-              {/* Secondary: Edit Estimate */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (editMode) syncDraftValues();
-                  setEditMode((v) => !v);
-                }}
-                className="rounded-md border px-3 py-2.5 text-sm font-semibold transition-colors"
-                style={{
-                  borderColor: COLORS.blue,
-                  color: editMode ? "white" : COLORS.blue,
-                  backgroundColor: editMode ? COLORS.blue : "transparent",
-                }}
-              >
-                {editMode ? "Lock Edits ✓" : "Edit Estimate"}
-              </button>
+            <div className="shrink-0 flex items-center gap-2 pt-1">
+              {/* Primary action OR submitted indicator */}
+              {mode === "senior" && seniorSubmitted ? (
+                <div
+                  className="flex-1 rounded-md py-2.5 text-xs font-medium text-center"
+                  style={{ color: COLORS.muted, backgroundColor: "#F9FAFB", border: `1px solid ${COLORS.border}` }}
+                >
+                  <span style={{ color: "#DC2626" }}>●</span> Submitted — pending senior approval
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handlePrimary}
+                  disabled={primaryDisabled}
+                  className="flex-1 rounded-md py-2.5 text-sm font-semibold transition-colors"
+                  style={{
+                    backgroundColor: primary.bg,
+                    color: primary.fg,
+                    border: primary.border,
+                    opacity: primaryDisabled ? 0.55 : 1,
+                    cursor: primaryDisabled ? "not-allowed" : "pointer",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!primaryDisabled) e.currentTarget.style.backgroundColor = primary.hover;
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!primaryDisabled) e.currentTarget.style.backgroundColor = primary.bg;
+                  }}
+                  title={
+                    concernsBlock
+                      ? "Acknowledge verification concerns before proceeding."
+                      : undefined
+                  }
+                >
+                  {primary.label}
+                </button>
+              )}
 
               {/* Secondary: Generate Report */}
               <button
@@ -4494,6 +4560,13 @@ function EstimateReviewPanel({
               </button>
             </div>
 
+            {/* Secondary muted text below documents button */}
+            {mode === "documents" && (
+              <p className="shrink-0 text-[11px]" style={{ color: COLORS.muted }}>
+                Claim remains open. Policyholder will be notified.
+              </p>
+            )}
+
             {/* Tertiary: Add Internal Note */}
             <div className="shrink-0 flex justify-end pt-1">
               <button
@@ -4511,45 +4584,6 @@ function EstimateReviewPanel({
           </>
         );
       })()}
-
-
-      <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Authorization</DialogTitle>
-            <DialogDescription>
-              You are authorizing an estimate of{" "}
-              <span className="font-semibold" style={{ color: COLORS.text }}>
-                {fmtCurrency(adjustedTotal)}
-              </span>{" "}
-              for this vehicle. All required verification checks have been completed.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <button
-              type="button"
-              onClick={() => setAuthDialogOpen(false)}
-              className="rounded-md border px-4 py-2 text-sm font-medium"
-              style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: "white" }}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setAuthDialogOpen(false);
-                toast.success(`Claim #${claim.id} approved and submitted.`, {
-                  description: `Estimate authorization issued for ${fmtCurrency(adjustedTotal)}.`,
-                });
-              }}
-              className="rounded-md px-4 py-2 text-sm font-semibold text-white"
-              style={{ backgroundColor: COLORS.blue }}
-            >
-              Confirm Authorization
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
     </div>
   );
