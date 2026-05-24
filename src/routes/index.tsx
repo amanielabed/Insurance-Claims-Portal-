@@ -3390,6 +3390,9 @@ function EstimateReviewPanel({
   >(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  useEffect(() => {
+    if (readOnly) setEditMode(false);
+  }, [readOnly]);
   const seniorSubmitted = seniorPending;
   const isAuthorized = authorization !== null;
 
