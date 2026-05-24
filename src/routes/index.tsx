@@ -1237,7 +1237,7 @@ function lookupPolicy(policyNumber: string): PolicyLookup | null {
   if (p.startsWith("POL-2026"))
     return { fullName: "Sarah Al-Mansouri", year: "2023", make: "Toyota", model: "Camry XSE", coverage: "full", deductible: "500" };
   if (p.startsWith("POL-2025"))
-    return { fullName: "Omar Al-Kuwari", year: "2021", make: "Honda", model: "CR-V EX", coverage: "third_party", deductible: null };
+    return { fullName: "Omar Al-Kuwari", year: "2021", make: "Honda", model: "CR-V EX", coverage: "full", deductible: "500" };
   return null;
 }
 
