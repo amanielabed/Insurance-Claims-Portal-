@@ -57,10 +57,12 @@ interface ScenarioMeta {
   description: string;
   subtext?: string;
   state: "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION";
-  coverage: "full" | "third_party";
-  fault: "policyholder" | "other" | "unclear" | "single_vehicle";
+  coverage: "full";
+  fault: "policyholder" | "other";
   coverageLabel: string;
   faultLabel: string;
+  deductibleLabel: string;
+  deductibleValue: string;
   estimateRange: string;
 }
 
@@ -69,37 +71,43 @@ const SCENARIOS: ScenarioMeta[] = [
     id: "2026-001",
     label: "Fast-Track Approval (Demo)",
     description:
-      "Demonstrates fast-track routing — clear photo evidence, low repair complexity, and streamlined authorization workflow.",
+      "Full Coverage — minor cosmetic damage, direct agent approval.",
     state: "FAST_TRACK",
     coverage: "full",
-    fault: "policyholder",
-    coverageLabel: "Full Coverage",
-    faultLabel: "Policyholder at fault",
-    estimateRange: "~$187",
+    fault: "other",
+    coverageLabel: "Full Coverage Policy",
+    faultLabel: "Other party at fault",
+    deductibleLabel: "N/A — liability handled by at-fault party",
+    deductibleValue: "",
+    estimateRange: "$329.50",
   },
   {
     id: "2026-002",
     label: "Verification Required (Demo)",
     description:
-      "Demonstrates verification review routing — uncertain damage scope requiring additional verification before authorization.",
+      "Full Coverage — moderate collision damage, additional review recommended.",
     state: "VERIFICATION_RECOMMENDED",
     coverage: "full",
-    fault: "unclear",
-    coverageLabel: "Full Coverage",
-    faultLabel: "Fault unclear",
-    estimateRange: "$1,240–$2,100",
+    fault: "policyholder",
+    coverageLabel: "Full Coverage Policy",
+    faultLabel: "Policyholder at fault",
+    deductibleLabel: "$500 (retrieved from policy record)",
+    deductibleValue: "500",
+    estimateRange: "$1,240",
   },
   {
     id: "2026-003",
     label: "Senior Authorization Required (Demo)",
     description:
-      "Demonstrates senior authorization routing — high-value structural claim exceeding standard authorization thresholds.",
+      "Full Coverage — major structural collision, senior sign-off required.",
     subtext: "Authorization pending senior approval.",
     state: "SENIOR_AUTHORIZATION",
-    coverage: "third_party",
+    coverage: "full",
     fault: "policyholder",
-    coverageLabel: "Third-Party Coverage",
+    coverageLabel: "Full Coverage Policy",
     faultLabel: "Policyholder at fault",
+    deductibleLabel: "$500 (retrieved from policy record)",
+    deductibleValue: "500",
     estimateRange: "$8,400+",
   },
 ];
@@ -1229,7 +1237,7 @@ function lookupPolicy(policyNumber: string): PolicyLookup | null {
   if (p.startsWith("POL-2026"))
     return { fullName: "Sarah Al-Mansouri", year: "2023", make: "Toyota", model: "Camry XSE", coverage: "full", deductible: "500" };
   if (p.startsWith("POL-2025"))
-    return { fullName: "Omar Al-Kuwari", year: "2021", make: "Honda", model: "CR-V EX", coverage: "third_party", deductible: null };
+    return { fullName: "Omar Al-Kuwari", year: "2021", make: "Honda", model: "CR-V EX", coverage: "full", deductible: "500" };
   return null;
 }
 
@@ -1328,29 +1336,16 @@ function InitiateClaimStep({
 
   const eligibility = (() => {
     if (!validated || !fault) return null;
-    const coverage = validated.coverage;
-    if (coverage === "third_party" && fault === "single_vehicle") {
-      return { tone: "red" as const, title: "Coverage not available for this incident type.", body: "Single-vehicle incidents are not covered under a third-party only policy.", action: "Exit Claim", canContinue: false };
-    }
-    if (coverage === "third_party" && fault === "policyholder") {
-      return { tone: "amber" as const, title: "Limited coverage detected.", body: "This policy may not cover repairs to the policyholder's vehicle under the current fault assessment.", action: "Continue Documentation", note: "Damage details may still be collected for claim records.", canContinue: true };
-    }
-    if (coverage === "third_party" && fault === "other") {
-      return { tone: "blue" as const, title: "External insurer workflow likely required.", body: "Damage documentation may be used to support coordination with the other party's insurer.", action: "Continue Documentation", canContinue: true };
-    }
-    if (coverage === "third_party" && fault === "unclear") {
-      return { tone: "amber" as const, title: "Limited coverage — pending fault outcome.", body: "Documentation may proceed; final eligibility depends on the fault investigation.", action: "Continue Documentation", canContinue: true };
-    }
-    if (coverage === "full" && fault === "policyholder") {
+    if (fault === "policyholder") {
       return { tone: "green" as const, title: "Coverage confirmed.", body: "This policy includes coverage for the reported vehicle damage. Deductible may apply.", action: "Continue Claim Review", showDeductible: true, canContinue: true };
     }
-    if (coverage === "full" && fault === "other") {
+    if (fault === "other") {
       return { tone: "green" as const, title: "Coverage confirmed.", body: "Vehicle damage is eligible for claim processing under this policy.", action: "Continue Claim Review", canContinue: true };
     }
-    if (coverage === "full" && fault === "unclear") {
-      return { tone: "amber" as const, title: "Claim eligible for review.", body: "Final authorization may depend on the outcome of the fault investigation. Additional verification may be required.", action: "Continue Claim Review", canContinue: true };
+    if (fault === "unclear") {
+      return { tone: "amber" as const, title: "Claim eligible for review.", body: "Additional verification may be required before final authorization.", action: "Continue Claim Review", canContinue: true };
     }
-    if (coverage === "full" && fault === "single_vehicle") {
+    if (fault === "single_vehicle") {
       return { tone: "green" as const, title: "Coverage confirmed.", body: "Single-vehicle incidents are eligible for claim processing under this policy.", action: "Continue Claim Review", canContinue: true };
     }
     return null;
@@ -1543,8 +1538,7 @@ function InitiateClaimStep({
               </div>
             )}
             <p className="text-[11px] mt-2" style={{ color: COLORS.muted }}>
-              This form is for own-vehicle damage claims only. For third-party or liability claims,
-              contact your claims supervisor.
+              This form is for own-vehicle damage claims only.
             </p>
           </Field>
           <Field
@@ -1905,7 +1899,7 @@ function EligibilityCheck({
             <div>
               <div className="text-[10px] uppercase mb-1" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>Coverage Type</div>
               <div className="text-sm font-medium" style={{ color: COLORS.text }}>
-                {validated.coverage === "full" ? "Full Coverage (Comprehensive)" : "Third-Party Coverage"}
+                Full Coverage Policy
               </div>
             </div>
             <div>
@@ -1993,14 +1987,14 @@ function EligibilityCheck({
                   <>
                     <div>
                       <div className="text-[11px] uppercase" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
-                        Deductible Status
+                        Deductible
                       </div>
                       <div className="text-sm font-medium" style={{ color: COLORS.text }}>
-                        Pending liability determination
+                        N/A — handled by at-fault party
                       </div>
                     </div>
                     <div className="text-[11px] italic" style={{ color: COLORS.muted }}>
-                      If the other party is determined to be at fault, deductible recovery may apply.
+                      No policyholder contribution required when the other party is at fault.
                     </div>
                   </>
                 )}
@@ -2186,7 +2180,12 @@ function ReviewEstimateStep({
   // Unified Demo Claim: scenario overrides coverage + fault so policy details,
   // coverage status, escalation logic, and downstream panels all stay in sync.
   const effectiveClaimForm: ClaimForm | null = claimForm
-    ? { ...claimForm, coverage: currentScenario.coverage, fault: currentScenario.fault }
+    ? {
+        ...claimForm,
+        coverage: currentScenario.coverage,
+        fault: currentScenario.fault,
+        deductible: currentScenario.deductibleValue,
+      }
     : null;
 
   return (
@@ -2214,70 +2213,50 @@ function ReviewEstimateStep({
       </div>
 
       {/* Policyholder coverage status bar */}
-      {effectiveClaimForm && (effectiveClaimForm.coverage || effectiveClaimForm.fault) && (() => {
-        const coverageLabel =
-          effectiveClaimForm.coverage === "full" ? "Full" :
-          effectiveClaimForm.coverage === "third_party" ? "Third-party" : "—";
-        const faultLabel =
-          effectiveClaimForm.fault === "policyholder" ? "At fault" :
-          effectiveClaimForm.fault === "other" ? "Not at fault" :
-          effectiveClaimForm.fault === "unclear" ? "Disputed" :
-          effectiveClaimForm.fault === "single_vehicle" ? "Single-vehicle" : "—";
-        const ded = effectiveClaimForm.deductible?.trim();
-        const deductibleLabel =
-          effectiveClaimForm.coverage === "third_party"
-            ? "N/A"
-            : effectiveClaimForm.coverage === "full" && effectiveClaimForm.fault === "policyholder"
-              ? (ded ? `$${ded}` : "N/A")
-              : effectiveClaimForm.coverage === "full"
-                ? "Pending"
-                : "N/A";
-
-        return (
-          <div
-            className="flex items-center gap-6 px-6 h-8 border-b shrink-0"
-            style={{ backgroundColor: "#F9FAFB", borderColor: COLORS.border }}
-          >
-            <div className="flex items-center gap-2 text-[11px]">
-              <span className="uppercase tracking-wider font-semibold" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
-                Coverage type:
-              </span>
-              <span className="font-medium" style={{ color: COLORS.text }}>{coverageLabel}</span>
-            </div>
-            <div className="h-3 w-px" style={{ backgroundColor: COLORS.border }} />
-            <div className="flex items-center gap-2 text-[11px]">
-              <span className="uppercase tracking-wider font-semibold" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
-                Fault:
-              </span>
-              <span className="font-medium" style={{ color: COLORS.text }}>{faultLabel}</span>
-            </div>
-            <div className="h-3 w-px" style={{ backgroundColor: COLORS.border }} />
-            <div className="flex items-center gap-2 text-[11px]" title="Policy-level deductible retrieved during validation.">
-              <span className="uppercase tracking-wider font-semibold cursor-help" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
-                Deductible:
-              </span>
-              <span className="font-medium tabular-nums" style={{ color: COLORS.text }}>{deductibleLabel}</span>
-            </div>
-
+      {effectiveClaimForm && (
+        <div
+          className="flex items-center gap-6 px-6 h-8 border-b shrink-0"
+          style={{ backgroundColor: "#F9FAFB", borderColor: COLORS.border }}
+        >
+          <div className="flex items-center gap-2 text-[11px]">
+            <span className="uppercase tracking-wider font-semibold" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+              Coverage type:
+            </span>
+            <span className="font-medium" style={{ color: COLORS.text }}>{currentScenario.coverageLabel}</span>
           </div>
-        );
-      })()}
+          <div className="h-3 w-px" style={{ backgroundColor: COLORS.border }} />
+          <div className="flex items-center gap-2 text-[11px]">
+            <span className="uppercase tracking-wider font-semibold" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+              Fault:
+            </span>
+            <span className="font-medium" style={{ color: COLORS.text }}>{currentScenario.faultLabel}</span>
+          </div>
+          <div className="h-3 w-px" style={{ backgroundColor: COLORS.border }} />
+          <div className="flex items-center gap-2 text-[11px]" title="Policy-level deductible retrieved during validation.">
+            <span className="uppercase tracking-wider font-semibold cursor-help" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+              Deductible:
+            </span>
+            <span className="font-medium tabular-nums" style={{ color: COLORS.text }}>{currentScenario.deductibleLabel}</span>
+          </div>
+        </div>
+      )}
 
-      {effectiveClaimForm?.coverage === "third_party" && effectiveClaimForm?.fault === "policyholder" && (
+      {currentScenario.state === "SENIOR_AUTHORIZATION" && (
         <div
           className="flex items-start gap-2 px-6 py-2 border-b text-[12px]"
           style={{
-            backgroundColor: COLORS.amberBg,
-            borderLeft: `3px solid ${COLORS.amber}`,
-            borderColor: COLORS.amberBorder,
-            color: COLORS.amberText,
+            backgroundColor: "#FEF2F2",
+            borderLeft: `3px solid #DC2626`,
+            borderColor: "#FECACA",
+            color: "#991B1B",
           }}
         >
           <span className="shrink-1 leading-relaxed">
-            Third-party liability claim. This claim covers damage to the other party's vehicle. Repairs to the policyholder's own vehicle are not covered under this policy.
+            High-value repair estimate. Senior authorization is required before repair approval can be issued.
           </span>
         </div>
       )}
+
 
       {/* Header */}
 
@@ -3685,13 +3664,11 @@ function EstimateReviewPanel({
       const cf2 = claimForm;
       const dedEntered = cf2?.deductible?.trim();
       const deductibleValue =
-        cf2?.coverage === "third_party"
-          ? "N/A"
-          : cf2?.coverage === "full" && cf2?.fault === "policyholder"
-            ? (dedEntered ? `$${dedEntered}` : "N/A")
-            : cf2?.coverage === "full"
-              ? "Pending"
-              : "—";
+        cf2?.fault === "policyholder"
+          ? (dedEntered ? `$${dedEntered}` : "N/A")
+          : cf2?.fault === "other"
+            ? "N/A"
+            : "—";
 
       const stats = [
         { label: "Review type", value: stateLabel, color: "#111827" },
@@ -3869,9 +3846,7 @@ function EstimateReviewPanel({
       sectionLabel("Coverage Summary");
       const cv = cf?.coverage;
       const ft = cf?.fault;
-      const coverageTypeText =
-        cv === "full" ? "Full Coverage (Comprehensive)" :
-        cv === "third_party" ? "Third-Party Coverage" : "—";
+      const coverageTypeText = "Full Coverage Policy";
       const faultText =
         ft === "policyholder" ? "Policyholder at fault" :
         ft === "other" ? "Other party at fault" :
@@ -3879,20 +3854,13 @@ function EstimateReviewPanel({
         ft === "single_vehicle" ? "Single-vehicle incident" : "—";
       const dedVal = cf?.deductible?.trim();
       const deductibleApplicable =
-        cv === "third_party"
-          ? "N/A"
-          : cv === "full" && ft === "policyholder"
-            ? (dedVal ? `$${dedVal} (retrieved from policy record)` : "N/A")
-            : cv === "full"
-              ? "Pending liability determination"
-              : "Pending";
+        ft === "policyholder"
+          ? (dedVal ? `$${dedVal} (retrieved from policy record)` : "N/A")
+          : ft === "other"
+            ? "N/A — handled by at-fault party"
+            : "Pending";
 
-      const claimBasis =
-        cv === "full"
-          ? "Own damage — full coverage"
-          : cv === "third_party"
-            ? "Third-party documentation — liability claim"
-            : "—";
+      const claimBasis = "Own damage — full coverage";
       const covRows: [string, string][] = [
         ["Coverage type", coverageTypeText],
         ["Fault determination", faultText],
@@ -3911,11 +3879,11 @@ function EstimateReviewPanel({
         pdf.setLineWidth(0.5);
         pdf.line(M, y, pageW - M, y);
       });
+      void cv;
       // Deductible exceeds repair cost note
       {
         const dedNum = parseFloat((cf?.deductible || "").replace(/[^0-9.]/g, ""));
         if (
-          cv !== "third_party" &&
           isFinite(dedNum) &&
           dedNum > 0 &&
           dedNum > draftTotal &&
@@ -4045,17 +4013,18 @@ function EstimateReviewPanel({
         const ft2 = cf2?.fault;
         const dedStr2 = cf2?.deductible?.trim() ?? "";
         const dedNum2 = parseFloat(dedStr2.replace(/[^0-9.]/g, ""));
-        const hasDeductible2 = cv2 === "full" && ft2 === "policyholder";
+        const hasDeductible2 = ft2 === "policyholder";
         const deductibleAmount2 = hasDeductible2 && isFinite(dedNum2) && dedNum2 > 0 ? dedNum2 : 0;
         const coveragePayout2 = hasDeductible2 ? Math.max(0, reportTotal - deductibleAmount2) : reportTotal;
-        const isFullyCovered2 = cv2 === "full" && (ft2 === "other" || (ft2 === "policyholder" && (!dedStr2 || dedNum2 <= 0)));
-        const isThirdParty2 = cv2 === "third_party";
+        const isFullyCovered2 = ft2 === "other" || (ft2 === "policyholder" && (!dedStr2 || dedNum2 <= 0));
+        void cv2;
 
         const payRows: [string, string][] = [
           ["Repair Estimate Total", fmtCurrency(reportTotal)],
         ];
-        if (isThirdParty2) {
-          payRows.push(["Policy Deductible", "N/A — third-party liability"]);
+        if (ft2 === "other") {
+          payRows.push(["Policy Deductible", "N/A — handled by at-fault party"]);
+          payRows.push(["Coverage Status", "Fully Covered"]);
         } else if (isFullyCovered2) {
           payRows.push(["Policy Deductible", "$0"]);
           payRows.push(["Coverage Status", "Fully Covered"]);
@@ -4063,7 +4032,7 @@ function EstimateReviewPanel({
           payRows.push(["Policy Deductible", `−${fmtCurrency(deductibleAmount2)}`]);
           payRows.push(["Estimated Insurance Coverage", fmtCurrency(coveragePayout2)]);
         } else {
-          payRows.push(["Policy Deductible", "Pending liability determination"]);
+          payRows.push(["Policy Deductible", "Pending"]);
         }
 
         payRows.forEach(([label, val]) => {
@@ -4078,13 +4047,13 @@ function EstimateReviewPanel({
           pdf.line(M, y, pageW - M, y);
         });
 
-        const helperText = isThirdParty2
-          ? "Third-party liability claim. The other party's insurance handles vehicle repairs. No deductible applies."
+        const helperText = ft2 === "other"
+          ? "No policyholder contribution required. The at-fault party's coverage applies."
           : isFullyCovered2
             ? "No policyholder contribution required for this repair."
             : hasDeductible2
               ? "Your policy includes a deductible, which is the portion of the repair cost paid by the policyholder before insurance coverage applies."
-              : "Deductible amount will be determined once fault liability is finalized.";
+              : "Deductible amount will be determined during final review.";
         const helperLines = pdf.splitTextToSize(helperText, W - 24) as string[];
         const helperH = helperLines.length * 13 + 12;
         need(helperH + 4);
@@ -4113,7 +4082,7 @@ function EstimateReviewPanel({
       });
       y += 4;
       wrapped(
-        "Methodology: Draft estimates combine third-party labor benchmarks, current parts pricing, and OEM repair procedures. Items lacking sufficient evidence are extrapolated from comparable claims and flagged for human verification.",
+        "Methodology: Draft estimates combine industry labor benchmarks, current parts pricing, and OEM repair procedures. Items lacking sufficient evidence are extrapolated from comparable claims and flagged for human verification.",
         M,
         W,
         12,
@@ -4753,19 +4722,19 @@ function EstimateReviewPanel({
         const ft = cf?.fault;
         const dedStr = cf?.deductible?.trim() ?? "";
         const dedNum = parseFloat(dedStr.replace(/[^0-9.]/g, ""));
-        const hasDeductible = cv === "full" && ft === "policyholder";
+        const hasDeductible = ft === "policyholder";
         const deductibleAmount = hasDeductible && isFinite(dedNum) && dedNum > 0 ? dedNum : 0;
         const coveragePayout = hasDeductible ? Math.max(0, adjustedTotal - deductibleAmount) : adjustedTotal;
-
-        const isFullyCovered = cv === "full" && (ft === "other" || (ft === "policyholder" && (!dedStr || dedNum <= 0)));
-        const isThirdParty = cv === "third_party";
+        const isOtherPartyAtFault = ft === "other";
+        const isFullyCovered = isOtherPartyAtFault || (ft === "policyholder" && (!dedStr || dedNum <= 0));
+        void cv;
 
         return (
           <div
             className="shrink-0 rounded-md border p-3"
             style={{
-              backgroundColor: isFullyCovered ? "#F0FDF4" : isThirdParty ? "#F8FAFC" : "#FFFBEB",
-              borderColor: isFullyCovered ? "#BBF7D0" : isThirdParty ? "#E5E7EB" : "#FDE68A",
+              backgroundColor: isFullyCovered ? "#F0FDF4" : "#FFFBEB",
+              borderColor: isFullyCovered ? "#BBF7D0" : "#FDE68A",
             }}
           >
             <div
@@ -4782,13 +4751,21 @@ function EstimateReviewPanel({
                 </span>
               </div>
 
-              {isThirdParty ? (
-                <div className="flex items-center justify-between text-sm">
-                  <span style={{ color: COLORS.text }}>Policy Deductible</span>
-                  <span className="tabular-nums font-medium" style={{ color: COLORS.muted }}>
-                    N/A
-                  </span>
-                </div>
+              {isOtherPartyAtFault ? (
+                <>
+                  <div className="flex items-center justify-between text-sm">
+                    <span style={{ color: COLORS.text }}>Policy Deductible</span>
+                    <span className="tabular-nums font-medium" style={{ color: COLORS.greenText }}>
+                      N/A
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span style={{ color: COLORS.text }}>Coverage Status</span>
+                    <span className="font-medium" style={{ color: COLORS.greenText }}>
+                      Fully Covered
+                    </span>
+                  </div>
+                </>
               ) : isFullyCovered ? (
                 <>
                   <div className="flex items-center justify-between text-sm">
@@ -4832,13 +4809,13 @@ function EstimateReviewPanel({
             </div>
 
             <p className="text-[11px] mt-2.5 leading-snug" style={{ color: COLORS.muted }}>
-              {isThirdParty
-                ? "Third-party liability claim. The other party's insurance handles vehicle repairs. No deductible applies."
+              {isOtherPartyAtFault
+                ? "No policyholder contribution required. The at-fault party's coverage applies."
                 : isFullyCovered
                   ? "No policyholder contribution required for this repair."
                   : hasDeductible
                     ? "Your policy includes a deductible, which is the portion of the repair cost paid by the policyholder before insurance coverage applies."
-                    : "Deductible amount will be determined once fault liability is finalized."}
+                    : "Deductible amount will be determined during final review."}
             </p>
           </div>
         );
