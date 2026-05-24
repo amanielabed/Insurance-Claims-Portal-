@@ -2143,7 +2143,7 @@ function ReviewEstimateStep({
   const [highlightedPart, setHighlightedPart] = useState<number | null>(null);
   const [concernsDismissed, setConcernsDismissed] = useState(false);
   const [authorization, setAuthorization] = useState<AuthorizationDetails | null>(null);
-  const [seniorPending, setSeniorPending] = useState<{ amount: number } | null>(null);
+  const [seniorPending, setSeniorPending] = useState<{ amount: number; submittedAt: number } | null>(null);
   const [viewingSubmitted, setViewingSubmitted] = useState(false);
   const generateReportRef = useRef<((forAuthorization?: boolean) => Promise<void>) | null>(null);
 
@@ -2441,6 +2441,7 @@ function ReviewEstimateStep({
               claimRef={claimRef}
               claimForm={effectiveClaimForm}
               amount={seniorPending!.amount}
+              submittedAt={seniorPending!.submittedAt}
               onDownload={() => generateReportRef.current?.(false)}
               onContinueReviewing={continueReviewing}
             />
@@ -2499,10 +2500,9 @@ function ReviewEstimateStep({
             authorization={authorization}
             seniorPending={seniorPending !== null}
             onAuthorize={(details) => setAuthorization(details)}
-            onSeniorSubmit={(amount) => setSeniorPending({ amount })}
+            onSeniorSubmit={(amount) => setSeniorPending({ amount, submittedAt: Date.now() })}
             generateReportRef={generateReportRef}
             readOnly={viewingSubmitted}
-            onOpenNewClaim={onReset}
           />
         </Panel>
       </main>
@@ -2556,7 +2556,7 @@ function ResolutionActions({
         onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
       >
-        Continue Reviewing
+        Continue Reviewing Claim Details
       </button>
       <button
         type="button"
@@ -2625,6 +2625,7 @@ function ClaimAuthorizedScreen({
 
         <div className="mt-6">
           <ResolutionRow label="Policyholder" value={policyholder} />
+          <ResolutionRow label="Policy" value={claimForm?.policyNumber?.trim() || "—"} mono />
           <ResolutionRow label="Authorized Amount" value={fmtCurrency(authorization.amount)} mono />
           <ResolutionRow
             label="Deductible"
@@ -2653,18 +2654,27 @@ function EstimateSubmittedScreen({
   claimRef,
   claimForm,
   amount,
+  submittedAt,
   onDownload,
   onContinueReviewing,
 }: {
   claimRef: string;
   claimForm: ClaimForm | null;
   amount: number;
+  submittedAt: number;
   onDownload: () => void;
   onContinueReviewing: () => void;
 }) {
   const vehicle =
     [claimForm?.year, claimForm?.make, claimForm?.model].filter(Boolean).join(" ").trim() || "—";
   const policyholder = claimForm?.fullName?.trim() || "—";
+  const dateLabel = new Date(submittedAt).toLocaleString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -2694,7 +2704,10 @@ function EstimateSubmittedScreen({
 
         <div className="mt-6">
           <ResolutionRow label="Policyholder" value={policyholder} />
+          <ResolutionRow label="Policy" value={claimForm?.policyNumber?.trim() || "—"} mono />
           <ResolutionRow label="Submitted Amount" value={fmtCurrency(amount)} mono />
+          <ResolutionRow label="Deductible" value="N/A" mono />
+          <ResolutionRow label="Submitted" value={dateLabel} />
         </div>
 
         <p
@@ -3349,7 +3362,7 @@ function EstimateReviewPanel({
   onSeniorSubmit,
   generateReportRef,
   readOnly = false,
-  onOpenNewClaim,
+  
   onInfoRequest,
 }: {
   claim: Claim;
@@ -3370,7 +3383,7 @@ function EstimateReviewPanel({
   onSeniorSubmit: (amount: number) => void;
   generateReportRef: React.MutableRefObject<((forAuthorization?: boolean) => Promise<void>) | null>;
   readOnly?: boolean;
-  onOpenNewClaim?: () => void;
+  
   onInfoRequest?: () => void;
 }) {
   const [adjusted, setAdjusted] = useState<number[]>(() =>
@@ -5281,20 +5294,6 @@ function EstimateReviewPanel({
                 >
                   <FileText size={14} />
                   {isGeneratingReport ? "Generating…" : "Download Estimate Report"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onOpenNewClaim?.()}
-                  className="rounded-md border px-3 py-2.5 text-sm font-medium transition-colors"
-                  style={{
-                    borderColor: COLORS.border,
-                    color: COLORS.text,
-                    backgroundColor: "white",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F9FAFB")}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
-                >
-                  Open New Claim
                 </button>
               </div>
             ) : (
