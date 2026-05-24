@@ -2897,6 +2897,7 @@ function EstimateReviewPanel({
 
   const NOTES_LIMIT = 500;
   const [adjusterNotes, setAdjusterNotes] = useState("");
+  const notesRef = useRef<HTMLTextAreaElement>(null);
   const [notesSavedVisible, setNotesSavedVisible] = useState(false);
   const notesSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notesHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -4087,34 +4088,63 @@ function EstimateReviewPanel({
         </div>
       )}
 
-      {/* Documents */}
+      {/* Documentation Status */}
       {(() => {
         const pr = claimForm?.policeReport ?? "";
-        const label =
-          pr === "uploaded" ? "Uploaded" :
-          pr === "pending" ? "Pending" :
-          pr === "not_available" ? "Not Available" :
-          "Not Provided";
-        const tone =
+        const policePending = pr !== "uploaded";
+        const photosNeeded = claim.delegationState === "MANUAL_REVIEW";
+        const seniorNeeded = seniorReview;
+        const items: { label: string; status: string; tone: "ok" | "amber" | "red"; note?: string }[] = [];
+        items.push(
           pr === "uploaded"
+            ? { label: "Police Report", status: "On file", tone: "ok" }
+            : pr === "pending"
+              ? { label: "Police Report", status: "Pending", tone: "amber", note: "Police report still required before final approval." }
+              : pr === "not_available"
+                ? { label: "Police Report", status: "Not available", tone: "amber", note: "Police report still required before final approval." }
+                : { label: "Police Report", status: "Not provided", tone: "amber", note: "Police report still required before final approval." },
+        );
+        if (photosNeeded) {
+          items.push({ label: "Photo Evidence", status: "Additional photos required", tone: "amber", note: "Additional photos are needed to verify damage scope." });
+        }
+        if (seniorNeeded) {
+          items.push({ label: "Authorization", status: "Awaiting authorization", tone: "red", note: "Senior authorization required before approval." });
+        }
+        const worst = items.some((i) => i.tone === "red") ? "red" : items.some((i) => i.tone === "amber") ? "amber" : "ok";
+        const palette =
+          worst === "ok"
             ? { bg: "#F0FDF4", border: "#BBF7D0", fg: "#15803D", dot: "#16A34A" }
-            : { bg: "#FFFBEB", border: "#FCD34D", fg: "#92400E", dot: "#D97706" };
+            : worst === "amber"
+              ? { bg: "#FFFBEB", border: "#FCD34D", fg: "#92400E", dot: "#D97706" }
+              : { bg: "#FEF2F2", border: "#FECACA", fg: "#991B1B", dot: "#DC2626" };
         return (
           <div
             className="shrink-0 rounded-md border px-3 py-2.5"
-            style={{ backgroundColor: tone.bg, borderColor: tone.border }}
+            style={{ backgroundColor: palette.bg, borderColor: palette.border }}
           >
-            <Label>Documents</Label>
-            <div className="mt-1.5 flex items-center gap-2 text-xs" style={{ color: COLORS.text }}>
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tone.dot }} />
-              <span className="font-semibold">Police Report:</span>
-              <span style={{ color: tone.fg }}>{label}</span>
-            </div>
-            {pr !== "uploaded" && (
-              <p className="text-[11px] mt-1.5 leading-snug" style={{ color: tone.fg }}>
-                Final authorization paused — manual review required before sign-off.
-              </p>
-            )}
+            <Label>Documentation</Label>
+            <ul className="mt-1.5 flex flex-col gap-1.5">
+              {items.map((it, idx) => {
+                const itDot =
+                  it.tone === "ok" ? "#16A34A" : it.tone === "amber" ? "#D97706" : "#DC2626";
+                const itFg =
+                  it.tone === "ok" ? "#15803D" : it.tone === "amber" ? "#92400E" : "#991B1B";
+                return (
+                  <li key={idx}>
+                    <div className="flex items-center gap-2 text-xs" style={{ color: COLORS.text }}>
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: itDot }} />
+                      <span className="font-semibold">{it.label}:</span>
+                      <span style={{ color: itFg }}>{it.status}</span>
+                    </div>
+                    {it.note && (
+                      <p className="text-[11px] mt-0.5 ml-3.5 leading-snug" style={{ color: itFg }}>
+                        {it.note}
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         );
       })()}
@@ -4226,6 +4256,7 @@ function EstimateReviewPanel({
           Optional. Add observations, verification details, repair rationale, or claim-specific notes.
         </p>
         <textarea
+          ref={notesRef}
           value={adjusterNotes}
           onChange={(e) => handleNotesChange(e.target.value)}
           maxLength={NOTES_LIMIT}
@@ -4260,110 +4291,165 @@ function EstimateReviewPanel({
           {submitError}
         </div>
       )}
-      <div className="shrink-0 flex items-center gap-2 pt-1">
-        {/* 1. Edit Estimate */}
-        <button
-          type="button"
-          onClick={() => {
-            if (editMode) syncDraftValues();
-            setEditMode((v) => !v);
-          }}
-          className="flex-1 rounded-md border py-2.5 text-sm font-semibold transition-colors"
-          style={{
-            borderColor: COLORS.blue,
-            color: editMode ? "white" : COLORS.blue,
-            backgroundColor: editMode ? COLORS.blue : "transparent",
-          }}
-        >
-          {editMode ? "Lock Edits ✓" : "Edit Estimate"}
-        </button>
+      {(() => {
+        const pr = claimForm?.policeReport ?? "";
+        const policePending = pr !== "uploaded";
+        const photosNeeded = claim.delegationState === "MANUAL_REVIEW";
+        // Priority: senior > photos > police > approve
+        const mode: "senior" | "photos" | "police" | "approve" = seniorReview
+          ? "senior"
+          : photosNeeded
+            ? "photos"
+            : policePending
+              ? "police"
+              : "approve";
 
-        {/* 2. Approve & Submit */}
-        {(() => {
-          const pr = claimForm?.policeReport ?? "";
-          const policeBlocked = pr !== "uploaded";
-          const blockTitle = seniorReview
-            ? "Final authorization requires senior adjuster approval."
-            : policeBlocked
-              ? "Police report pending or unavailable — manual review required before authorization."
-              : undefined;
-          const label = seniorReview
-            ? "Pending Senior Authorization"
-            : policeBlocked
-              ? "Route to Manual Review"
-              : "Approve & Submit";
-          return (
-            <button
-              type="button"
-              disabled={seniorReview}
-              title={blockTitle}
-              onClick={() => {
-                if (seniorReview) return;
-                if (hasPendingOverrides) {
-                  setSubmitError(
-                    "Please provide a reason for all adjusted line items before submitting.",
-                  );
-                  return;
+        const primary =
+          mode === "senior"
+            ? {
+                label: "Submit for Senior Authorization",
+                bg: "#DC2626",
+                hover: "#B91C1C",
+                fg: "white",
+                border: "none",
+              }
+            : mode === "photos"
+              ? {
+                  label: "Save & Request Additional Photos",
+                  bg: "#FFFBEB",
+                  hover: "#FEF3C7",
+                  fg: "#92400E",
+                  border: "1px solid #FCD34D",
                 }
-                if (policeBlocked) {
-                  toast.message(`Claim #${claim.id} routed to manual review.`, {
-                    description: "Final authorization paused pending police report verification.",
-                  });
-                  return;
-                }
-                if (isFastTrack) {
-                  toast.success(`Claim #${claim.id} approved and submitted.`, {
-                    description: `Estimate authorization issued for ${fmtCurrency(adjustedTotal)}.`,
-                  });
-                } else {
-                  setAuthDialogOpen(true);
-                }
-              }}
-              className="flex-1 rounded-md py-2.5 text-sm font-semibold transition-colors"
-              style={{
-                backgroundColor: seniorReview ? "#E5E7EB" : policeBlocked ? "#FFFBEB" : COLORS.blue,
-                color: seniorReview ? "#9CA3AF" : policeBlocked ? "#92400E" : "white",
-                border: policeBlocked && !seniorReview ? "1px solid #FCD34D" : "none",
-                cursor: seniorReview ? "not-allowed" : "pointer",
-              }}
-              onMouseEnter={(e) => {
-                if (!seniorReview && !policeBlocked) e.currentTarget.style.backgroundColor = COLORS.blueHover;
-              }}
-              onMouseLeave={(e) => {
-                if (!seniorReview && !policeBlocked) e.currentTarget.style.backgroundColor = COLORS.blue;
-              }}
-            >
-              {label}
-            </button>
-          );
-        })()}
+              : mode === "police"
+                ? {
+                    label: "Save & Request Police Report",
+                    bg: "#FFFBEB",
+                    hover: "#FEF3C7",
+                    fg: "#92400E",
+                    border: "1px solid #FCD34D",
+                  }
+                : {
+                    label: "Approve Draft Estimate",
+                    bg: COLORS.blue,
+                    hover: COLORS.blueHover,
+                    fg: "white",
+                    border: "none",
+                  };
 
+        const handlePrimary = () => {
+          if (hasPendingOverrides) {
+            setSubmitError(
+              "Please provide a reason for all adjusted line items before submitting.",
+            );
+            return;
+          }
+          if (mode === "senior") {
+            toast.success(`Claim #${claim.id} submitted for senior adjuster review.`, {
+              description: "Estimate saved pending senior authorization.",
+            });
+            return;
+          }
+          if (mode === "photos") {
+            toast.success("Additional photo request sent to policyholder.", {
+              description: "Estimate saved pending documentation.",
+            });
+            return;
+          }
+          if (mode === "police") {
+            toast.success("Request sent to policyholder for police report upload.", {
+              description: "Estimate saved pending documentation.",
+            });
+            return;
+          }
+          if (isFastTrack) {
+            toast.success(`Claim #${claim.id} approved and submitted.`, {
+              description: `Estimate authorization issued for ${fmtCurrency(adjustedTotal)}.`,
+            });
+          } else {
+            setAuthDialogOpen(true);
+          }
+        };
 
-        {/* 3. Generate Report */}
-        <button
-          type="button"
-          disabled={isGeneratingReport}
-          onClick={() => {
-            if (hasPendingOverrides) {
-              setSubmitError(
-                "Please provide a reason for all adjusted line items before submitting.",
-              );
-              return;
-            }
-            generateReport();
-          }}
-          className="flex-1 rounded-md border py-2.5 text-sm font-semibold transition-colors"
-          style={{
-            borderColor: COLORS.border,
-            color: COLORS.text,
-            backgroundColor: "white",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F9FAFB")}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
-        >
-          {isGeneratingReport ? "Generating…" : "Generate Report"}
-        </button>
-      </div>
+        return (
+          <>
+            <div className="shrink-0 flex items-center gap-2 pt-1">
+              {/* Primary action */}
+              <button
+                type="button"
+                onClick={handlePrimary}
+                className="flex-1 rounded-md py-2.5 text-sm font-semibold transition-colors"
+                style={{
+                  backgroundColor: primary.bg,
+                  color: primary.fg,
+                  border: primary.border,
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = primary.hover)}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = primary.bg)}
+              >
+                {primary.label}
+              </button>
+
+              {/* Secondary: Edit Estimate */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (editMode) syncDraftValues();
+                  setEditMode((v) => !v);
+                }}
+                className="rounded-md border px-3 py-2.5 text-sm font-semibold transition-colors"
+                style={{
+                  borderColor: COLORS.blue,
+                  color: editMode ? "white" : COLORS.blue,
+                  backgroundColor: editMode ? COLORS.blue : "transparent",
+                }}
+              >
+                {editMode ? "Lock Edits ✓" : "Edit Estimate"}
+              </button>
+
+              {/* Secondary: Generate Report */}
+              <button
+                type="button"
+                disabled={isGeneratingReport}
+                onClick={() => {
+                  if (hasPendingOverrides) {
+                    setSubmitError(
+                      "Please provide a reason for all adjusted line items before submitting.",
+                    );
+                    return;
+                  }
+                  generateReport();
+                }}
+                className="rounded-md border px-3 py-2.5 text-sm font-semibold transition-colors"
+                style={{
+                  borderColor: COLORS.border,
+                  color: COLORS.text,
+                  backgroundColor: "white",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F9FAFB")}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
+              >
+                {isGeneratingReport ? "Generating…" : "Generate Report"}
+              </button>
+            </div>
+
+            {/* Tertiary: Add Internal Note */}
+            <div className="shrink-0 flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  notesRef.current?.focus();
+                  notesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
+                className="text-xs font-medium underline-offset-2 hover:underline"
+                style={{ color: COLORS.muted }}
+              >
+                + Add Internal Note
+              </button>
+            </div>
+          </>
+        );
+      })()}
 
 
       <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
