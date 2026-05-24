@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { AlertTriangle, CheckCircle, Clock, FileText, ChevronRight } from "lucide-react";
+import { AlertTriangle, Check, CheckCircle, Clock, FileText, ChevronRight } from "lucide-react";
 import claimSimpleImage from "@/assets/claim-simple.jpg";
 import claimComplexImage from "@/assets/claim-complex.jpg";
 
@@ -364,11 +364,14 @@ const fmtCurrency = (n: number) =>
   `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const STEPS = [
-  "Initiate Claim",
+  "Submit Claim",
   "Upload Photos",
+  "Claim Submitted",
   "Draft Assessment",
-  "Review Estimate",
+  "Claims Agent Review",
+  "Final Resolution",
 ] as const;
+const SUBMISSION_STEPS = 3;
 
 export interface UploadedPhoto {
   slotId: string;
@@ -384,6 +387,7 @@ function Index() {
   const [submitted, setSubmitted] = useState(false);
   const [claimRef, setClaimRef] = useState<string>("");
   const [submittedAt, setSubmittedAt] = useState<number | null>(null);
+  const [finalized, setFinalized] = useState(false);
 
   const reset = () => {
     setClaimForm(null);
@@ -391,17 +395,29 @@ function Index() {
     setSubmitted(false);
     setClaimRef("");
     setSubmittedAt(null);
+    setFinalized(false);
     setStep(1);
   };
 
   const showConfirmation = step === 2 && submitted;
+
+  // Map internal step (1-4) + flags to a visual 6-step position
+  const visualStep = (() => {
+    if (step === 1) return 1;
+    if (step === 2 && !submitted) return 2;
+    if (showConfirmation) return 3;
+    if (step === 3) return 4;
+    if (step === 4 && !finalized) return 5;
+    if (step === 4 && finalized) return 6;
+    return step;
+  })();
 
   return (
     <div
       className="flex flex-col h-screen"
       style={{ backgroundColor: COLORS.bg, color: COLORS.text }}
     >
-      <StepIndicator current={step} submitted={submitted} />
+      <StepIndicator current={visualStep} />
       <div
         key={showConfirmation ? "confirmation" : step}
         className="flex-1 min-h-0 flex flex-col animate-fade-in"
@@ -446,6 +462,7 @@ function Index() {
             uploadedPhotos={uploadedPhotos}
             claimRef={claimRef || `CLM-${new Date().getFullYear()}-000000`}
             onReset={reset}
+            onFinalize={setFinalized}
           />
         )}
       </div>
@@ -546,9 +563,10 @@ function SubmissionConfirmationStep({
 }
 
 
-function StepIndicator({ current, submitted }: { current: number; submitted?: boolean }) {
-  const submissionDone = submitted || current > 2;
-  const reviewActive = submitted || current >= 3;
+function StepIndicator({ current }: { current: number }) {
+  const submissionActive = current <= SUBMISSION_STEPS;
+  const submissionDone = current > SUBMISSION_STEPS;
+  const reviewActive = current > SUBMISSION_STEPS;
   return (
     <div
       className="shrink-0 border-b px-6 py-3"
@@ -556,15 +574,24 @@ function StepIndicator({ current, submitted }: { current: number; submitted?: bo
     >
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-2 mb-1.5">
-          <div className="flex-1 flex items-center gap-2" style={{ flexBasis: "50%" }}>
+          <div className="flex items-center gap-2" style={{ flex: SUBMISSION_STEPS }}>
             <span
               className="text-[10px] font-semibold tracking-wider uppercase"
-              style={{ color: submissionDone ? COLORS.greenText : current <= 2 ? COLORS.text : COLORS.muted }}
+              style={{
+                color: submissionDone
+                  ? COLORS.greenText
+                  : submissionActive
+                    ? COLORS.text
+                    : COLORS.muted,
+              }}
             >
               Claim Submission
             </span>
           </div>
-          <div className="flex-1 flex items-center gap-2" style={{ flexBasis: "50%" }}>
+          <div
+            className="flex items-center gap-2"
+            style={{ flex: STEPS.length - SUBMISSION_STEPS }}
+          >
             <span
               className="text-[10px] font-semibold tracking-wider uppercase"
               style={{ color: reviewActive ? COLORS.text : COLORS.muted }}
@@ -576,8 +603,8 @@ function StepIndicator({ current, submitted }: { current: number; submitted?: bo
         <ol className="flex items-center gap-2">
           {STEPS.map((label, i) => {
             const n = i + 1;
-            const active = n === current && !submitted;
-            const done = n < current || (submitted && n <= 2);
+            const active = n === current;
+            const done = n < current;
             const fg = active ? COLORS.blue : done ? COLORS.greenText : COLORS.muted;
             const bg = active ? COLORS.blue : done ? COLORS.green : "#E5E7EB";
             const textColor = active || done ? "#FFFFFF" : COLORS.muted;
@@ -588,7 +615,7 @@ function StepIndicator({ current, submitted }: { current: number; submitted?: bo
                     className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-semibold shrink-0 transition-colors duration-300"
                     style={{ backgroundColor: bg, color: textColor }}
                   >
-                    {done ? "✓" : n}
+                    {done ? <Check size={12} strokeWidth={3} /> : n}
                   </span>
                   <span
                     className="text-xs font-semibold truncate transition-colors duration-300"
@@ -602,13 +629,13 @@ function StepIndicator({ current, submitted }: { current: number; submitted?: bo
                     className="flex-1 h-px"
                     style={{
                       backgroundColor:
-                        n === 2
+                        n === SUBMISSION_STEPS
                           ? submissionDone && reviewActive
                             ? COLORS.green
                             : "#E5E7EB"
                           : done
-                          ? COLORS.green
-                          : "#E5E7EB",
+                            ? COLORS.green
+                            : "#E5E7EB",
                     }}
                   />
                 )}
@@ -2099,11 +2126,13 @@ function ReviewEstimateStep({
   uploadedPhotos,
   claimRef,
   onReset,
+  onFinalize,
 }: {
   claimForm: ClaimForm | null;
   uploadedPhotos: UploadedPhoto[];
   claimRef: string;
   onReset: () => void;
+  onFinalize?: (finalized: boolean) => void;
 }) {
   const [selectedId, setSelectedId] = useState(claimData[0].id);
   const claim = useMemo(
@@ -2127,6 +2156,11 @@ function ReviewEstimateStep({
     setAuthorization(null);
     setSeniorPending(false);
   }, [selectedId, claim.delegationState]);
+
+  // Notify parent when claim reaches a final workflow state
+  useEffect(() => {
+    onFinalize?.(authorization !== null || seniorPending);
+  }, [authorization, seniorPending, onFinalize]);
 
   const isFastTrack = claim.delegationState === "FAST_TRACK";
 
@@ -3362,6 +3396,11 @@ function EstimateReviewPanel({
 
   const [seniorConfirmOpen, setSeniorConfirmOpen] = useState(false);
   const [approvalConfirmOpen, setApprovalConfirmOpen] = useState(false);
+  const [validationOpen, setValidationOpen] = useState(false);
+  const [validationItems, setValidationItems] = useState<string[]>([]);
+  const [pendingPrimaryMode, setPendingPrimaryMode] = useState<
+    "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION" | null
+  >(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const seniorSubmitted = seniorPending;
@@ -5089,6 +5128,14 @@ function EstimateReviewPanel({
         const approvalVehicle =
           [_cf?.year, _cf?.make, _cf?.model].filter(Boolean).join(" ").trim() || "this vehicle";
 
+        const openFinalConfirm = (mode: typeof workflowMode) => {
+          if (mode === "SENIOR_AUTHORIZATION") {
+            setSeniorConfirmOpen(true);
+          } else {
+            setApprovalConfirmOpen(true);
+          }
+        };
+
         const handlePrimary = () => {
           if (hasPendingOverrides) {
             setSubmitError(
@@ -5096,11 +5143,14 @@ function EstimateReviewPanel({
             );
             return;
           }
-          if (workflowMode === "SENIOR_AUTHORIZATION") {
-            setSeniorConfirmOpen(true);
+          // Lightweight pre-submission validation — informational, never blocks
+          if (verificationItems.length > 0) {
+            setValidationItems(verificationItems);
+            setPendingPrimaryMode(workflowMode);
+            setValidationOpen(true);
             return;
           }
-          setApprovalConfirmOpen(true);
+          openFinalConfirm(workflowMode);
         };
 
         const confirmApproval = () => {
@@ -5465,6 +5515,87 @@ function EstimateReviewPanel({
                   >
                     Send Request
                   </button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Unresolved Review Items — informational validation */}
+            <Dialog open={validationOpen} onOpenChange={setValidationOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Unresolved Review Items</DialogTitle>
+                  <DialogDescription>
+                    This estimate can still be submitted. The following items remain unresolved.
+                  </DialogDescription>
+                </DialogHeader>
+                <div
+                  className="rounded-md border-l-2 border px-3 py-3"
+                  style={{
+                    backgroundColor: COLORS.amberBg,
+                    borderColor: COLORS.amberBorder,
+                    borderLeftColor: COLORS.amber,
+                  }}
+                >
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle
+                      size={14}
+                      className="mt-0.5 shrink-0"
+                      style={{ color: COLORS.amberText }}
+                    />
+                    <ul className="flex flex-col gap-1.5">
+                      {validationItems.map((item, idx) => (
+                        <li
+                          key={idx}
+                          className="flex items-start gap-1.5 text-[12px] leading-snug"
+                          style={{ color: "#92400E" }}
+                        >
+                          <span
+                            className="mt-1.5 w-1 h-1 rounded-full shrink-0"
+                            style={{ backgroundColor: COLORS.amber }}
+                          />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <DialogFooter className="sm:justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValidationOpen(false);
+                      setRequestInfoOpen(true);
+                    }}
+                    className="text-sm font-medium underline-offset-2 hover:underline"
+                    style={{ color: COLORS.blue }}
+                  >
+                    Request Additional Information
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setValidationOpen(false)}
+                      className="rounded-md border px-4 py-2 text-sm font-medium"
+                      style={{
+                        borderColor: COLORS.border,
+                        color: COLORS.text,
+                        backgroundColor: "white",
+                      }}
+                    >
+                      Return to Review
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setValidationOpen(false);
+                        if (pendingPrimaryMode) openFinalConfirm(pendingPrimaryMode);
+                      }}
+                      className="rounded-md px-4 py-2 text-sm font-semibold text-white"
+                      style={{ backgroundColor: COLORS.blue }}
+                    >
+                      Proceed with Submission
+                    </button>
+                  </div>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
