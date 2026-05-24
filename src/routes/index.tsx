@@ -4082,7 +4082,7 @@ function EstimateReviewPanel({
       });
       y += 4;
       wrapped(
-        "Methodology: Draft estimates combine third-party labor benchmarks, current parts pricing, and OEM repair procedures. Items lacking sufficient evidence are extrapolated from comparable claims and flagged for human verification.",
+        "Methodology: Draft estimates combine industry labor benchmarks, current parts pricing, and OEM repair procedures. Items lacking sufficient evidence are extrapolated from comparable claims and flagged for human verification.",
         M,
         W,
         12,
