@@ -2436,8 +2436,9 @@ function AssessmentReviewPanel({
       {/* Senior review passive status */}
       {isSenior && (
         <div className="flex flex-col gap-0.5">
-          <div className="text-sm font-semibold" style={{ color: "#DC2626" }}>
-            <span className="mr-1.5">●</span>Senior authorization in progress
+          <div className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: "#DC2626" }}>
+            <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: "#DC2626" }} />
+            Senior authorization in progress
           </div>
           <div className="text-xs" style={{ color: COLORS.muted }}>
             Claim prepared for authorization review.
