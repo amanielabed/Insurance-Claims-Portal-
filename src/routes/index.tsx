@@ -4451,6 +4451,27 @@ function EstimateReviewPanel({
 
   return (
     <div className="flex flex-col min-h-full gap-4">
+      {readOnly && (
+        <div
+          className="shrink-0 rounded-md border px-3 py-2.5"
+          style={{
+            backgroundColor: "#F3F4F6",
+            borderColor: COLORS.border,
+          }}
+        >
+          <div className="flex items-start gap-2">
+            <Lock size={14} className="mt-0.5 shrink-0" style={{ color: COLORS.muted }} />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-semibold" style={{ color: COLORS.text }}>
+                Submitted Estimate
+              </div>
+              <div className="text-[12px] mt-0.5 leading-snug" style={{ color: COLORS.muted }}>
+                This estimate has already been submitted and is now view-only.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Estimate table */}
       <div className="shrink-0 overflow-x-auto">
         {seniorReview && (
