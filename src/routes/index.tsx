@@ -4291,110 +4291,165 @@ function EstimateReviewPanel({
           {submitError}
         </div>
       )}
-      <div className="shrink-0 flex items-center gap-2 pt-1">
-        {/* 1. Edit Estimate */}
-        <button
-          type="button"
-          onClick={() => {
-            if (editMode) syncDraftValues();
-            setEditMode((v) => !v);
-          }}
-          className="flex-1 rounded-md border py-2.5 text-sm font-semibold transition-colors"
-          style={{
-            borderColor: COLORS.blue,
-            color: editMode ? "white" : COLORS.blue,
-            backgroundColor: editMode ? COLORS.blue : "transparent",
-          }}
-        >
-          {editMode ? "Lock Edits ✓" : "Edit Estimate"}
-        </button>
+      {(() => {
+        const pr = claimForm?.policeReport ?? "";
+        const policePending = pr !== "uploaded";
+        const photosNeeded = claim.delegationState === "MANUAL_REVIEW";
+        // Priority: senior > photos > police > approve
+        const mode: "senior" | "photos" | "police" | "approve" = seniorReview
+          ? "senior"
+          : photosNeeded
+            ? "photos"
+            : policePending
+              ? "police"
+              : "approve";
 
-        {/* 2. Approve & Submit */}
-        {(() => {
-          const pr = claimForm?.policeReport ?? "";
-          const policeBlocked = pr !== "uploaded";
-          const blockTitle = seniorReview
-            ? "Final authorization requires senior adjuster approval."
-            : policeBlocked
-              ? "Police report pending or unavailable — manual review required before authorization."
-              : undefined;
-          const label = seniorReview
-            ? "Pending Senior Authorization"
-            : policeBlocked
-              ? "Route to Manual Review"
-              : "Approve & Submit";
-          return (
-            <button
-              type="button"
-              disabled={seniorReview}
-              title={blockTitle}
-              onClick={() => {
-                if (seniorReview) return;
-                if (hasPendingOverrides) {
-                  setSubmitError(
-                    "Please provide a reason for all adjusted line items before submitting.",
-                  );
-                  return;
+        const primary =
+          mode === "senior"
+            ? {
+                label: "Submit for Senior Authorization",
+                bg: "#DC2626",
+                hover: "#B91C1C",
+                fg: "white",
+                border: "none",
+              }
+            : mode === "photos"
+              ? {
+                  label: "Save & Request Additional Photos",
+                  bg: "#FFFBEB",
+                  hover: "#FEF3C7",
+                  fg: "#92400E",
+                  border: "1px solid #FCD34D",
                 }
-                if (policeBlocked) {
-                  toast.message(`Claim #${claim.id} routed to manual review.`, {
-                    description: "Final authorization paused pending police report verification.",
-                  });
-                  return;
-                }
-                if (isFastTrack) {
-                  toast.success(`Claim #${claim.id} approved and submitted.`, {
-                    description: `Estimate authorization issued for ${fmtCurrency(adjustedTotal)}.`,
-                  });
-                } else {
-                  setAuthDialogOpen(true);
-                }
-              }}
-              className="flex-1 rounded-md py-2.5 text-sm font-semibold transition-colors"
-              style={{
-                backgroundColor: seniorReview ? "#E5E7EB" : policeBlocked ? "#FFFBEB" : COLORS.blue,
-                color: seniorReview ? "#9CA3AF" : policeBlocked ? "#92400E" : "white",
-                border: policeBlocked && !seniorReview ? "1px solid #FCD34D" : "none",
-                cursor: seniorReview ? "not-allowed" : "pointer",
-              }}
-              onMouseEnter={(e) => {
-                if (!seniorReview && !policeBlocked) e.currentTarget.style.backgroundColor = COLORS.blueHover;
-              }}
-              onMouseLeave={(e) => {
-                if (!seniorReview && !policeBlocked) e.currentTarget.style.backgroundColor = COLORS.blue;
-              }}
-            >
-              {label}
-            </button>
-          );
-        })()}
+              : mode === "police"
+                ? {
+                    label: "Save & Request Police Report",
+                    bg: "#FFFBEB",
+                    hover: "#FEF3C7",
+                    fg: "#92400E",
+                    border: "1px solid #FCD34D",
+                  }
+                : {
+                    label: "Approve Draft Estimate",
+                    bg: COLORS.blue,
+                    hover: COLORS.blueHover,
+                    fg: "white",
+                    border: "none",
+                  };
 
+        const handlePrimary = () => {
+          if (hasPendingOverrides) {
+            setSubmitError(
+              "Please provide a reason for all adjusted line items before submitting.",
+            );
+            return;
+          }
+          if (mode === "senior") {
+            toast.success(`Claim #${claim.id} submitted for senior adjuster review.`, {
+              description: "Estimate saved pending senior authorization.",
+            });
+            return;
+          }
+          if (mode === "photos") {
+            toast.success("Additional photo request sent to policyholder.", {
+              description: "Estimate saved pending documentation.",
+            });
+            return;
+          }
+          if (mode === "police") {
+            toast.success("Request sent to policyholder for police report upload.", {
+              description: "Estimate saved pending documentation.",
+            });
+            return;
+          }
+          if (isFastTrack) {
+            toast.success(`Claim #${claim.id} approved and submitted.`, {
+              description: `Estimate authorization issued for ${fmtCurrency(adjustedTotal)}.`,
+            });
+          } else {
+            setAuthDialogOpen(true);
+          }
+        };
 
-        {/* 3. Generate Report */}
-        <button
-          type="button"
-          disabled={isGeneratingReport}
-          onClick={() => {
-            if (hasPendingOverrides) {
-              setSubmitError(
-                "Please provide a reason for all adjusted line items before submitting.",
-              );
-              return;
-            }
-            generateReport();
-          }}
-          className="flex-1 rounded-md border py-2.5 text-sm font-semibold transition-colors"
-          style={{
-            borderColor: COLORS.border,
-            color: COLORS.text,
-            backgroundColor: "white",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F9FAFB")}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
-        >
-          {isGeneratingReport ? "Generating…" : "Generate Report"}
-        </button>
-      </div>
+        return (
+          <>
+            <div className="shrink-0 flex items-center gap-2 pt-1">
+              {/* Primary action */}
+              <button
+                type="button"
+                onClick={handlePrimary}
+                className="flex-1 rounded-md py-2.5 text-sm font-semibold transition-colors"
+                style={{
+                  backgroundColor: primary.bg,
+                  color: primary.fg,
+                  border: primary.border,
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = primary.hover)}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = primary.bg)}
+              >
+                {primary.label}
+              </button>
+
+              {/* Secondary: Edit Estimate */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (editMode) syncDraftValues();
+                  setEditMode((v) => !v);
+                }}
+                className="rounded-md border px-3 py-2.5 text-sm font-semibold transition-colors"
+                style={{
+                  borderColor: COLORS.blue,
+                  color: editMode ? "white" : COLORS.blue,
+                  backgroundColor: editMode ? COLORS.blue : "transparent",
+                }}
+              >
+                {editMode ? "Lock Edits ✓" : "Edit Estimate"}
+              </button>
+
+              {/* Secondary: Generate Report */}
+              <button
+                type="button"
+                disabled={isGeneratingReport}
+                onClick={() => {
+                  if (hasPendingOverrides) {
+                    setSubmitError(
+                      "Please provide a reason for all adjusted line items before submitting.",
+                    );
+                    return;
+                  }
+                  generateReport();
+                }}
+                className="rounded-md border px-3 py-2.5 text-sm font-semibold transition-colors"
+                style={{
+                  borderColor: COLORS.border,
+                  color: COLORS.text,
+                  backgroundColor: "white",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F9FAFB")}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
+              >
+                {isGeneratingReport ? "Generating…" : "Generate Report"}
+              </button>
+            </div>
+
+            {/* Tertiary: Add Internal Note */}
+            <div className="shrink-0 flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  notesRef.current?.focus();
+                  notesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
+                className="text-xs font-medium underline-offset-2 hover:underline"
+                style={{ color: COLORS.muted }}
+              >
+                + Add Internal Note
+              </button>
+            </div>
+          </>
+        );
+      })()}
 
 
       <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
