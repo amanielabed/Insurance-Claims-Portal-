@@ -3733,6 +3733,11 @@ function EstimateReviewPanel({
       y += boxH + 12;
 
       // ===== SECTION 6 — VERIFICATION & AUTHORIZATION =====
+      // Force page break if fewer than 4 rows (≈ 4 × 26pt + header ≈ 130pt) fit
+      if (y + 140 > pageH - M - 30) {
+        pdf.addPage();
+        y = M;
+      }
       sectionLabel("Verification & Authorization Record");
       let verifyText: string;
       let authText: string;
