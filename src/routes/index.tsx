@@ -2897,6 +2897,7 @@ function EstimateReviewPanel({
 
   const NOTES_LIMIT = 500;
   const [adjusterNotes, setAdjusterNotes] = useState("");
+  const notesRef = useRef<HTMLTextAreaElement>(null);
   const [notesSavedVisible, setNotesSavedVisible] = useState(false);
   const notesSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notesHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
