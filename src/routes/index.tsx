@@ -3632,8 +3632,8 @@ function EstimateReviewPanel({
           });
 
           adjustedRows.forEach((r) => {
-            const nameLines = pdf.splitTextToSize(r.name, 220) as string[];
-            const reasonLines = pdf.splitTextToSize(r.reason, pageW - M - cReason) as string[];
+            const nameLines = pdf.splitTextToSize(r.name, itemMaxW) as string[];
+            const reasonLines = pdf.splitTextToSize(r.reason, reasonMaxW) as string[];
             const isSignificant = Math.abs(r.variancePct) > 20;
             const extraH = isSignificant ? 14 : 0;
             const rowH = Math.max(nameLines.length, reasonLines.length) * 14 + 10 + extraH;
