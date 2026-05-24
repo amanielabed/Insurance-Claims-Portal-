@@ -2350,11 +2350,12 @@ function AssessmentReviewPanel({
   const isFastTrack = claim.delegationState === "FAST_TRACK";
   const isSenior = claim.delegationState === "SENIOR_AUTHORIZATION";
 
-  const badgeMeta = isFastTrack
-    ? { bg: COLORS.greenBg, fg: COLORS.greenText, border: "#BBF7D0", dot: COLORS.green, label: "Fast-Track Eligible", icon: null as string | null }
+  type BadgeIcon = "alert" | "clock" | null;
+  const badgeMeta: { bg: string; fg: string; border: string; dot: string; label: string; icon: BadgeIcon } = isFastTrack
+    ? { bg: COLORS.greenBg, fg: COLORS.greenText, border: "#BBF7D0", dot: COLORS.green, label: "Fast-Track Eligible", icon: null }
     : isSenior
-      ? { bg: "#FEF2F2", fg: "#991B1B", border: "#FECACA", dot: "#DC2626", label: "Senior Authorization Required", icon: "●" }
-      : { bg: COLORS.amberBg, fg: COLORS.amberText, border: COLORS.amberBorder, dot: COLORS.amber, label: "Verification Recommended", icon: "⚠" };
+      ? { bg: "#FEF2F2", fg: "#991B1B", border: "#FECACA", dot: "#DC2626", label: "Senior Authorization Required", icon: "clock" }
+      : { bg: COLORS.amberBg, fg: COLORS.amberText, border: COLORS.amberBorder, dot: COLORS.amber, label: "Verification Recommended", icon: "alert" };
 
   const tooltipText = isFastTrack
     ? "Routed to Fast-Track: high photo clarity, single part affected, estimated value within standard threshold, no flagged components."
