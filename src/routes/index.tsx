@@ -1669,6 +1669,21 @@ function EligibilityCheck({
         </div>
       </FormSection>
 
+      <FormSection title="Policyholder Name">
+        <div className="md:col-span-2">
+          <label className="text-xs font-medium block mb-1.5" style={{ color: COLORS.text }}>
+            Full Name
+          </label>
+          <div className="max-w-md">
+            <TextInput
+              value={fullName || ""}
+              onChange={(v) => setFullName(v)}
+              placeholder="Jane Doe"
+            />
+          </div>
+        </div>
+      </FormSection>
+
       <FormSection title="Preliminary Fault Assessment">
         <div className="md:col-span-2">
           <p className="text-sm font-medium mb-2" style={{ color: COLORS.text }}>
