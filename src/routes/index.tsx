@@ -3846,9 +3846,7 @@ function EstimateReviewPanel({
       sectionLabel("Coverage Summary");
       const cv = cf?.coverage;
       const ft = cf?.fault;
-      const coverageTypeText =
-        cv === "full" ? "Full Coverage (Comprehensive)" :
-        cv === "third_party" ? "Third-Party Coverage" : "—";
+      const coverageTypeText = "Full Coverage Policy";
       const faultText =
         ft === "policyholder" ? "Policyholder at fault" :
         ft === "other" ? "Other party at fault" :
@@ -3856,20 +3854,13 @@ function EstimateReviewPanel({
         ft === "single_vehicle" ? "Single-vehicle incident" : "—";
       const dedVal = cf?.deductible?.trim();
       const deductibleApplicable =
-        cv === "third_party"
-          ? "N/A"
-          : cv === "full" && ft === "policyholder"
-            ? (dedVal ? `$${dedVal} (retrieved from policy record)` : "N/A")
-            : cv === "full"
-              ? "Pending liability determination"
-              : "Pending";
+        ft === "policyholder"
+          ? (dedVal ? `$${dedVal} (retrieved from policy record)` : "N/A")
+          : ft === "other"
+            ? "N/A — handled by at-fault party"
+            : "Pending";
 
-      const claimBasis =
-        cv === "full"
-          ? "Own damage — full coverage"
-          : cv === "third_party"
-            ? "Third-party documentation — liability claim"
-            : "—";
+      const claimBasis = "Own damage — full coverage";
       const covRows: [string, string][] = [
         ["Coverage type", coverageTypeText],
         ["Fault determination", faultText],
@@ -3888,11 +3879,11 @@ function EstimateReviewPanel({
         pdf.setLineWidth(0.5);
         pdf.line(M, y, pageW - M, y);
       });
+      void cv;
       // Deductible exceeds repair cost note
       {
         const dedNum = parseFloat((cf?.deductible || "").replace(/[^0-9.]/g, ""));
         if (
-          cv !== "third_party" &&
           isFinite(dedNum) &&
           dedNum > 0 &&
           dedNum > draftTotal &&
