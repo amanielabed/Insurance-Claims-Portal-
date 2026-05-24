@@ -413,7 +413,7 @@ function Index() {
             onBack={() => setStep(1)}
           />
         )}
-        {step === 3 && <DraftAssessmentStep onComplete={() => setStep(4)} />}
+        {step === 3 && <DraftAssessmentStep claimForm={claimForm} onComplete={() => setStep(4)} />}
         {step === 4 && (
           <ReviewEstimateStep
             claimForm={claimForm}
@@ -898,15 +898,19 @@ const REFERENCE_SOURCES = [
   "OEM Repair Guidelines",
 ];
 
-const PROCESSING_STEPS: { label: string; duration: number }[] = [
-  { label: "Photo quality validation complete — all required views meet minimum clarity standards", duration: 600 },
-  { label: "Vehicle identified: 2022 Toyota Camry SE", duration: 600 },
-  { label: "Analyzing visible damage regions and identifying affected parts…", duration: 1100 },
-  { label: "Cross-checking repair scope against repair-cost references…", duration: 1000 },
-  { label: "Claim complexity evaluated — routing to appropriate review workflow", duration: 600 },
+const PROCESSING_STEPS_BASE: { label: (cf: ClaimForm | null) => string; duration: number }[] = [
+  { label: () => "Photo quality validation complete — all required views meet minimum clarity standards", duration: 600 },
+  { label: (cf) => {
+      const v = cf ? [cf.year, cf.make, cf.model].filter(Boolean).join(" ").trim() : "";
+      return `Vehicle identified: ${v || "—"}`;
+    }, duration: 600 },
+  { label: () => "Analyzing visible damage regions and identifying affected parts…", duration: 1100 },
+  { label: () => "Cross-checking repair scope against repair-cost references…", duration: 1000 },
+  { label: () => "Claim complexity evaluated — routing to appropriate review workflow", duration: 600 },
 ];
 
-function DraftAssessmentStep({ onComplete }: { onComplete: () => void }) {
+function DraftAssessmentStep({ claimForm, onComplete }: { claimForm: ClaimForm | null; onComplete: () => void }) {
+  const PROCESSING_STEPS = PROCESSING_STEPS_BASE.map((s) => ({ label: s.label(claimForm), duration: s.duration }));
   // activeIndex = index of currently-processing step; PROCESSING_STEPS.length means all done
   const [activeIndex, setActiveIndex] = useState(0);
   const [done, setDone] = useState(false);
@@ -1040,15 +1044,14 @@ type PolicyLookup = {
   model: string;
   coverage: "full" | "third_party";
   deductible: string | null;
-  holderName: string;
 };
 
 function lookupPolicy(policyNumber: string): PolicyLookup | null {
   const p = policyNumber.trim().toUpperCase();
   if (p.startsWith("POL-2026"))
-    return { year: "2023", make: "Toyota", model: "Camry XSE", coverage: "full", deductible: "500", holderName: "Sarah Al-Mansouri" };
+    return { year: "2023", make: "Toyota", model: "Camry XSE", coverage: "full", deductible: "500" };
   if (p.startsWith("POL-2025"))
-    return { year: "2021", make: "Honda", model: "CR-V EX", coverage: "third_party", deductible: null, holderName: "Omar Al-Kuwari" };
+    return { year: "2021", make: "Honda", model: "CR-V EX", coverage: "third_party", deductible: null };
   return null;
 }
 
@@ -1247,7 +1250,6 @@ function InitiateClaimStep({
                 setForm((prev) => ({
                   ...prev,
                   policyNumber: validated.policyNumber,
-                  fullName: prev.fullName || validated.holderName,
                   year: validated.year,
                   make: validated.make,
                   model: validated.model,
@@ -1514,7 +1516,7 @@ function InitiateClaimStep({
 
 
 type FaultVal = "policyholder" | "other" | "unclear" | "single_vehicle" | "";
-type ValidatedPolicy = { policyNumber: string; year: string; make: string; model: string; holderName: string; coverage: "full" | "third_party"; deductible: string | null };
+type ValidatedPolicy = { policyNumber: string; year: string; make: string; model: string; coverage: "full" | "third_party"; deductible: string | null };
 interface EligibilityResult {
   tone: "amber" | "blue" | "green" | "red";
   title: string;
@@ -1583,7 +1585,6 @@ function EligibilityCheck({
         year: result.year,
         make: result.make,
         model: result.model,
-        holderName: result.holderName,
         coverage: result.coverage,
         deductible: result.deductible,
       });
@@ -1709,8 +1710,8 @@ function EligibilityCheck({
               </div>
             </div>
             <div>
-              <div className="text-[10px] uppercase mb-1" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>Policyholder</div>
-              <div className="text-sm font-medium" style={{ color: COLORS.text }}>{validated.holderName}</div>
+              <div className="text-[10px] uppercase mb-1" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>Policy Number</div>
+              <div className="text-sm font-medium" style={{ color: COLORS.text }}>{validated.policyNumber}</div>
             </div>
             <div className="sm:col-span-2">
               <div className="text-[10px] uppercase mb-1" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>Vehicle</div>
@@ -2069,20 +2070,12 @@ function ReviewEstimateStep({
               style={{ backgroundColor: COLORS.blue }}
             />
             <div className="min-w-0">
-              {claimForm ? (
-                <>
-                  <div className="text-sm font-semibold tracking-tight truncate">
-                    Reviewing Claim for: {claimForm.fullName}
-                  </div>
-                  <div className="text-[11px] truncate" style={{ color: COLORS.muted }}>
-                    Policy: {claimForm.policyNumber}
-                  </div>
-                </>
-              ) : (
-                <h1 className="text-sm font-semibold tracking-tight">
-                  Claims Review Cockpit
-                </h1>
-              )}
+              <div className="text-sm font-semibold tracking-tight truncate">
+                Reviewing Claim for: {claimForm?.fullName?.trim() || "—"}
+              </div>
+              <div className="text-[11px] truncate" style={{ color: COLORS.muted }}>
+                Policy: {claimForm?.policyNumber?.trim() || "—"}
+              </div>
             </div>
           </div>
         </div>
