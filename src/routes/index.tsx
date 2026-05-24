@@ -3406,6 +3406,29 @@ function EstimateReviewPanel({
         pdf.setLineWidth(0.5);
         pdf.line(M, y, pageW - M, y);
       });
+      // Deductible exceeds repair cost note
+      {
+        const dedNum = parseFloat((cf?.deductible || "").replace(/[^0-9.]/g, ""));
+        if (
+          cv !== "third_party" &&
+          isFinite(dedNum) &&
+          dedNum > 0 &&
+          dedNum > draftTotal &&
+          draftTotal > 0
+        ) {
+          const noteLines = pdf.splitTextToSize(
+            `Note: Deductible (${fmtCurrency(dedNum)}) exceeds draft repair estimate (${fmtCurrency(draftTotal)}). Policyholder may be responsible for full repair cost pending final assessment.`,
+            W - 24,
+          ) as string[];
+          const noteH = noteLines.length * 13 + 12;
+          need(noteH + 6);
+          pdf.setFillColor("#F9FAFB");
+          pdf.rect(M, y, W, noteH, "F");
+          setText(10, "#6B7280", false, true);
+          noteLines.forEach((ln, idx) => pdf.text(ln, M + 12, y + 14 + idx * 13));
+          y += noteH + 4;
+        }
+      }
       y += 4;
 
 
