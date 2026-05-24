@@ -1208,6 +1208,7 @@ function InitiateClaimStep({
     if (result) {
       setForm((prev) => ({
         ...prev,
+        fullName: prev.fullName.trim() ? prev.fullName : result.fullName,
         year: result.year,
         make: result.make,
         model: result.model,
