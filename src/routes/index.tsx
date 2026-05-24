@@ -413,7 +413,7 @@ function Index() {
             onBack={() => setStep(1)}
           />
         )}
-        {step === 3 && <DraftAssessmentStep onComplete={() => setStep(4)} />}
+        {step === 3 && <DraftAssessmentStep claimForm={claimForm} onComplete={() => setStep(4)} />}
         {step === 4 && (
           <ReviewEstimateStep
             claimForm={claimForm}
