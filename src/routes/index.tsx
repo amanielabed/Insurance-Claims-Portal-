@@ -2625,6 +2625,7 @@ function ClaimAuthorizedScreen({
 
         <div className="mt-6">
           <ResolutionRow label="Policyholder" value={policyholder} />
+          <ResolutionRow label="Policy" value={claimForm?.policyNumber?.trim() || "—"} mono />
           <ResolutionRow label="Authorized Amount" value={fmtCurrency(authorization.amount)} mono />
           <ResolutionRow
             label="Deductible"
