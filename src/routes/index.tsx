@@ -5128,6 +5128,14 @@ function EstimateReviewPanel({
         const approvalVehicle =
           [_cf?.year, _cf?.make, _cf?.model].filter(Boolean).join(" ").trim() || "this vehicle";
 
+        const openFinalConfirm = (mode: typeof workflowMode) => {
+          if (mode === "SENIOR_AUTHORIZATION") {
+            setSeniorConfirmOpen(true);
+          } else {
+            setApprovalConfirmOpen(true);
+          }
+        };
+
         const handlePrimary = () => {
           if (hasPendingOverrides) {
             setSubmitError(
@@ -5135,11 +5143,14 @@ function EstimateReviewPanel({
             );
             return;
           }
-          if (workflowMode === "SENIOR_AUTHORIZATION") {
-            setSeniorConfirmOpen(true);
+          // Lightweight pre-submission validation — informational, never blocks
+          if (verificationItems.length > 0) {
+            setValidationItems(verificationItems);
+            setPendingPrimaryMode(workflowMode);
+            setValidationOpen(true);
             return;
           }
-          setApprovalConfirmOpen(true);
+          openFinalConfirm(workflowMode);
         };
 
         const confirmApproval = () => {
