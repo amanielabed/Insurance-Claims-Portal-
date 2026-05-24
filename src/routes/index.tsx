@@ -3582,6 +3582,64 @@ function EstimateReviewPanel({
         "#6B7280",
       );
 
+      // ===== SECTION 3b — PAYMENT SUMMARY =====
+      sectionLabel("Payment Summary");
+      {
+        const cf2 = claimForm;
+        const cv2 = cf2?.coverage;
+        const ft2 = cf2?.fault;
+        const dedStr2 = cf2?.deductible?.trim() ?? "";
+        const dedNum2 = parseFloat(dedStr2.replace(/[^0-9.]/g, ""));
+        const hasDeductible2 = cv2 === "full" && ft2 === "policyholder";
+        const deductibleAmount2 = hasDeductible2 && isFinite(dedNum2) && dedNum2 > 0 ? dedNum2 : 0;
+        const coveragePayout2 = hasDeductible2 ? Math.max(0, reportTotal - deductibleAmount2) : reportTotal;
+        const isFullyCovered2 = cv2 === "full" && (ft2 === "other" || (ft2 === "policyholder" && (!dedStr2 || dedNum2 <= 0)));
+        const isThirdParty2 = cv2 === "third_party";
+
+        const payRows: [string, string][] = [
+          ["Repair Estimate Total", fmtCurrency(reportTotal)],
+        ];
+        if (isThirdParty2) {
+          payRows.push(["Policy Deductible", "N/A — third-party liability"]);
+        } else if (isFullyCovered2) {
+          payRows.push(["Policy Deductible", "$0"]);
+          payRows.push(["Coverage Status", "Fully Covered"]);
+        } else if (hasDeductible2) {
+          payRows.push(["Policy Deductible", `−${fmtCurrency(deductibleAmount2)}`]);
+          payRows.push(["Estimated Insurance Coverage", fmtCurrency(coveragePayout2)]);
+        } else {
+          payRows.push(["Policy Deductible", "Pending liability determination"]);
+        }
+
+        payRows.forEach(([label, val]) => {
+          need(24);
+          setText(11, "#6B7280");
+          pdf.text(label, labelX, y + 14);
+          setText(13, "#111827", true);
+          pdf.text(val, valX, y + 14);
+          y += 22;
+          pdf.setDrawColor("#F3F4F6");
+          pdf.setLineWidth(0.5);
+          pdf.line(M, y, pageW - M, y);
+        });
+
+        const helperText = isThirdParty2
+          ? "Third-party liability claim. The other party's insurance handles vehicle repairs. No deductible applies."
+          : isFullyCovered2
+            ? "No policyholder contribution required for this repair."
+            : hasDeductible2
+              ? "Your policy includes a deductible, which is the portion of the repair cost paid by the policyholder before insurance coverage applies."
+              : "Deductible amount will be determined once fault liability is finalized.";
+        const helperLines = pdf.splitTextToSize(helperText, W - 24) as string[];
+        const helperH = helperLines.length * 13 + 12;
+        need(helperH + 4);
+        pdf.setFillColor("#FAFAFB");
+        pdf.rect(M, y, W, helperH, "F");
+        setText(10, "#6B7280", false, true);
+        helperLines.forEach((ln, idx) => pdf.text(ln, M + 12, y + 14 + idx * 13));
+        y += helperH + 4;
+      }
+
       // ===== SECTION 4 — ESTIMATE SOURCES =====
       sectionLabel("Estimate Sources");
       const srcRows: { key: SourceKey; desc: string }[] = [
@@ -4168,6 +4226,104 @@ function EstimateReviewPanel({
           </span>
         </div>
       </div>
+
+      {/* Payment Summary */}
+      {(() => {
+        const cf = claimForm;
+        const cv = cf?.coverage;
+        const ft = cf?.fault;
+        const dedStr = cf?.deductible?.trim() ?? "";
+        const dedNum = parseFloat(dedStr.replace(/[^0-9.]/g, ""));
+        const hasDeductible = cv === "full" && ft === "policyholder";
+        const deductibleAmount = hasDeductible && isFinite(dedNum) && dedNum > 0 ? dedNum : 0;
+        const coveragePayout = hasDeductible ? Math.max(0, adjustedTotal - deductibleAmount) : adjustedTotal;
+
+        const isFullyCovered = cv === "full" && (ft === "other" || (ft === "policyholder" && (!dedStr || dedNum <= 0)));
+        const isThirdParty = cv === "third_party";
+
+        return (
+          <div
+            className="shrink-0 rounded-md border p-3"
+            style={{
+              backgroundColor: isFullyCovered ? "#F0FDF4" : isThirdParty ? "#F8FAFC" : "#FFFBEB",
+              borderColor: isFullyCovered ? "#BBF7D0" : isThirdParty ? "#E5E7EB" : "#FDE68A",
+            }}
+          >
+            <div
+              className="text-[11px] font-semibold uppercase tracking-wider mb-2"
+              style={{ color: COLORS.muted }}
+            >
+              Payment Summary
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-sm">
+                <span style={{ color: COLORS.text }}>Repair Estimate Total</span>
+                <span className="tabular-nums font-medium" style={{ color: COLORS.text }}>
+                  {fmtCurrency(adjustedTotal)}
+                </span>
+              </div>
+
+              {isThirdParty ? (
+                <div className="flex items-center justify-between text-sm">
+                  <span style={{ color: COLORS.text }}>Policy Deductible</span>
+                  <span className="tabular-nums font-medium" style={{ color: COLORS.muted }}>
+                    N/A
+                  </span>
+                </div>
+              ) : isFullyCovered ? (
+                <>
+                  <div className="flex items-center justify-between text-sm">
+                    <span style={{ color: COLORS.text }}>Policy Deductible</span>
+                    <span className="tabular-nums font-medium" style={{ color: COLORS.greenText }}>
+                      $0
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span style={{ color: COLORS.text }}>Coverage Status</span>
+                    <span className="font-medium" style={{ color: COLORS.greenText }}>
+                      Fully Covered
+                    </span>
+                  </div>
+                </>
+              ) : hasDeductible ? (
+                <>
+                  <div className="flex items-center justify-between text-sm">
+                    <span style={{ color: COLORS.text }}>Policy Deductible</span>
+                    <span className="tabular-nums font-medium" style={{ color: COLORS.amberText }}>
+                      −{fmtCurrency(deductibleAmount)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium" style={{ color: COLORS.text }}>
+                      Estimated Insurance Coverage
+                    </span>
+                    <span className="tabular-nums font-bold" style={{ color: COLORS.text }}>
+                      {fmtCurrency(coveragePayout)}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center justify-between text-sm">
+                  <span style={{ color: COLORS.text }}>Policy Deductible</span>
+                  <span className="tabular-nums font-medium" style={{ color: COLORS.muted }}>
+                    Pending
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <p className="text-[11px] mt-2.5 leading-snug" style={{ color: COLORS.muted }}>
+              {isThirdParty
+                ? "Third-party liability claim. The other party's insurance handles vehicle repairs. No deductible applies."
+                : isFullyCovered
+                  ? "No policyholder contribution required for this repair."
+                  : hasDeductible
+                    ? "Your policy includes a deductible, which is the portion of the repair cost paid by the policyholder before insurance coverage applies."
+                    : "Deductible amount will be determined once fault liability is finalized."}
+            </p>
+          </div>
+        );
+      })()}
 
       {/* Activity log */}
       {log.length > 0 && (
