@@ -2157,6 +2157,11 @@ function ReviewEstimateStep({
     setSeniorPending(false);
   }, [selectedId, claim.delegationState]);
 
+  // Notify parent when claim reaches a final workflow state
+  useEffect(() => {
+    onFinalize?.(authorization !== null || seniorPending);
+  }, [authorization, seniorPending, onFinalize]);
+
   const isFastTrack = claim.delegationState === "FAST_TRACK";
 
   const workflowState: "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION" =
