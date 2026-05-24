@@ -2830,11 +2830,13 @@ function PendingSeniorAuthorizationScreen({
   onReturnToQueue,
   onViewEstimate,
   onDownloadEstimate,
+  onReviewAnotherScenario,
 }: {
   claimRef: string;
   onReturnToQueue: () => void;
   onViewEstimate: () => void;
   onDownloadEstimate: () => void;
+  onReviewAnotherScenario: () => void;
 }) {
   return (
     <div className="max-w-2xl mx-auto">
