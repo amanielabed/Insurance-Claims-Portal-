@@ -2499,10 +2499,9 @@ function ReviewEstimateStep({
             authorization={authorization}
             seniorPending={seniorPending !== null}
             onAuthorize={(details) => setAuthorization(details)}
-            onSeniorSubmit={(amount) => setSeniorPending({ amount })}
+            onSeniorSubmit={(amount) => setSeniorPending({ amount, submittedAt: Date.now() })}
             generateReportRef={generateReportRef}
             readOnly={viewingSubmitted}
-            onOpenNewClaim={onReset}
           />
         </Panel>
       </main>
