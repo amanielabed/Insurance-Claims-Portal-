@@ -3113,10 +3113,9 @@ function EstimateReviewPanel({
         });
       };
       const sectionLabel = (label: string) => {
-        need(30);
-        y += 8;
-        setText(11, "#6B7280", true);
-        // letter-spacing emulated by adding spaces between chars is ugly; rely on uppercase
+        need(34);
+        y += 16;
+        setText(11, "#111827", true);
         pdf.text(label.toUpperCase(), M, y + 8);
         y += 18;
       };
