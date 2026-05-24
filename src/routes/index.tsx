@@ -2110,7 +2110,7 @@ function TextInput({
   );
 }
 
-const ADJUSTER_NAME = "Sarah Chen, Senior Claims Adjuster";
+const ADJUSTER_NAME = "Claims Agent";
 
 type AuthorizationDetails = {
   amount: number;
