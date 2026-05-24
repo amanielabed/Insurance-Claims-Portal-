@@ -2805,12 +2805,21 @@ function ClaimAuthorizedScreen({
         </button>
         <button
           type="button"
+          onClick={onReviewAnotherScenario}
+          className="rounded-md border px-4 py-2 text-sm font-medium"
+          style={{ borderColor: COLORS.border, color: COLORS.muted, backgroundColor: "white" }}
+        >
+          Review Another Scenario
+        </button>
+        <button
+          type="button"
           onClick={onStartNewClaim}
           className="rounded-md px-3 py-2 text-xs font-medium underline-offset-2 hover:underline"
           style={{ color: COLORS.muted }}
         >
           Start New Claim (demo)
         </button>
+
       </div>
     </div>
   );
