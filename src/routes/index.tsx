@@ -1250,7 +1250,6 @@ function InitiateClaimStep({
                 setForm((prev) => ({
                   ...prev,
                   policyNumber: validated.policyNumber,
-                  fullName: prev.fullName || validated.holderName,
                   year: validated.year,
                   make: validated.make,
                   model: validated.model,
