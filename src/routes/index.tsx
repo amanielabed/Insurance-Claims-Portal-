@@ -5518,6 +5518,87 @@ function EstimateReviewPanel({
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            {/* Unresolved Review Items — informational validation */}
+            <Dialog open={validationOpen} onOpenChange={setValidationOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Unresolved Review Items</DialogTitle>
+                  <DialogDescription>
+                    This estimate can still be submitted. The following items remain unresolved.
+                  </DialogDescription>
+                </DialogHeader>
+                <div
+                  className="rounded-md border-l-2 border px-3 py-3"
+                  style={{
+                    backgroundColor: COLORS.amberBg,
+                    borderColor: COLORS.amberBorder,
+                    borderLeftColor: COLORS.amber,
+                  }}
+                >
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle
+                      size={14}
+                      className="mt-0.5 shrink-0"
+                      style={{ color: COLORS.amberText }}
+                    />
+                    <ul className="flex flex-col gap-1.5">
+                      {validationItems.map((item, idx) => (
+                        <li
+                          key={idx}
+                          className="flex items-start gap-1.5 text-[12px] leading-snug"
+                          style={{ color: "#92400E" }}
+                        >
+                          <span
+                            className="mt-1.5 w-1 h-1 rounded-full shrink-0"
+                            style={{ backgroundColor: COLORS.amber }}
+                          />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <DialogFooter className="sm:justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValidationOpen(false);
+                      setRequestInfoOpen(true);
+                    }}
+                    className="text-sm font-medium underline-offset-2 hover:underline"
+                    style={{ color: COLORS.blue }}
+                  >
+                    Request Additional Information
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setValidationOpen(false)}
+                      className="rounded-md border px-4 py-2 text-sm font-medium"
+                      style={{
+                        borderColor: COLORS.border,
+                        color: COLORS.text,
+                        backgroundColor: "white",
+                      }}
+                    >
+                      Return to Review
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setValidationOpen(false);
+                        if (pendingPrimaryMode) openFinalConfirm(pendingPrimaryMode);
+                      }}
+                      className="rounded-md px-4 py-2 text-sm font-semibold text-white"
+                      style={{ backgroundColor: COLORS.blue }}
+                    >
+                      Proceed with Submission
+                    </button>
+                  </div>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </>
         );
       })()}
