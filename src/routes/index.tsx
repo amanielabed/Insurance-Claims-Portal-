@@ -1953,11 +1953,13 @@ function ReviewEstimateStep({
   const [seniorReview, setSeniorReview] = useState(claim.delegationState === "SENIOR_REVIEW");
   const [scenarioOpen, setScenarioOpen] = useState(false);
   const [highlightedPart, setHighlightedPart] = useState<number | null>(null);
+  const [concernsDismissed, setConcernsDismissed] = useState(false);
 
   // Sync escalation when switching claims — auto-load senior review for SENIOR_REVIEW scenarios
   useEffect(() => {
     setSeniorReview(claim.delegationState === "SENIOR_REVIEW");
     setHighlightedPart(null);
+    setConcernsDismissed(false);
   }, [selectedId, claim.delegationState]);
 
   const isFastTrack = claim.delegationState === "FAST_TRACK";
