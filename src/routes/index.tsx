@@ -3072,7 +3072,7 @@ function EstimateReviewPanel({
       const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
-      const M = 48;
+      const M = 40;
       const W = pageW - M * 2;
       let y = M;
 
@@ -3081,6 +3081,12 @@ function EstimateReviewPanel({
           pdf.addPage();
           y = M;
         }
+      };
+      const formatLossDate = (s: string | undefined): string => {
+        if (!s || !s.trim()) return "—";
+        const d = new Date(s);
+        if (isNaN(d.getTime())) return s;
+        return d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
       };
       const setText = (size: number, color = "#111827", bold = false, italic = false) => {
         const style = bold ? (italic ? "bolditalic" : "bold") : italic ? "italic" : "normal";
@@ -3107,10 +3113,9 @@ function EstimateReviewPanel({
         });
       };
       const sectionLabel = (label: string) => {
-        need(30);
-        y += 8;
-        setText(11, "#6B7280", true);
-        // letter-spacing emulated by adding spaces between chars is ugly; rely on uppercase
+        need(34);
+        y += 16;
+        setText(11, "#111827", true);
         pdf.text(label.toUpperCase(), M, y + 8);
         y += 18;
       };
@@ -3246,7 +3251,7 @@ function EstimateReviewPanel({
               claim.type
             : claim.type,
         ],
-        ["Date of loss", cf?.dateOfLoss || "—"],
+        ["Date of loss", formatLossDate(cf?.dateOfLoss)],
       ];
       infoRows.forEach(([label, val]) => {
         need(24);
@@ -3400,24 +3405,57 @@ function EstimateReviewPanel({
         pdf.setLineWidth(0.5);
         pdf.line(M, y, pageW - M, y);
       });
+      // Deductible exceeds repair cost note
+      {
+        const dedNum = parseFloat((cf?.deductible || "").replace(/[^0-9.]/g, ""));
+        if (
+          cv !== "third_party" &&
+          isFinite(dedNum) &&
+          dedNum > 0 &&
+          dedNum > draftTotal &&
+          draftTotal > 0
+        ) {
+          const noteLines = pdf.splitTextToSize(
+            `Note: Deductible (${fmtCurrency(dedNum)}) exceeds draft repair estimate (${fmtCurrency(draftTotal)}). Policyholder may be responsible for full repair cost pending final assessment.`,
+            W - 24,
+          ) as string[];
+          const noteH = noteLines.length * 13 + 12;
+          need(noteH + 6);
+          pdf.setFillColor("#F9FAFB");
+          pdf.rect(M, y, W, noteH, "F");
+          setText(10, "#6B7280", false, true);
+          noteLines.forEach((ln, idx) => pdf.text(ln, M + 12, y + 14 + idx * 13));
+          y += noteH + 4;
+        }
+      }
       y += 4;
 
 
 
       // ===== SECTION 3 — ESTIMATE BREAKDOWN =====
+      // Page break if table would start too close to bottom
+      if (y + 150 > pageH - M - 30) {
+        pdf.addPage();
+        y = M;
+      }
       sectionLabel("Estimate Breakdown");
-      const colItem = M;
-      const colScope = M + 190;
-      const colLabor = M + 260;
-      const colBasis = M + 310;
-      const colEst = pageW - M;
+      // Proportional columns: Item 35%, Scope 10%, Labor 10%, Cost Basis 20%, Draft 12%, Adjusted 13%
+      const colItem = M;                       // text left (35%)
+      const colScope = M + Math.round(W * 0.35);   // text left (10%)
+      const colLabor = M + Math.round(W * 0.45);   // text left (10%)
+      const colBasis = M + Math.round(W * 0.55);   // badges left (20%)
+      const colDraftR = M + Math.round(W * 0.87);  // right-aligned (12% column ending here)
+      const colAdjR = pageW - M;                   // right-aligned (13%)
+      const itemMaxW = Math.round(W * 0.35) - 6;
+      const basisMaxW = Math.round(W * 0.20) - 6;
       need(24);
-      setText(11, "#6B7280", true);
+      setText(9, "#6B7280", true);
       pdf.text("LINE ITEM", colItem, y + 10);
       pdf.text("SCOPE", colScope, y + 10);
       pdf.text("LABOR", colLabor, y + 10);
       pdf.text("COST BASIS", colBasis, y + 10);
-      pdf.text("DRAFT ESTIMATE", colEst, y + 10, { align: "right" });
+      pdf.text("DRAFT EST.", colDraftR, y + 10, { align: "right" });
+      pdf.text("ADJUSTED EST.", colAdjR, y + 10, { align: "right" });
       y += 18;
       pdf.setDrawColor("#E5E7EB");
       pdf.setLineWidth(0.5);
@@ -3432,38 +3470,48 @@ function EstimateReviewPanel({
       };
 
       claim.parts.forEach((part, i) => {
+        const draftVal = part.draftEstimate;
         const adjVal = reportAdjusted[i];
         const hasVerify = part.sources.includes("verify");
-        need(28);
-        const rowY = y + 14;
-        setText(13, "#111827");
-        const nameLines = pdf.splitTextToSize(part.name, 180) as string[];
-        pdf.text(nameLines[0], colItem, rowY);
-        setText(13, "#374151");
-        pdf.text(part.suggestedRepairScope, colScope, rowY);
+        // name may wrap to multiple lines
+        setText(10, "#111827");
+        const nameLines = pdf.splitTextToSize(part.name, itemMaxW) as string[];
+        const rowH = Math.max(24, nameLines.length * 14 + 8);
+        need(rowH + 4);
+        const rowY = y + 12;
+        nameLines.forEach((ln, idx) => pdf.text(ln, colItem, rowY + idx * 14));
+        setText(10, "#374151");
+        const scopeLines = pdf.splitTextToSize(part.suggestedRepairScope, Math.round(W * 0.10) - 6) as string[];
+        scopeLines.slice(0, 2).forEach((ln, idx) => pdf.text(ln, colScope, rowY + idx * 14));
         pdf.text(`${part.laborHours}h`, colLabor, rowY);
         let bx = colBasis;
         part.sources.forEach((src) => {
           const c = badgeColors[src];
-          const w = drawBadge(SOURCE_META[src].short, bx, rowY - 4, c.bg, c.fg, c.border);
-          bx += w + 4;
+          if (bx - colBasis > basisMaxW - 30) return;
+          const bw = drawBadge(SOURCE_META[src].short, bx, rowY - 4, c.bg, c.fg, c.border);
+          bx += bw + 3;
         });
-        // amount (right-aligned)
+        // Draft estimate — always original, never override
+        setText(10, "#111827");
+        pdf.text(fmtCurrency(draftVal), colDraftR, rowY, { align: "right" });
+        // Adjusted estimate (right column)
         if (hasVerify) {
-          // warning triangle
-          const tri = colEst - pdf.getTextWidth(fmtCurrency(adjVal)) - 14;
+          const tri = colAdjR - pdf.getTextWidth(fmtCurrency(adjVal)) - 12;
           pdf.setFillColor("#F59E0B");
-          pdf.triangle(tri, rowY - 1, tri + 9, rowY - 1, tri + 4.5, rowY - 9, "F");
-          setText(13, "#B45309", true);
+          pdf.triangle(tri, rowY - 1, tri + 8, rowY - 1, tri + 4, rowY - 8, "F");
+          setText(10, "#B45309", true);
+        } else if (adjVal !== draftVal) {
+          setText(10, "#B45309", true);
         } else {
-          setText(13, "#111827");
+          setText(10, "#111827");
         }
-        pdf.text(fmtCurrency(adjVal), colEst, rowY, { align: "right" });
-        y += 24;
+        pdf.text(fmtCurrency(adjVal), colAdjR, rowY, { align: "right" });
+        y += rowH;
         pdf.setDrawColor("#F3F4F6");
         pdf.setLineWidth(0.5);
         pdf.line(M, y, pageW - M, y);
       });
+
 
       // totals row
       need(36);
@@ -3546,15 +3594,22 @@ function EstimateReviewPanel({
           pdf.text("No adjustments made. Draft estimate approved as reviewed.", M + 12, y + 18);
           y += 36;
         } else {
-          // Table header
-          const cName = M;
-          const cDraft = M + 230;
-          const cAdj = M + 305;
-          const cVar = M + 380;
-          const cPct = M + 445;
-          const cReason = M + 495;
+          // Page break if table would start within 150pt of bottom
+          if (y + 150 > pageH - M - 30) {
+            pdf.addPage();
+            y = M;
+          }
+          // Override table columns: Item 25%, Draft 13%, Adjusted 13%, Var 12%, Var% 10%, Rationale 27%
+          const cName = M;                           // text left
+          const itemMaxW = Math.round(W * 0.25) - 6;
+          const cDraft = M + Math.round(W * 0.38);   // right-align
+          const cAdj = M + Math.round(W * 0.51);     // right-align
+          const cVar = M + Math.round(W * 0.63);     // right-align
+          const cPct = M + Math.round(W * 0.73);     // right-align
+          const cReason = M + Math.round(W * 0.73) + 6; // text left
+          const reasonMaxW = pageW - M - cReason;
           need(24);
-          setText(10, "#6B7280", true);
+          setText(9, "#6B7280", true);
           pdf.text("LINE ITEM", cName, y + 10);
           pdf.text("DRAFT", cDraft, y + 10, { align: "right" });
           pdf.text("ADJUSTED", cAdj, y + 10, { align: "right" });
@@ -3567,6 +3622,7 @@ function EstimateReviewPanel({
           pdf.line(M, y, pageW - M, y);
           y += 4;
 
+
           let draftSum = 0;
           let adjSum = 0;
           claim.parts.forEach((p, i) => {
@@ -3575,8 +3631,8 @@ function EstimateReviewPanel({
           });
 
           adjustedRows.forEach((r) => {
-            const nameLines = pdf.splitTextToSize(r.name, 220) as string[];
-            const reasonLines = pdf.splitTextToSize(r.reason, pageW - M - cReason) as string[];
+            const nameLines = pdf.splitTextToSize(r.name, itemMaxW) as string[];
+            const reasonLines = pdf.splitTextToSize(r.reason, reasonMaxW) as string[];
             const isSignificant = Math.abs(r.variancePct) > 20;
             const extraH = isSignificant ? 14 : 0;
             const rowH = Math.max(nameLines.length, reasonLines.length) * 14 + 10 + extraH;
@@ -3676,6 +3732,11 @@ function EstimateReviewPanel({
       y += boxH + 12;
 
       // ===== SECTION 6 — VERIFICATION & AUTHORIZATION =====
+      // Force page break if fewer than 4 rows (≈ 4 × 26pt + header ≈ 130pt) fit
+      if (y + 140 > pageH - M - 30) {
+        pdf.addPage();
+        y = M;
+      }
       sectionLabel("Verification & Authorization Record");
       let verifyText: string;
       let authText: string;
