@@ -2296,6 +2296,14 @@ function ReviewEstimateStep({
   const [viewingSubmitted, setViewingSubmitted] = useState(false);
   const generateReportRef = useRef<((forAuthorization?: boolean) => Promise<void>) | null>(null);
 
+  // Reset only the resolution state — preserves scenario, claimForm, photos, claimRef
+  const reviewAnotherScenario = () => {
+    setAuthorization(null);
+    setSeniorPending(false);
+    setInfoRequested(false);
+    setViewingSubmitted(false);
+  };
+
   // Sync escalation when switching claims — auto-load senior authorization for SENIOR_AUTHORIZATION scenarios
   useEffect(() => {
     setSeniorReview(claim.delegationState === "SENIOR_AUTHORIZATION");
@@ -2600,6 +2608,7 @@ function ReviewEstimateStep({
               onDownload={() => generateReportRef.current?.(true)}
               onReturnToQueue={() => onReturnToQueue?.()}
               onStartNewClaim={onReset}
+              onReviewAnotherScenario={reviewAnotherScenario}
             />
           ) : seniorPending ? (
             <PendingSeniorAuthorizationScreen
@@ -2607,16 +2616,19 @@ function ReviewEstimateStep({
               onReturnToQueue={() => onReturnToQueue?.()}
               onViewEstimate={() => setViewingSubmitted(true)}
               onDownloadEstimate={() => generateReportRef.current?.(false)}
+              onReviewAnotherScenario={reviewAnotherScenario}
             />
           ) : (
             <InformationRequestedScreen
               claimRef={claimRef}
               onReturnToQueue={() => onReturnToQueue?.()}
               onViewEstimate={() => setViewingSubmitted(true)}
+              onReviewAnotherScenario={reviewAnotherScenario}
             />
           )}
         </div>
       )}
+
 
       <main
         key={claim.id}
@@ -2690,6 +2702,7 @@ function ClaimAuthorizedScreen({
   onDownload,
   onReturnToQueue,
   onStartNewClaim,
+  onReviewAnotherScenario,
 }: {
   claimRef: string;
   claimForm: ClaimForm | null;
@@ -2698,6 +2711,7 @@ function ClaimAuthorizedScreen({
   onDownload: () => void;
   onReturnToQueue: () => void;
   onStartNewClaim: () => void;
+  onReviewAnotherScenario: () => void;
 }) {
   const vehicle =
     [claimForm?.year, claimForm?.make, claimForm?.model].filter(Boolean).join(" ").trim() || "—";
@@ -2791,12 +2805,21 @@ function ClaimAuthorizedScreen({
         </button>
         <button
           type="button"
+          onClick={onReviewAnotherScenario}
+          className="rounded-md border px-4 py-2 text-sm font-medium"
+          style={{ borderColor: COLORS.border, color: COLORS.muted, backgroundColor: "white" }}
+        >
+          Review Another Scenario
+        </button>
+        <button
+          type="button"
           onClick={onStartNewClaim}
           className="rounded-md px-3 py-2 text-xs font-medium underline-offset-2 hover:underline"
           style={{ color: COLORS.muted }}
         >
           Start New Claim (demo)
         </button>
+
       </div>
     </div>
   );
@@ -2807,11 +2830,13 @@ function PendingSeniorAuthorizationScreen({
   onReturnToQueue,
   onViewEstimate,
   onDownloadEstimate,
+  onReviewAnotherScenario,
 }: {
   claimRef: string;
   onReturnToQueue: () => void;
   onViewEstimate: () => void;
   onDownloadEstimate: () => void;
+  onReviewAnotherScenario: () => void;
 }) {
   return (
     <div className="max-w-2xl mx-auto">
@@ -2869,6 +2894,15 @@ function PendingSeniorAuthorizationScreen({
           <FileText size={14} />
           Download Estimate Report
         </button>
+        <button
+          type="button"
+          onClick={onReviewAnotherScenario}
+          className="rounded-md border px-4 py-2 text-sm font-medium"
+          style={{ borderColor: COLORS.border, color: COLORS.muted, backgroundColor: "white" }}
+        >
+          Review Another Scenario
+        </button>
+
       </div>
     </div>
   );
@@ -2878,10 +2912,12 @@ function InformationRequestedScreen({
   claimRef,
   onReturnToQueue,
   onViewEstimate,
+  onReviewAnotherScenario,
 }: {
   claimRef: string;
   onReturnToQueue: () => void;
   onViewEstimate: () => void;
+  onReviewAnotherScenario: () => void;
 }) {
   return (
     <div className="max-w-2xl mx-auto">
@@ -2930,6 +2966,15 @@ function InformationRequestedScreen({
         >
           View Submitted Estimate
         </button>
+        <button
+          type="button"
+          onClick={onReviewAnotherScenario}
+          className="rounded-md border px-4 py-2 text-sm font-medium"
+          style={{ borderColor: COLORS.border, color: COLORS.muted, backgroundColor: "white" }}
+        >
+          Review Another Scenario
+        </button>
+
       </div>
     </div>
   );
