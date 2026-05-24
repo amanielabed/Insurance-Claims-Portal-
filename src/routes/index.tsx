@@ -2512,36 +2512,16 @@ function ReviewEstimateStep({
   );
 }
 
-function ClaimAuthorizedScreen({
-  claimRef,
-  claimForm,
-  authorization,
-  adjusterName,
-  onDownload,
-  onReturnToQueue,
-  onStartNewClaim,
-  onReviewAnotherScenario,
+function ResolutionRow({
+  label,
+  value,
+  mono,
 }: {
-  claimRef: string;
-  claimForm: ClaimForm | null;
-  authorization: AuthorizationDetails;
-  adjusterName: string;
-  onDownload: () => void;
-  onReturnToQueue: () => void;
-  onStartNewClaim: () => void;
-  onReviewAnotherScenario: () => void;
+  label: string;
+  value: string;
+  mono?: boolean;
 }) {
-  const vehicle =
-    [claimForm?.year, claimForm?.make, claimForm?.model].filter(Boolean).join(" ").trim() || "—";
-  const policyholder = claimForm?.fullName?.trim() || "—";
-  const dateLabel = new Date(authorization.authorizedAt).toLocaleString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const Row = ({ label, value, mono }: { label: string; value: string; mono?: boolean }) => (
+  return (
     <div
       className="flex items-start justify-between gap-4 py-2.5 border-b"
       style={{ borderColor: COLORS.border }}
@@ -2555,6 +2535,67 @@ function ClaimAuthorizedScreen({
       </span>
     </div>
   );
+}
+
+function ResolutionActions({
+  onContinueReviewing,
+  onDownload,
+  downloadLabel,
+}: {
+  onContinueReviewing: () => void;
+  onDownload: () => void;
+  downloadLabel: string;
+}) {
+  return (
+    <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+      <button
+        type="button"
+        onClick={onContinueReviewing}
+        className="rounded-md px-4 py-2 text-sm font-semibold text-white"
+        style={{ backgroundColor: COLORS.blue }}
+        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
+        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
+      >
+        Continue Reviewing
+      </button>
+      <button
+        type="button"
+        onClick={onDownload}
+        className="inline-flex items-center gap-1.5 rounded-md border px-4 py-2 text-sm font-medium"
+        style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: "white" }}
+      >
+        <FileText size={14} />
+        {downloadLabel}
+      </button>
+    </div>
+  );
+}
+
+function ClaimAuthorizedScreen({
+  claimRef,
+  claimForm,
+  authorization,
+  adjusterName,
+  onDownload,
+  onContinueReviewing,
+}: {
+  claimRef: string;
+  claimForm: ClaimForm | null;
+  authorization: AuthorizationDetails;
+  adjusterName: string;
+  onDownload: () => void;
+  onContinueReviewing: () => void;
+}) {
+  const vehicle =
+    [claimForm?.year, claimForm?.make, claimForm?.model].filter(Boolean).join(" ").trim() || "—";
+  const policyholder = claimForm?.fullName?.trim() || "—";
+  const dateLabel = new Date(authorization.authorizedAt).toLocaleString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -2563,12 +2604,12 @@ function ClaimAuthorizedScreen({
         style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
       >
         <div className="flex flex-col items-center text-center">
-          <CheckCircle size={48} strokeWidth={1.5} style={{ color: COLORS.green }} />
+          <CheckCircle size={40} strokeWidth={1.5} style={{ color: COLORS.green }} />
           <h2 className="mt-4 text-xl font-semibold" style={{ color: COLORS.text }}>
             Claim Authorized
           </h2>
           <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>
-            Repair authorization issued for Claim #{claimRef}
+            Claim #{claimRef} · {vehicle}
           </p>
           <div
             className="mt-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
@@ -2583,220 +2624,97 @@ function ClaimAuthorizedScreen({
         </div>
 
         <div className="mt-6">
-          <Row label="Policyholder" value={policyholder} />
-          <Row label="Vehicle" value={vehicle} />
-          <Row label="Authorized Amount" value={fmtCurrency(authorization.amount)} mono />
-          <Row
+          <ResolutionRow label="Policyholder" value={policyholder} />
+          <ResolutionRow label="Authorized Amount" value={fmtCurrency(authorization.amount)} mono />
+          <ResolutionRow
             label="Deductible"
             value={
               authorization.hasDeductible
                 ? fmtCurrency(authorization.deductibleAmount)
-                : "No deductible"
+                : "N/A"
             }
             mono
           />
-          <Row label="Repair Status" value="Authorized for Repair" />
-          <Row label="Authorization Date" value={dateLabel} />
-          <Row label="Authorized By" value={adjusterName} />
+          <ResolutionRow label="Authorization Date" value={dateLabel} />
+          <ResolutionRow label="Authorized By" value={adjusterName} />
         </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={onDownload}
-          className="inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-semibold text-white"
-          style={{ backgroundColor: COLORS.blue }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
-        >
-          <FileText size={14} />
-          Download Authorization Report
-        </button>
-        <button
-          type="button"
-          onClick={onReturnToQueue}
-          className="rounded-md border px-4 py-2 text-sm font-medium"
-          style={{ borderColor: COLORS.blue, color: COLORS.blue, backgroundColor: "white" }}
-        >
-          Return to Claims Queue
-        </button>
-        <button
-          type="button"
-          onClick={onReviewAnotherScenario}
-          className="rounded-md border px-4 py-2 text-sm font-medium"
-          style={{ borderColor: COLORS.border, color: COLORS.muted, backgroundColor: "white" }}
-        >
-          Review Another Scenario
-        </button>
-        <button
-          type="button"
-          onClick={onStartNewClaim}
-          className="rounded-md px-3 py-2 text-xs font-medium underline-offset-2 hover:underline"
+      <ResolutionActions
+        onContinueReviewing={onContinueReviewing}
+        onDownload={onDownload}
+        downloadLabel="Download Report"
+      />
+    </div>
+  );
+}
+
+function EstimateSubmittedScreen({
+  claimRef,
+  claimForm,
+  amount,
+  onDownload,
+  onContinueReviewing,
+}: {
+  claimRef: string;
+  claimForm: ClaimForm | null;
+  amount: number;
+  onDownload: () => void;
+  onContinueReviewing: () => void;
+}) {
+  const vehicle =
+    [claimForm?.year, claimForm?.make, claimForm?.model].filter(Boolean).join(" ").trim() || "—";
+  const policyholder = claimForm?.fullName?.trim() || "—";
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div
+        className="rounded-lg border p-8"
+        style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
+      >
+        <div className="flex flex-col items-center text-center">
+          <Clock size={40} strokeWidth={1.5} style={{ color: COLORS.amber }} />
+          <h2 className="mt-4 text-xl font-semibold" style={{ color: COLORS.text }}>
+            Estimate Submitted
+          </h2>
+          <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>
+            Claim #{claimRef} · {vehicle}
+          </p>
+          <div
+            className="mt-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
+            style={{ backgroundColor: COLORS.amberBg, color: COLORS.amberText }}
+          >
+            <span
+              className="inline-block w-1.5 h-1.5 rounded-full"
+              style={{ backgroundColor: COLORS.amber }}
+            />
+            Pending Authorization
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <ResolutionRow label="Policyholder" value={policyholder} />
+          <ResolutionRow label="Submitted Amount" value={fmtCurrency(amount)} mono />
+        </div>
+
+        <p
+          className="mt-5 text-sm leading-relaxed text-center"
           style={{ color: COLORS.muted }}
         >
-          Start New Claim (demo)
-        </button>
-
+          A senior adjuster will review and issue final repair authorization.
+        </p>
       </div>
+
+      <ResolutionActions
+        onContinueReviewing={onContinueReviewing}
+        onDownload={onDownload}
+        downloadLabel="Download Report"
+      />
     </div>
   );
 }
 
-function PendingSeniorAuthorizationScreen({
-  claimRef,
-  onReturnToQueue,
-  onViewEstimate,
-  onDownloadEstimate,
-  onReviewAnotherScenario,
-}: {
-  claimRef: string;
-  onReturnToQueue: () => void;
-  onViewEstimate: () => void;
-  onDownloadEstimate: () => void;
-  onReviewAnotherScenario: () => void;
-}) {
-  return (
-    <div className="max-w-2xl mx-auto">
-      <div
-        className="rounded-lg border p-8 text-center"
-        style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
-      >
-        <div className="flex justify-center">
-          <Clock size={48} strokeWidth={1.5} style={{ color: COLORS.amber }} />
-        </div>
-        <h2 className="mt-4 text-xl font-semibold" style={{ color: COLORS.text }}>
-          Pending Senior Authorization
-        </h2>
-        <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>
-          Claim #{claimRef} has been submitted for senior adjuster review.
-        </p>
-        <p className="mt-4 text-sm leading-relaxed" style={{ color: COLORS.muted }}>
-          The estimate has been submitted for final authorization review.
-        </p>
-        <div
-          className="mt-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
-          style={{ backgroundColor: COLORS.amberBg, color: COLORS.amberText }}
-        >
-          <span
-            className="inline-block w-1.5 h-1.5 rounded-full"
-            style={{ backgroundColor: COLORS.amber }}
-          />
-          Pending Senior Approval
-        </div>
-      </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={onReturnToQueue}
-          className="rounded-md border px-4 py-2 text-sm font-semibold"
-          style={{ borderColor: COLORS.blue, color: COLORS.blue, backgroundColor: "white" }}
-        >
-          Return to Claims Queue
-        </button>
-        <button
-          type="button"
-          onClick={onViewEstimate}
-          className="rounded-md border px-4 py-2 text-sm font-medium"
-          style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: "white" }}
-        >
-          View Submitted Estimate
-        </button>
-        <button
-          type="button"
-          onClick={onDownloadEstimate}
-          className="inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium"
-          style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: "white", border: `1px solid ${COLORS.border}` }}
-        >
-          <FileText size={14} />
-          Download Estimate Report
-        </button>
-        <button
-          type="button"
-          onClick={onReviewAnotherScenario}
-          className="rounded-md border px-4 py-2 text-sm font-medium"
-          style={{ borderColor: COLORS.border, color: COLORS.muted, backgroundColor: "white" }}
-        >
-          Review Another Scenario
-        </button>
-
-      </div>
-    </div>
-  );
-}
-
-function InformationRequestedScreen({
-  claimRef,
-  onReturnToQueue,
-  onViewEstimate,
-  onReviewAnotherScenario,
-}: {
-  claimRef: string;
-  onReturnToQueue: () => void;
-  onViewEstimate: () => void;
-  onReviewAnotherScenario: () => void;
-}) {
-  return (
-    <div className="max-w-2xl mx-auto">
-      <div
-        className="rounded-lg border p-8 text-center"
-        style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
-      >
-        <div className="flex justify-center">
-          <Clock size={48} strokeWidth={1.5} style={{ color: COLORS.amber }} />
-        </div>
-        <h2 className="mt-4 text-xl font-semibold" style={{ color: COLORS.text }}>
-          Information Requested
-        </h2>
-        <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>
-          Claim #{claimRef} is awaiting additional information from the policyholder.
-        </p>
-        <p className="mt-4 text-sm leading-relaxed" style={{ color: COLORS.muted }}>
-          The claim has been saved. Review will resume once the requested information is provided.
-        </p>
-        <div
-          className="mt-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
-          style={{ backgroundColor: COLORS.amberBg, color: COLORS.amberText }}
-        >
-          <span
-            className="inline-block w-1.5 h-1.5 rounded-full"
-            style={{ backgroundColor: COLORS.amber }}
-          />
-          Awaiting Response
-        </div>
-      </div>
-
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={onReturnToQueue}
-          className="rounded-md border px-4 py-2 text-sm font-semibold"
-          style={{ borderColor: COLORS.blue, color: COLORS.blue, backgroundColor: "white" }}
-        >
-          Return to Claims Queue
-        </button>
-        <button
-          type="button"
-          onClick={onViewEstimate}
-          className="rounded-md border px-4 py-2 text-sm font-medium"
-          style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: "white" }}
-        >
-          View Submitted Estimate
-        </button>
-        <button
-          type="button"
-          onClick={onReviewAnotherScenario}
-          className="rounded-md border px-4 py-2 text-sm font-medium"
-          style={{ borderColor: COLORS.border, color: COLORS.muted, backgroundColor: "white" }}
-        >
-          Review Another Scenario
-        </button>
-
-      </div>
-    </div>
-  );
-}
 
 
 function DemoGuide() {
