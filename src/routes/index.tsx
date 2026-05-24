@@ -3827,7 +3827,7 @@ function EstimateReviewPanel({
                     ? COLORS.amberText
                     : COLORS.greenText;
               const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
-              const isExpanded = expanded?.row === i;
+              const isExpanded = expanded === i;
               const isHighlighted = highlightedPart === i;
               const hasOverlay = (OVERLAYS[claim.id] ?? []).some((o) => o.partIndex === i);
               const override = overrides[i];
