@@ -2394,9 +2394,43 @@ function ReviewEstimateStep({
         )}
       </div>
 
+      {(authorization || seniorPending) && (
+        <div className="flex-1 min-h-0 overflow-auto p-6 animate-fade-in">
+          {authorization ? (
+            <ClaimAuthorizedScreen
+              claimRef={claimRef}
+              claimForm={effectiveClaimForm}
+              authorization={authorization}
+              adjusterName={ADJUSTER_NAME}
+              onDownload={() => generateReportRef.current?.(true)}
+              onReturnToQueue={() => {
+                toast("Returning to claims queue…");
+                setTimeout(() => onReset(), 600);
+              }}
+              onStartNewClaim={onReset}
+            />
+          ) : (
+            <PendingSeniorAuthorizationScreen
+              claimRef={claimRef}
+              onReturnToQueue={() => {
+                toast("Returning to claims queue…");
+                setTimeout(() => onReset(), 600);
+              }}
+              onViewEstimate={() => setSeniorPending(false)}
+              onDownloadEstimate={() => generateReportRef.current?.(false)}
+            />
+          )}
+        </div>
+      )}
+
       <main
         key={claim.id}
         className="flex-1 min-h-0 grid grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(420px,1.35fr)] gap-4 p-4 animate-fade-in"
+        style={
+          authorization || seniorPending
+            ? { display: "none" }
+            : undefined
+        }
       >
         {/* Damage Photo */}
         <Panel title="Damage Photo">
@@ -2425,6 +2459,8 @@ function ReviewEstimateStep({
             claim={claim}
             claimForm={effectiveClaimForm}
             uploadedPhotos={uploadedPhotos}
+            claimRef={claimRef}
+            adjusterName={ADJUSTER_NAME}
             isFastTrack={isFastTrack}
             seniorReview={seniorReview}
             onTriggerSeniorReview={() => setSeniorReview(true)}
@@ -2434,11 +2470,208 @@ function ReviewEstimateStep({
             }
             concernsDismissed={concernsDismissed}
             hasConcerns={(claim.verificationConcerns?.length ?? 0) > 0}
+            authorization={authorization}
+            seniorPending={seniorPending}
+            onAuthorize={(details) => setAuthorization(details)}
+            onSeniorSubmit={() => setSeniorPending(true)}
+            generateReportRef={generateReportRef}
           />
         </Panel>
       </main>
 
       <DemoGuide />
+    </div>
+  );
+}
+
+function ClaimAuthorizedScreen({
+  claimRef,
+  claimForm,
+  authorization,
+  adjusterName,
+  onDownload,
+  onReturnToQueue,
+  onStartNewClaim,
+}: {
+  claimRef: string;
+  claimForm: ClaimForm | null;
+  authorization: AuthorizationDetails;
+  adjusterName: string;
+  onDownload: () => void;
+  onReturnToQueue: () => void;
+  onStartNewClaim: () => void;
+}) {
+  const vehicle =
+    [claimForm?.year, claimForm?.make, claimForm?.model].filter(Boolean).join(" ").trim() || "—";
+  const policyholder = claimForm?.fullName?.trim() || "—";
+  const dateLabel = new Date(authorization.authorizedAt).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const Row = ({ label, value, mono }: { label: string; value: string; mono?: boolean }) => (
+    <div
+      className="flex items-start justify-between gap-4 py-2.5 border-b"
+      style={{ borderColor: COLORS.border }}
+    >
+      <span className="text-sm" style={{ color: COLORS.muted }}>{label}</span>
+      <span
+        className={`text-sm font-medium text-right ${mono ? "tabular-nums" : ""}`}
+        style={{ color: COLORS.text }}
+      >
+        {value}
+      </span>
+    </div>
+  );
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div
+        className="rounded-lg border p-8"
+        style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
+      >
+        <div className="flex flex-col items-center text-center">
+          <CheckCircle size={48} strokeWidth={1.5} style={{ color: COLORS.green }} />
+          <h2 className="mt-4 text-xl font-semibold" style={{ color: COLORS.text }}>
+            Claim Authorized
+          </h2>
+          <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>
+            Repair authorization issued for Claim #{claimRef}
+          </p>
+          <div
+            className="mt-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
+            style={{ backgroundColor: COLORS.greenBg, color: COLORS.greenText }}
+          >
+            <span
+              className="inline-block w-1.5 h-1.5 rounded-full"
+              style={{ backgroundColor: COLORS.green }}
+            />
+            Authorized
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <Row label="Policyholder" value={policyholder} />
+          <Row label="Vehicle" value={vehicle} />
+          <Row label="Authorized Amount" value={fmtCurrency(authorization.amount)} mono />
+          <Row
+            label="Deductible"
+            value={
+              authorization.hasDeductible
+                ? fmtCurrency(authorization.deductibleAmount)
+                : "No deductible"
+            }
+            mono
+          />
+          <Row label="Repair Status" value="Authorized for Repair" />
+          <Row label="Authorization Date" value={dateLabel} />
+          <Row label="Authorized By" value={adjusterName} />
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={onDownload}
+          className="inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-semibold text-white"
+          style={{ backgroundColor: COLORS.blue }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
+        >
+          <FileText size={14} />
+          Download Authorization Report
+        </button>
+        <button
+          type="button"
+          onClick={onReturnToQueue}
+          className="rounded-md border px-4 py-2 text-sm font-medium"
+          style={{ borderColor: COLORS.blue, color: COLORS.blue, backgroundColor: "white" }}
+        >
+          Return to Claims Queue
+        </button>
+        <button
+          type="button"
+          onClick={onStartNewClaim}
+          className="rounded-md px-3 py-2 text-xs font-medium underline-offset-2 hover:underline"
+          style={{ color: COLORS.muted }}
+        >
+          Start New Claim (demo)
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PendingSeniorAuthorizationScreen({
+  claimRef,
+  onReturnToQueue,
+  onViewEstimate,
+  onDownloadEstimate,
+}: {
+  claimRef: string;
+  onReturnToQueue: () => void;
+  onViewEstimate: () => void;
+  onDownloadEstimate: () => void;
+}) {
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div
+        className="rounded-lg border p-8 text-center"
+        style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
+      >
+        <div className="flex justify-center">
+          <Clock size={48} strokeWidth={1.5} style={{ color: COLORS.amber }} />
+        </div>
+        <h2 className="mt-4 text-xl font-semibold" style={{ color: COLORS.text }}>
+          Pending Senior Authorization
+        </h2>
+        <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>
+          Claim #{claimRef} has been submitted for senior adjuster review.
+        </p>
+        <p className="mt-4 text-sm leading-relaxed" style={{ color: COLORS.muted }}>
+          The estimate has been submitted for final authorization review.
+        </p>
+        <div
+          className="mt-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
+          style={{ backgroundColor: COLORS.amberBg, color: COLORS.amberText }}
+        >
+          <span
+            className="inline-block w-1.5 h-1.5 rounded-full"
+            style={{ backgroundColor: COLORS.amber }}
+          />
+          Pending Senior Approval
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={onReturnToQueue}
+          className="rounded-md border px-4 py-2 text-sm font-semibold"
+          style={{ borderColor: COLORS.blue, color: COLORS.blue, backgroundColor: "white" }}
+        >
+          Return to Claims Queue
+        </button>
+        <button
+          type="button"
+          onClick={onViewEstimate}
+          className="rounded-md border px-4 py-2 text-sm font-medium"
+          style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: "white" }}
+        >
+          View Submitted Estimate
+        </button>
+        <button
+          type="button"
+          onClick={onDownloadEstimate}
+          className="inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium"
+          style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: "white", border: `1px solid ${COLORS.border}` }}
+        >
+          <FileText size={14} />
+          Download Estimate Report
+        </button>
+      </div>
     </div>
   );
 }
