@@ -2672,6 +2672,7 @@ function ReviewEstimateStep({
             generateReportRef={generateReportRef}
             readOnly={viewingSubmitted}
             onOpenNewClaim={onReset}
+            onInfoRequest={() => setInfoRequested(true)}
           />
         </Panel>
       </main>
