@@ -3961,7 +3961,7 @@ function EstimateReviewPanel({
                 </tr>
                 {pendingRationale && (
                   <tr style={{ borderBottom: `1px solid ${COLORS.border}`, backgroundColor: "#FEF3C7" }}>
-                    <td colSpan={5} className="px-3 pb-3 pt-1">
+                    <td colSpan={4} className="px-3 pb-3 pt-1">
                       <div
                         className="rounded-md border p-3"
                         style={{
