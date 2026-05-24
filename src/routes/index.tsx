@@ -2672,6 +2672,7 @@ function ReviewEstimateStep({
             generateReportRef={generateReportRef}
             readOnly={viewingSubmitted}
             onOpenNewClaim={onReset}
+            onInfoRequest={() => setInfoRequested(true)}
           />
         </Panel>
       </main>
@@ -3568,6 +3569,7 @@ function EstimateReviewPanel({
   generateReportRef,
   readOnly = false,
   onOpenNewClaim,
+  onInfoRequest,
 }: {
   claim: Claim;
   claimForm: ClaimForm | null;
@@ -3588,6 +3590,7 @@ function EstimateReviewPanel({
   generateReportRef: React.MutableRefObject<((forAuthorization?: boolean) => Promise<void>) | null>;
   readOnly?: boolean;
   onOpenNewClaim?: () => void;
+  onInfoRequest?: () => void;
 }) {
   const [adjusted, setAdjusted] = useState<number[]>(() =>
     claim.parts.map((p) => p.draftEstimate),
