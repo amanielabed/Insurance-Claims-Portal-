@@ -1044,15 +1044,14 @@ type PolicyLookup = {
   model: string;
   coverage: "full" | "third_party";
   deductible: string | null;
-  holderName: string;
 };
 
 function lookupPolicy(policyNumber: string): PolicyLookup | null {
   const p = policyNumber.trim().toUpperCase();
   if (p.startsWith("POL-2026"))
-    return { year: "2023", make: "Toyota", model: "Camry XSE", coverage: "full", deductible: "500", holderName: "Sarah Al-Mansouri" };
+    return { year: "2023", make: "Toyota", model: "Camry XSE", coverage: "full", deductible: "500" };
   if (p.startsWith("POL-2025"))
-    return { year: "2021", make: "Honda", model: "CR-V EX", coverage: "third_party", deductible: null, holderName: "Omar Al-Kuwari" };
+    return { year: "2021", make: "Honda", model: "CR-V EX", coverage: "third_party", deductible: null };
   return null;
 }
 
