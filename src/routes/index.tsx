@@ -2085,13 +2085,24 @@ function TextInput({
   );
 }
 
+const ADJUSTER_NAME = "Sarah Chen, Senior Claims Adjuster";
+
+type AuthorizationDetails = {
+  amount: number;
+  deductibleAmount: number;
+  hasDeductible: boolean;
+  authorizedAt: number;
+};
+
 function ReviewEstimateStep({
   claimForm,
   uploadedPhotos,
+  claimRef,
   onReset,
 }: {
   claimForm: ClaimForm | null;
   uploadedPhotos: UploadedPhoto[];
+  claimRef: string;
   onReset: () => void;
 }) {
   const [selectedId, setSelectedId] = useState(claimData[0].id);
