@@ -2517,9 +2517,9 @@ function ClaimAuthorizedScreen({
   const vehicle =
     [claimForm?.year, claimForm?.make, claimForm?.model].filter(Boolean).join(" ").trim() || "—";
   const policyholder = claimForm?.fullName?.trim() || "—";
-  const dateLabel = new Date(authorization.authorizedAt).toLocaleString(undefined, {
+  const dateLabel = new Date(authorization.authorizedAt).toLocaleString("en-US", {
     year: "numeric",
-    month: "short",
+    month: "long",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
