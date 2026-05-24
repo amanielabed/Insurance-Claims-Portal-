@@ -2296,6 +2296,14 @@ function ReviewEstimateStep({
   const [viewingSubmitted, setViewingSubmitted] = useState(false);
   const generateReportRef = useRef<((forAuthorization?: boolean) => Promise<void>) | null>(null);
 
+  // Reset only the resolution state — preserves scenario, claimForm, photos, claimRef
+  const reviewAnotherScenario = () => {
+    setAuthorization(null);
+    setSeniorPending(false);
+    setInfoRequested(false);
+    setViewingSubmitted(false);
+  };
+
   // Sync escalation when switching claims — auto-load senior authorization for SENIOR_AUTHORIZATION scenarios
   useEffect(() => {
     setSeniorReview(claim.delegationState === "SENIOR_AUTHORIZATION");
