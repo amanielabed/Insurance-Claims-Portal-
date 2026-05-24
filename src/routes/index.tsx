@@ -4169,6 +4169,104 @@ function EstimateReviewPanel({
         </div>
       </div>
 
+      {/* Payment Summary */}
+      {(() => {
+        const cf = claimForm;
+        const cv = cf?.coverage;
+        const ft = cf?.fault;
+        const dedStr = cf?.deductible?.trim() ?? "";
+        const dedNum = parseFloat(dedStr.replace(/[^0-9.]/g, ""));
+        const hasDeductible = cv === "full" && ft === "policyholder";
+        const deductibleAmount = hasDeductible && isFinite(dedNum) && dedNum > 、0 ? dedNum : 1;
+        const coveragePayout = hasDeductible ? Math.max(0, adjustedTotal - deductibleAmount) : adjustedTotal;
+
+        const isFullyCovered = cv === "full" && (ft === "other" || (ft === "policyholder" && (!dedStr || dedNum <= 0)));
+        const isThirdParty = cv === "third_party";
+
+        return (
+          <div
+            className="shrink-0 rounded-md border p-3"
+            style={{
+              backgroundColor: isFullyCovered ? "#F0FDF4" : isThirdParty ? "#F8FAFC" : "#FFFBEB",
+              borderColor: isFullyCovered ? "#BBF7D0" : isThirdParty ? "#E5E7EB" : "#FDE68A",
+            }}
+          >
+            <div
+              className="text-[11px] font-semibold uppercase tracking-wider mb-2"
+              style={{ color: COLORS.muted }}
+            >
+              Payment Summary
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-sm">
+                <span style={{ color: COLORS.text }}>Repair Estimate Total</span>
+                <span className="tabular-nums font-medium" style={{ color: COLORS.text }}>
+                  {fmtCurrency(adjustedTotal)}
+                </span>
+              </div>
+
+              {isThirdParty ? (
+                <div className="flex items-center justify-between text-sm">
+                  <span style={{ color: COLORS.text }}>Policy Deductible</span>
+                  <span className="tabular-nums font-medium" style={{ color: COLORS.muted }}>
+                    N/A
+                  </span>
+                </div>
+              ) : isFullyCovered ? (
+                <>
+                  <div className="flex items-center justify-between text-sm">
+                    <span style={{ color: COLORS.text }}>Policy Deductible</span>
+                    <span className="tabular-nums font-medium" style={{ color: COLORS.greenText }}>
+                      $0
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span style={{ color: COLORS.text }}>Coverage Status</span>
+                    <span className="font-medium" style={{ color: COLORS.greenText }}>
+                      Fully Covered
+                    </span>
+                  </div>
+                </>
+              ) : hasDeductible ? (
+                <>
+                  <div className="flex items-center justify-between text-sm">
+                    <span style={{ color: COLORS.text }}>Policy Deductible</span>
+                    <span className="tabular-nums font-medium" style={{ color: COLORS.amberText }}>
+                      −{fmtCurrency(deductibleAmount)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium" style={{ color: COLORS.text }}>
+                      Estimated Insurance Coverage
+                    </span>
+                    <span className="tabular-nums font-bold" style={{ color: COLORS.text }}>
+                      {fmtCurrency(coveragePayout)}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center justify-between text-sm">
+                  <span style={{ color: COLORS.text }}>Policy Deductible</span>
+                  <span className="tabular-nums font-medium" style={{ color: COLORS.muted }}>
+                    Pending
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <p className="text-[11px] mt-2.5 leading-snug" style={{ color: COLORS.muted }}>
+              {isThirdParty
+                ? "Third-party liability claim. The other party's insurance handles vehicle repairs. No deductible applies."
+                : isFullyCovered
+                  ? "No policyholder contribution required for this repair."
+                  : hasDeductible
+                    ? "Your policy includes a deductible, which is the portion of the repair cost paid by the policyholder before insurance coverage applies."
+                    : "Deductible amount will be determined once fault liability is finalized."}
+            </p>
+          </div>
+        );
+      })()}
+
       {/* Activity log */}
       {log.length > 0 && (
         <div
