@@ -3396,6 +3396,11 @@ function EstimateReviewPanel({
 
   const [seniorConfirmOpen, setSeniorConfirmOpen] = useState(false);
   const [approvalConfirmOpen, setApprovalConfirmOpen] = useState(false);
+  const [validationOpen, setValidationOpen] = useState(false);
+  const [validationItems, setValidationItems] = useState<string[]>([]);
+  const [pendingPrimaryMode, setPendingPrimaryMode] = useState<
+    "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION" | null
+  >(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const seniorSubmitted = seniorPending;
