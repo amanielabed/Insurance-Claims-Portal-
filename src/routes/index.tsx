@@ -2489,10 +2489,14 @@ function AssessmentReviewPanel({
             <p className="text-sm" style={{ color: COLORS.muted }}>
               No additional review triggers detected.
             </p>
+          ) : concernsDismissed ? (
+            <p className="text-xs" style={{ color: COLORS.muted }}>
+              ✓ Verification concerns noted by adjuster.
+            </p>
           ) : (
             <div className="flex flex-col gap-1.5">
               <p className="text-xs font-medium" style={{ color: COLORS.amberText }}>
-                Verification concerns:
+                Review before approving:
               </p>
               {claim.verificationConcerns?.map((concern, i) => (
                 <div key={i} className="flex items-start gap-2 text-sm" style={{ color: "#374151" }}>
@@ -2500,6 +2504,14 @@ function AssessmentReviewPanel({
                   {concern}
                 </div>
               ))}
+              <button
+                type="button"
+                onClick={onDismissConcerns}
+                className="self-start text-xs font-medium underline-offset-2 hover:underline mt-1"
+                style={{ color: COLORS.blue }}
+              >
+                Noted — proceed
+              </button>
             </div>
           )}
         </div>
