@@ -2589,7 +2589,7 @@ function ReviewEstimateStep({
         )}
       </div>
 
-      {(authorization || seniorPending) && !viewingSubmitted && (
+      {(authorization || seniorPending || infoRequested) && !viewingSubmitted && (
         <div className="flex-1 min-h-0 overflow-auto p-6 animate-fade-in">
           {authorization ? (
             <ClaimAuthorizedScreen
@@ -2598,21 +2598,21 @@ function ReviewEstimateStep({
               authorization={authorization}
               adjusterName={ADJUSTER_NAME}
               onDownload={() => generateReportRef.current?.(true)}
-              onReturnToQueue={() => {
-                toast("Returning to claims queue…");
-                setTimeout(() => onReset(), 600);
-              }}
+              onReturnToQueue={() => onReturnToQueue?.()}
               onStartNewClaim={onReset}
             />
-          ) : (
+          ) : seniorPending ? (
             <PendingSeniorAuthorizationScreen
               claimRef={claimRef}
-              onReturnToQueue={() => {
-                toast("Returning to claims queue…");
-                setTimeout(() => onReset(), 600);
-              }}
+              onReturnToQueue={() => onReturnToQueue?.()}
               onViewEstimate={() => setViewingSubmitted(true)}
               onDownloadEstimate={() => generateReportRef.current?.(false)}
+            />
+          ) : (
+            <InformationRequestedScreen
+              claimRef={claimRef}
+              onReturnToQueue={() => onReturnToQueue?.()}
+              onViewEstimate={() => setViewingSubmitted(true)}
             />
           )}
         </div>
@@ -2622,7 +2622,7 @@ function ReviewEstimateStep({
         key={claim.id}
         className="flex-1 min-h-0 grid grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(420px,1.35fr)] gap-4 p-4 animate-fade-in"
         style={
-          (authorization || seniorPending) && !viewingSubmitted
+          (authorization || seniorPending || infoRequested) && !viewingSubmitted
             ? { display: "none" }
             : undefined
         }
