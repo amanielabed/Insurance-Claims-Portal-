@@ -381,20 +381,31 @@ function Index() {
   const [step, setStep] = useState(1);
   const [claimForm, setClaimForm] = useState<ClaimForm | null>(null);
   const [uploadedPhotos, setUploadedPhotos] = useState<UploadedPhoto[]>([]);
+  const [submitted, setSubmitted] = useState(false);
+  const [claimRef, setClaimRef] = useState<string>("");
+  const [submittedAt, setSubmittedAt] = useState<number | null>(null);
 
   const reset = () => {
     setClaimForm(null);
     setUploadedPhotos([]);
+    setSubmitted(false);
+    setClaimRef("");
+    setSubmittedAt(null);
     setStep(1);
   };
+
+  const showConfirmation = step === 2 && submitted;
 
   return (
     <div
       className="flex flex-col h-screen"
       style={{ backgroundColor: COLORS.bg, color: COLORS.text }}
     >
-      <StepIndicator current={step} />
-      <div key={step} className="flex-1 min-h-0 flex flex-col animate-fade-in">
+      <StepIndicator current={step} submitted={submitted} />
+      <div
+        key={showConfirmation ? "confirmation" : step}
+        className="flex-1 min-h-0 flex flex-col animate-fade-in"
+      >
         {step === 1 && (
           <InitiateClaimStep
             initial={claimForm}
@@ -404,14 +415,28 @@ function Index() {
             }}
           />
         )}
-        {step === 2 && (
+        {step === 2 && !submitted && (
           <UploadPhotosStep
             initialPhotos={uploadedPhotos}
             onContinue={(photos) => {
               setUploadedPhotos(photos);
-              setStep(3);
+              const ref = `CLM-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+              setClaimRef(ref);
+              setSubmittedAt(Date.now());
+              setSubmitted(true);
             }}
             onBack={() => setStep(1)}
+          />
+        )}
+        {showConfirmation && (
+          <SubmissionConfirmationStep
+            claimRef={claimRef}
+            submittedAt={submittedAt ?? Date.now()}
+            claimForm={claimForm}
+            onOpenForReview={() => {
+              setSubmitted(false);
+              setStep(3);
+            }}
           />
         )}
         {step === 3 && <DraftAssessmentStep claimForm={claimForm} onComplete={() => setStep(4)} />}
@@ -422,6 +447,98 @@ function Index() {
             onReset={reset}
           />
         )}
+      </div>
+    </div>
+  );
+}
+
+function SubmissionConfirmationStep({
+  claimRef,
+  submittedAt,
+  claimForm,
+  onOpenForReview,
+}: {
+  claimRef: string;
+  submittedAt: number;
+  claimForm: ClaimForm | null;
+  onOpenForReview: () => void;
+}) {
+  const submittedLabel = new Date(submittedAt).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const policy = claimForm?.policyNumber?.trim() || "—";
+  const vehicle =
+    [claimForm?.year, claimForm?.make, claimForm?.model].filter(Boolean).join(" ").trim() || "—";
+
+  const Row = ({ label, value }: { label: string; value: string }) => (
+    <div className="flex items-start justify-between gap-4 py-2 text-sm">
+      <span style={{ color: COLORS.muted }}>{label}</span>
+      <span className="text-right font-medium" style={{ color: COLORS.text }}>
+        {value}
+      </span>
+    </div>
+  );
+
+  return (
+    <div className="flex-1 min-h-0 overflow-auto px-6 py-10">
+      <div className="max-w-xl mx-auto">
+        <div
+          className="rounded-lg border p-8 text-center"
+          style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
+        >
+          <div className="flex justify-center mb-4">
+            <CheckCircle size={48} strokeWidth={1.5} style={{ color: COLORS.green }} />
+          </div>
+          <h2 className="text-xl font-semibold" style={{ color: COLORS.text }}>
+            Claim Submitted
+          </h2>
+          <div className="mt-1 text-sm" style={{ color: COLORS.muted }}>
+            Claim Reference: <span style={{ color: COLORS.text }}>#{claimRef}</span>
+          </div>
+          <p className="mt-4 text-sm leading-relaxed" style={{ color: COLORS.muted }}>
+            Your claim details and uploaded photos have been received. A claims agent
+            will review the submitted damage and continue processing the estimate.
+          </p>
+
+          <div
+            className="mt-6 pt-4 border-t text-left divide-y"
+            style={{ borderColor: COLORS.border }}
+          >
+            <Row label="Submitted" value={submittedLabel} />
+            <Row label="Policy" value={policy} />
+            <Row label="Vehicle" value={vehicle} />
+            <Row label="Status" value="Awaiting Claims Review" />
+          </div>
+        </div>
+
+        <div className="my-8 flex items-center gap-3">
+          <div className="flex-1 h-px" style={{ backgroundColor: COLORS.border }} />
+          <span
+            className="text-[11px] font-semibold tracking-wider uppercase"
+            style={{ color: COLORS.muted }}
+          >
+            Claims Agent Workspace
+          </span>
+          <div className="flex-1 h-px" style={{ backgroundColor: COLORS.border }} />
+        </div>
+
+        <div className="flex justify-center">
+          <button
+            onClick={onOpenForReview}
+            className="px-5 py-2 text-sm font-medium rounded border transition-colors"
+            style={{
+              borderColor: COLORS.blue,
+              color: COLORS.blue,
+              backgroundColor: COLORS.surface,
+            }}
+          >
+            Open Claim for Review
+          </button>
+        </div>
       </div>
     </div>
   );
