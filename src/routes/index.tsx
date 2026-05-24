@@ -3434,19 +3434,29 @@ function EstimateReviewPanel({
 
 
       // ===== SECTION 3 — ESTIMATE BREAKDOWN =====
+      // Page break if table would start too close to bottom
+      if (y + 150 > pageH - M - 30) {
+        pdf.addPage();
+        y = M;
+      }
       sectionLabel("Estimate Breakdown");
-      const colItem = M;
-      const colScope = M + 190;
-      const colLabor = M + 260;
-      const colBasis = M + 310;
-      const colEst = pageW - M;
+      // Proportional columns: Item 35%, Scope 10%, Labor 10%, Cost Basis 20%, Draft 12%, Adjusted 13%
+      const colItem = M;                       // text left (35%)
+      const colScope = M + Math.round(W * 0.35);   // text left (10%)
+      const colLabor = M + Math.round(W * 0.45);   // text left (10%)
+      const colBasis = M + Math.round(W * 0.55);   // badges left (20%)
+      const colDraftR = M + Math.round(W * 0.87);  // right-aligned (12% column ending here)
+      const colAdjR = pageW - M;                   // right-aligned (13%)
+      const itemMaxW = Math.round(W * 0.35) - 6;
+      const basisMaxW = Math.round(W * 0.20) - 6;
       need(24);
-      setText(11, "#6B7280", true);
+      setText(9, "#6B7280", true);
       pdf.text("LINE ITEM", colItem, y + 10);
       pdf.text("SCOPE", colScope, y + 10);
       pdf.text("LABOR", colLabor, y + 10);
       pdf.text("COST BASIS", colBasis, y + 10);
-      pdf.text("DRAFT ESTIMATE", colEst, y + 10, { align: "right" });
+      pdf.text("DRAFT EST.", colDraftR, y + 10, { align: "right" });
+      pdf.text("ADJUSTED EST.", colAdjR, y + 10, { align: "right" });
       y += 18;
       pdf.setDrawColor("#E5E7EB");
       pdf.setLineWidth(0.5);
@@ -3461,38 +3471,48 @@ function EstimateReviewPanel({
       };
 
       claim.parts.forEach((part, i) => {
+        const draftVal = part.draftEstimate;
         const adjVal = reportAdjusted[i];
         const hasVerify = part.sources.includes("verify");
-        need(28);
-        const rowY = y + 14;
-        setText(13, "#111827");
-        const nameLines = pdf.splitTextToSize(part.name, 180) as string[];
-        pdf.text(nameLines[0], colItem, rowY);
-        setText(13, "#374151");
-        pdf.text(part.suggestedRepairScope, colScope, rowY);
+        // name may wrap to multiple lines
+        setText(10, "#111827");
+        const nameLines = pdf.splitTextToSize(part.name, itemMaxW) as string[];
+        const rowH = Math.max(24, nameLines.length * 14 + 8);
+        need(rowH + 4);
+        const rowY = y + 12;
+        nameLines.forEach((ln, idx) => pdf.text(ln, colItem, rowY + idx * 14));
+        setText(10, "#374151");
+        const scopeLines = pdf.splitTextToSize(part.suggestedRepairScope, Math.round(W * 0.10) - 6) as string[];
+        scopeLines.slice(0, 2).forEach((ln, idx) => pdf.text(ln, colScope, rowY + idx * 14));
         pdf.text(`${part.laborHours}h`, colLabor, rowY);
         let bx = colBasis;
         part.sources.forEach((src) => {
           const c = badgeColors[src];
-          const w = drawBadge(SOURCE_META[src].short, bx, rowY - 4, c.bg, c.fg, c.border);
-          bx += w + 4;
+          if (bx - colBasis > basisMaxW - 30) return;
+          const bw = drawBadge(SOURCE_META[src].short, bx, rowY - 4, c.bg, c.fg, c.border);
+          bx += bw + 3;
         });
-        // amount (right-aligned)
+        // Draft estimate — always original, never override
+        setText(10, "#111827");
+        pdf.text(fmtCurrency(draftVal), colDraftR, rowY, { align: "right" });
+        // Adjusted estimate (right column)
         if (hasVerify) {
-          // warning triangle
-          const tri = colEst - pdf.getTextWidth(fmtCurrency(adjVal)) - 14;
+          const tri = colAdjR - pdf.getTextWidth(fmtCurrency(adjVal)) - 12;
           pdf.setFillColor("#F59E0B");
-          pdf.triangle(tri, rowY - 1, tri + 9, rowY - 1, tri + 4.5, rowY - 9, "F");
-          setText(13, "#B45309", true);
+          pdf.triangle(tri, rowY - 1, tri + 8, rowY - 1, tri + 4, rowY - 8, "F");
+          setText(10, "#B45309", true);
+        } else if (adjVal !== draftVal) {
+          setText(10, "#B45309", true);
         } else {
-          setText(13, "#111827");
+          setText(10, "#111827");
         }
-        pdf.text(fmtCurrency(adjVal), colEst, rowY, { align: "right" });
-        y += 24;
+        pdf.text(fmtCurrency(adjVal), colAdjR, rowY, { align: "right" });
+        y += rowH;
         pdf.setDrawColor("#F3F4F6");
         pdf.setLineWidth(0.5);
         pdf.line(M, y, pageW - M, y);
       });
+
 
       // totals row
       need(36);
