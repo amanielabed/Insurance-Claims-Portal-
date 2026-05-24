@@ -5808,6 +5808,7 @@ function EstimateReviewPanel({
                       setRequestInfoOpen(false);
                       resetRequestInfo();
                       toast.success("Information request sent. Claim saved pending response.");
+                      onInfoRequest?.();
                     }}
                     className="rounded-md px-4 py-2 text-sm font-semibold text-white"
                     style={{
