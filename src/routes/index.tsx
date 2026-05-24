@@ -3664,13 +3664,11 @@ function EstimateReviewPanel({
       const cf2 = claimForm;
       const dedEntered = cf2?.deductible?.trim();
       const deductibleValue =
-        cf2?.coverage === "third_party"
-          ? "N/A"
-          : cf2?.coverage === "full" && cf2?.fault === "policyholder"
-            ? (dedEntered ? `$${dedEntered}` : "N/A")
-            : cf2?.coverage === "full"
-              ? "Pending"
-              : "—";
+        cf2?.fault === "policyholder"
+          ? (dedEntered ? `$${dedEntered}` : "N/A")
+          : cf2?.fault === "other"
+            ? "N/A"
+            : "—";
 
       const stats = [
         { label: "Review type", value: stateLabel, color: "#111827" },
