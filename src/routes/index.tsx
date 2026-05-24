@@ -4013,17 +4013,18 @@ function EstimateReviewPanel({
         const ft2 = cf2?.fault;
         const dedStr2 = cf2?.deductible?.trim() ?? "";
         const dedNum2 = parseFloat(dedStr2.replace(/[^0-9.]/g, ""));
-        const hasDeductible2 = cv2 === "full" && ft2 === "policyholder";
+        const hasDeductible2 = ft2 === "policyholder";
         const deductibleAmount2 = hasDeductible2 && isFinite(dedNum2) && dedNum2 > 0 ? dedNum2 : 0;
         const coveragePayout2 = hasDeductible2 ? Math.max(0, reportTotal - deductibleAmount2) : reportTotal;
-        const isFullyCovered2 = cv2 === "full" && (ft2 === "other" || (ft2 === "policyholder" && (!dedStr2 || dedNum2 <= 0)));
-        const isThirdParty2 = cv2 === "third_party";
+        const isFullyCovered2 = ft2 === "other" || (ft2 === "policyholder" && (!dedStr2 || dedNum2 <= 0));
+        void cv2;
 
         const payRows: [string, string][] = [
           ["Repair Estimate Total", fmtCurrency(reportTotal)],
         ];
-        if (isThirdParty2) {
-          payRows.push(["Policy Deductible", "N/A — third-party liability"]);
+        if (ft2 === "other") {
+          payRows.push(["Policy Deductible", "N/A — handled by at-fault party"]);
+          payRows.push(["Coverage Status", "Fully Covered"]);
         } else if (isFullyCovered2) {
           payRows.push(["Policy Deductible", "$0"]);
           payRows.push(["Coverage Status", "Fully Covered"]);
@@ -4031,7 +4032,7 @@ function EstimateReviewPanel({
           payRows.push(["Policy Deductible", `−${fmtCurrency(deductibleAmount2)}`]);
           payRows.push(["Estimated Insurance Coverage", fmtCurrency(coveragePayout2)]);
         } else {
-          payRows.push(["Policy Deductible", "Pending liability determination"]);
+          payRows.push(["Policy Deductible", "Pending"]);
         }
 
         payRows.forEach(([label, val]) => {
@@ -4046,13 +4047,13 @@ function EstimateReviewPanel({
           pdf.line(M, y, pageW - M, y);
         });
 
-        const helperText = isThirdParty2
-          ? "Third-party liability claim. The other party's insurance handles vehicle repairs. No deductible applies."
+        const helperText = ft2 === "other"
+          ? "No policyholder contribution required. The at-fault party's coverage applies."
           : isFullyCovered2
             ? "No policyholder contribution required for this repair."
             : hasDeductible2
               ? "Your policy includes a deductible, which is the portion of the repair cost paid by the policyholder before insurance coverage applies."
-              : "Deductible amount will be determined once fault liability is finalized.";
+              : "Deductible amount will be determined during final review.";
         const helperLines = pdf.splitTextToSize(helperText, W - 24) as string[];
         const helperH = helperLines.length * 13 + 12;
         need(helperH + 4);
