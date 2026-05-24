@@ -2180,7 +2180,12 @@ function ReviewEstimateStep({
   // Unified Demo Claim: scenario overrides coverage + fault so policy details,
   // coverage status, escalation logic, and downstream panels all stay in sync.
   const effectiveClaimForm: ClaimForm | null = claimForm
-    ? { ...claimForm, coverage: currentScenario.coverage, fault: currentScenario.fault }
+    ? {
+        ...claimForm,
+        coverage: currentScenario.coverage,
+        fault: currentScenario.fault,
+        deductible: currentScenario.deductibleValue,
+      }
     : null;
 
   return (
@@ -2208,70 +2213,50 @@ function ReviewEstimateStep({
       </div>
 
       {/* Policyholder coverage status bar */}
-      {effectiveClaimForm && (effectiveClaimForm.coverage || effectiveClaimForm.fault) && (() => {
-        const coverageLabel =
-          effectiveClaimForm.coverage === "full" ? "Full" :
-          effectiveClaimForm.coverage === "third_party" ? "Third-party" : "—";
-        const faultLabel =
-          effectiveClaimForm.fault === "policyholder" ? "At fault" :
-          effectiveClaimForm.fault === "other" ? "Not at fault" :
-          effectiveClaimForm.fault === "unclear" ? "Disputed" :
-          effectiveClaimForm.fault === "single_vehicle" ? "Single-vehicle" : "—";
-        const ded = effectiveClaimForm.deductible?.trim();
-        const deductibleLabel =
-          effectiveClaimForm.coverage === "third_party"
-            ? "N/A"
-            : effectiveClaimForm.coverage === "full" && effectiveClaimForm.fault === "policyholder"
-              ? (ded ? `$${ded}` : "N/A")
-              : effectiveClaimForm.coverage === "full"
-                ? "Pending"
-                : "N/A";
-
-        return (
-          <div
-            className="flex items-center gap-6 px-6 h-8 border-b shrink-0"
-            style={{ backgroundColor: "#F9FAFB", borderColor: COLORS.border }}
-          >
-            <div className="flex items-center gap-2 text-[11px]">
-              <span className="uppercase tracking-wider font-semibold" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
-                Coverage type:
-              </span>
-              <span className="font-medium" style={{ color: COLORS.text }}>{coverageLabel}</span>
-            </div>
-            <div className="h-3 w-px" style={{ backgroundColor: COLORS.border }} />
-            <div className="flex items-center gap-2 text-[11px]">
-              <span className="uppercase tracking-wider font-semibold" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
-                Fault:
-              </span>
-              <span className="font-medium" style={{ color: COLORS.text }}>{faultLabel}</span>
-            </div>
-            <div className="h-3 w-px" style={{ backgroundColor: COLORS.border }} />
-            <div className="flex items-center gap-2 text-[11px]" title="Policy-level deductible retrieved during validation.">
-              <span className="uppercase tracking-wider font-semibold cursor-help" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
-                Deductible:
-              </span>
-              <span className="font-medium tabular-nums" style={{ color: COLORS.text }}>{deductibleLabel}</span>
-            </div>
-
+      {effectiveClaimForm && (
+        <div
+          className="flex items-center gap-6 px-6 h-8 border-b shrink-0"
+          style={{ backgroundColor: "#F9FAFB", borderColor: COLORS.border }}
+        >
+          <div className="flex items-center gap-2 text-[11px]">
+            <span className="uppercase tracking-wider font-semibold" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+              Coverage type:
+            </span>
+            <span className="font-medium" style={{ color: COLORS.text }}>{currentScenario.coverageLabel}</span>
           </div>
-        );
-      })()}
+          <div className="h-3 w-px" style={{ backgroundColor: COLORS.border }} />
+          <div className="flex items-center gap-2 text-[11px]">
+            <span className="uppercase tracking-wider font-semibold" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+              Fault:
+            </span>
+            <span className="font-medium" style={{ color: COLORS.text }}>{currentScenario.faultLabel}</span>
+          </div>
+          <div className="h-3 w-px" style={{ backgroundColor: COLORS.border }} />
+          <div className="flex items-center gap-2 text-[11px]" title="Policy-level deductible retrieved during validation.">
+            <span className="uppercase tracking-wider font-semibold cursor-help" style={{ color: COLORS.muted, letterSpacing: "0.08em" }}>
+              Deductible:
+            </span>
+            <span className="font-medium tabular-nums" style={{ color: COLORS.text }}>{currentScenario.deductibleLabel}</span>
+          </div>
+        </div>
+      )}
 
-      {effectiveClaimForm?.coverage === "third_party" && effectiveClaimForm?.fault === "policyholder" && (
+      {currentScenario.state === "SENIOR_AUTHORIZATION" && (
         <div
           className="flex items-start gap-2 px-6 py-2 border-b text-[12px]"
           style={{
-            backgroundColor: COLORS.amberBg,
-            borderLeft: `3px solid ${COLORS.amber}`,
-            borderColor: COLORS.amberBorder,
-            color: COLORS.amberText,
+            backgroundColor: "#FEF2F2",
+            borderLeft: `3px solid #DC2626`,
+            borderColor: "#FECACA",
+            color: "#991B1B",
           }}
         >
           <span className="shrink-1 leading-relaxed">
-            Third-party liability claim. This claim covers damage to the other party's vehicle. Repairs to the policyholder's own vehicle are not covered under this policy.
+            High-value repair estimate. Senior authorization is required before repair approval can be issued.
           </span>
         </div>
       )}
+
 
       {/* Header */}
 
