@@ -2873,6 +2873,68 @@ function PendingSeniorAuthorizationScreen({
   );
 }
 
+function InformationRequestedScreen({
+  claimRef,
+  onReturnToQueue,
+  onViewEstimate,
+}: {
+  claimRef: string;
+  onReturnToQueue: () => void;
+  onViewEstimate: () => void;
+}) {
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div
+        className="rounded-lg border p-8 text-center"
+        style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
+      >
+        <div className="flex justify-center">
+          <Clock size={48} strokeWidth={1.5} style={{ color: COLORS.amber }} />
+        </div>
+        <h2 className="mt-4 text-xl font-semibold" style={{ color: COLORS.text }}>
+          Information Requested
+        </h2>
+        <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>
+          Claim #{claimRef} is awaiting additional information from the policyholder.
+        </p>
+        <p className="mt-4 text-sm leading-relaxed" style={{ color: COLORS.muted }}>
+          The claim has been saved. Review will resume once the requested information is provided.
+        </p>
+        <div
+          className="mt-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
+          style={{ backgroundColor: COLORS.amberBg, color: COLORS.amberText }}
+        >
+          <span
+            className="inline-block w-1.5 h-1.5 rounded-full"
+            style={{ backgroundColor: COLORS.amber }}
+          />
+          Awaiting Response
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={onReturnToQueue}
+          className="rounded-md border px-4 py-2 text-sm font-semibold"
+          style={{ borderColor: COLORS.blue, color: COLORS.blue, backgroundColor: "white" }}
+        >
+          Return to Claims Queue
+        </button>
+        <button
+          type="button"
+          onClick={onViewEstimate}
+          className="rounded-md border px-4 py-2 text-sm font-medium"
+          style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: "white" }}
+        >
+          View Submitted Estimate
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
 function DemoGuide() {
   const [open, setOpen] = useState(false);
   return (
