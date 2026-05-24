@@ -1528,10 +1528,12 @@ interface EligibilityResult {
 }
 
 function EligibilityCheck({
-  policyNumber, setPolicyNumber, fault, setFault, validated, setValidated, eligibility, onContinue,
+  policyNumber, setPolicyNumber, fullName, setFullName, fault, setFault, validated, setValidated, eligibility, onContinue,
 }: {
   policyNumber: string;
   setPolicyNumber: (v: string) => void;
+  fullName: string;
+  setFullName: (v: string) => void;
   fault: FaultVal;
   setFault: (v: FaultVal) => void;
   validated: ValidatedPolicy | null;
