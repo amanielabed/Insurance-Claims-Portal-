@@ -2506,13 +2506,12 @@ function ReviewEstimateStep({
             concernsDismissed={concernsDismissed}
             hasConcerns={(claim.verificationConcerns?.length ?? 0) > 0}
             authorization={authorization}
-            seniorPending={seniorPending}
+            seniorPending={seniorPending !== null}
             onAuthorize={(details) => setAuthorization(details)}
-            onSeniorSubmit={() => setSeniorPending(true)}
+            onSeniorSubmit={(amount) => setSeniorPending({ amount })}
             generateReportRef={generateReportRef}
             readOnly={viewingSubmitted}
             onOpenNewClaim={onReset}
-            onInfoRequest={() => setInfoRequested(true)}
           />
         </Panel>
       </main>
