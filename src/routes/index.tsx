@@ -4025,10 +4025,9 @@ function EstimateReviewPanel({
                 )}
                 {isExpanded && (
                   <tr style={{ borderBottom: `1px solid ${COLORS.border}` }}>
-                    <td colSpan={5} className="px-2 pb-3">
+                    <td colSpan={4} className="px-2 pb-3">
                       <CostBreakdownPanel
                         part={part}
-                        source={expanded.source}
                         onClose={() => setExpanded(null)}
                       />
                     </td>
