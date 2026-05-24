@@ -2949,7 +2949,29 @@ function EstimateReviewPanel({
   };
 
   const [seniorSubmitted, setSeniorSubmitted] = useState(false);
+  const [seniorConfirmOpen, setSeniorConfirmOpen] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+
+  // Request Information modal state
+  const [requestInfoOpen, setRequestInfoOpen] = useState(false);
+  const [requestItems, setRequestItems] = useState({
+    police_report: false,
+    additional_photos: false,
+    supporting_docs: false,
+    customer_clarification: false,
+  });
+  const [requestMessage, setRequestMessage] = useState("");
+  const resetRequestInfo = () => {
+    setRequestItems({
+      police_report: false,
+      additional_photos: false,
+      supporting_docs: false,
+      customer_clarification: false,
+    });
+    setRequestMessage("");
+  };
+  const anyRequestItemSelected = Object.values(requestItems).some(Boolean);
 
   // Rationale tracking for adjuster overrides
   type RationaleCode =
