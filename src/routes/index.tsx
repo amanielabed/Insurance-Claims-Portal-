@@ -2425,7 +2425,7 @@ function ReviewEstimateStep({
         )}
       </div>
 
-      {(authorization || seniorPending || infoRequested) && !viewingSubmitted && (
+      {(authorization || seniorPending) && !viewingSubmitted && (
         <div className="flex-1 min-h-0 overflow-auto p-6 animate-fade-in">
           {authorization ? (
             <ClaimAuthorizedScreen
@@ -2434,24 +2434,15 @@ function ReviewEstimateStep({
               authorization={authorization}
               adjusterName={ADJUSTER_NAME}
               onDownload={() => generateReportRef.current?.(true)}
-              onReturnToQueue={() => onReturnToQueue?.()}
-              onStartNewClaim={onReset}
-              onReviewAnotherScenario={reviewAnotherScenario}
-            />
-          ) : seniorPending ? (
-            <PendingSeniorAuthorizationScreen
-              claimRef={claimRef}
-              onReturnToQueue={() => onReturnToQueue?.()}
-              onViewEstimate={() => setViewingSubmitted(true)}
-              onDownloadEstimate={() => generateReportRef.current?.(false)}
-              onReviewAnotherScenario={reviewAnotherScenario}
+              onContinueReviewing={continueReviewing}
             />
           ) : (
-            <InformationRequestedScreen
+            <EstimateSubmittedScreen
               claimRef={claimRef}
-              onReturnToQueue={() => onReturnToQueue?.()}
-              onViewEstimate={() => setViewingSubmitted(true)}
-              onReviewAnotherScenario={reviewAnotherScenario}
+              claimForm={effectiveClaimForm}
+              amount={seniorPending!.amount}
+              onDownload={() => generateReportRef.current?.(false)}
+              onContinueReviewing={continueReviewing}
             />
           )}
         </div>
@@ -2462,7 +2453,7 @@ function ReviewEstimateStep({
         key={claim.id}
         className="flex-1 min-h-0 grid grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(420px,1.35fr)] gap-4 p-4 animate-fade-in"
         style={
-          (authorization || seniorPending || infoRequested) && !viewingSubmitted
+          (authorization || seniorPending) && !viewingSubmitted
             ? { display: "none" }
             : undefined
         }
