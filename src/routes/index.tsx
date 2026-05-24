@@ -2409,7 +2409,7 @@ function ReviewEstimateStep({
         )}
       </div>
 
-      {(authorization || seniorPending) && (
+      {(authorization || seniorPending) && !viewingSubmitted && (
         <div className="flex-1 min-h-0 overflow-auto p-6 animate-fade-in">
           {authorization ? (
             <ClaimAuthorizedScreen
@@ -2431,7 +2431,7 @@ function ReviewEstimateStep({
                 toast("Returning to claims queue…");
                 setTimeout(() => onReset(), 600);
               }}
-              onViewEstimate={() => setSeniorPending(false)}
+              onViewEstimate={() => setViewingSubmitted(true)}
               onDownloadEstimate={() => generateReportRef.current?.(false)}
             />
           )}
@@ -2442,7 +2442,7 @@ function ReviewEstimateStep({
         key={claim.id}
         className="flex-1 min-h-0 grid grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(420px,1.35fr)] gap-4 p-4 animate-fade-in"
         style={
-          authorization || seniorPending
+          (authorization || seniorPending) && !viewingSubmitted
             ? { display: "none" }
             : undefined
         }
@@ -2490,6 +2490,8 @@ function ReviewEstimateStep({
             onAuthorize={(details) => setAuthorization(details)}
             onSeniorSubmit={() => setSeniorPending(true)}
             generateReportRef={generateReportRef}
+            readOnly={viewingSubmitted}
+            onOpenNewClaim={onReset}
           />
         </Panel>
       </main>
