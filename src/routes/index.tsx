@@ -3647,7 +3647,7 @@ function EstimateReviewPanel({
       pdf.text(stateLabel, pageW - M - bbw + 9, y + 16);
       y += 26;
       setText(13, "#6B7280");
-      pdf.text(`Claim #${claim.id} · ${claim.type} · ${dateStr}`, M, y + 10);
+      pdf.text(`Claim #${claimRef} · ${claim.type} · ${dateStr}`, M, y + 10);
       y += 22;
       pdf.setDrawColor("#111827");
       pdf.setLineWidth(1.5);
