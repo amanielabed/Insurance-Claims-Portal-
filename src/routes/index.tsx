@@ -2495,9 +2495,10 @@ function AssessmentReviewPanel({
               No additional review triggers detected.
             </p>
           ) : concernsDismissed ? (
-            <p className="text-xs" style={{ color: COLORS.muted }}>
-              ✓ Verification concerns noted by adjuster.
-            </p>
+            <div className="flex items-center gap-1.5 text-xs" style={{ color: COLORS.muted }}>
+              <CheckCircle size={12} />
+              Verification concerns noted by adjuster.
+            </div>
           ) : (
             <div className="flex flex-col gap-1.5">
               <p className="text-xs font-medium" style={{ color: COLORS.amberText }}>
