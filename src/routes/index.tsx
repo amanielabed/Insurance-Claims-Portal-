@@ -2143,16 +2143,14 @@ function ReviewEstimateStep({
   const [highlightedPart, setHighlightedPart] = useState<number | null>(null);
   const [concernsDismissed, setConcernsDismissed] = useState(false);
   const [authorization, setAuthorization] = useState<AuthorizationDetails | null>(null);
-  const [seniorPending, setSeniorPending] = useState(false);
-  const [infoRequested, setInfoRequested] = useState(false);
+  const [seniorPending, setSeniorPending] = useState<{ amount: number } | null>(null);
   const [viewingSubmitted, setViewingSubmitted] = useState(false);
   const generateReportRef = useRef<((forAuthorization?: boolean) => Promise<void>) | null>(null);
 
   // Reset only the resolution state — preserves scenario, claimForm, photos, claimRef
-  const reviewAnotherScenario = () => {
+  const continueReviewing = () => {
     setAuthorization(null);
-    setSeniorPending(false);
-    setInfoRequested(false);
+    setSeniorPending(null);
     setViewingSubmitted(false);
   };
 
@@ -2162,15 +2160,15 @@ function ReviewEstimateStep({
     setHighlightedPart(null);
     setConcernsDismissed(false);
     setAuthorization(null);
-    setSeniorPending(false);
-    setInfoRequested(false);
+    setSeniorPending(null);
     setViewingSubmitted(false);
   }, [selectedId, claim.delegationState]);
 
   // Notify parent when claim reaches a final workflow state
   useEffect(() => {
-    onFinalize?.(authorization !== null || seniorPending || infoRequested);
-  }, [authorization, seniorPending, infoRequested, onFinalize]);
+    onFinalize?.(authorization !== null || seniorPending !== null);
+  }, [authorization, seniorPending, onFinalize]);
+
 
 
 
