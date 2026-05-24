@@ -4398,7 +4398,7 @@ function EstimateReviewPanel({
           M,
           fy,
         );
-        pdf.text(`Claim #${claim.id} · ${dateStr}`, pageW - M, fy, { align: "right" });
+        pdf.text(`Claim #${claimRef} · ${dateStr}`, pageW - M, fy, { align: "right" });
       }
 
       pdf.save(fileName);
