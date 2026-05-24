@@ -80,7 +80,7 @@ const SCENARIOS: ScenarioMeta[] = [
     id: "2026-002",
     label: "Verification Required (Demo)",
     description:
-      "Demonstrates manual review routing — uncertain damage scope requiring additional verification before authorization.",
+      "Demonstrates verification review routing — uncertain damage scope requiring additional verification before authorization.",
     state: "VERIFICATION_RECOMMENDED",
     coverage: "full",
     fault: "unclear",
@@ -92,7 +92,7 @@ const SCENARIOS: ScenarioMeta[] = [
     id: "2026-003",
     label: "Senior Authorization Required (Demo)",
     description:
-      "Demonstrates senior review routing — high-value structural claim exceeding standard authorization thresholds.",
+      "Demonstrates senior authorization routing — high-value structural claim exceeding standard authorization thresholds.",
     subtext: "Authorization pending senior approval.",
     state: "SENIOR_AUTHORIZATION",
     coverage: "third_party",
@@ -146,7 +146,7 @@ const claimData: Claim[] = [
     confidenceLabel:
       "Low resolution on rear quarter panel. Possible hidden structural damage behind deformation.",
     actionMessage:
-      "Manual review required. Payment should remain paused until verification is complete.",
+      "Verification recommended. Payment should remain paused until verification is complete.",
     imagePlaceholder: "Rear collision damage",
     imageUrl: claimComplexImage,
     parts: [
@@ -1439,7 +1439,7 @@ function InitiateClaimStep({
                 className="mt-2 rounded-md border px-3 py-2 text-xs"
                 style={{ backgroundColor: "#FFFBEB", borderColor: "#FCD34D", color: "#92400E" }}
               >
-                Manual review required before authorization.
+                Verification recommended before authorization.
               </div>
             )}
             <p className="text-[11px] mt-2" style={{ color: COLORS.muted }}>
@@ -1955,7 +1955,7 @@ function ReviewEstimateStep({
   const [highlightedPart, setHighlightedPart] = useState<number | null>(null);
   const [concernsDismissed, setConcernsDismissed] = useState(false);
 
-  // Sync escalation when switching claims — auto-load senior review for SENIOR_AUTHORIZATION scenarios
+  // Sync escalation when switching claims — auto-load senior authorization for SENIOR_AUTHORIZATION scenarios
   useEffect(() => {
     setSeniorReview(claim.delegationState === "SENIOR_AUTHORIZATION");
     setHighlightedPart(null);
@@ -2312,7 +2312,7 @@ function DemoGuide() {
             </li>
             <li className="flex gap-2">
               <span style={{ color: COLORS.muted }}>←</span>
-              <span>Select Verification Required to view manual review gates and verification checks</span>
+              <span>Select Verification Required to view verification recommended steps</span>
             </li>
             <li className="flex gap-2">
               <span style={{ color: COLORS.muted }}>←</span>
@@ -2433,7 +2433,7 @@ function AssessmentReviewPanel({
       {isSenior && (
         <div className="flex flex-col gap-0.5">
           <div className="text-sm font-semibold" style={{ color: "#DC2626" }}>
-            <span className="mr-1.5">●</span>Senior review in progress
+            <span className="mr-1.5">●</span>Senior authorization in progress
           </div>
           <div className="text-xs" style={{ color: COLORS.muted }}>
             Claim prepared for authorization review.
@@ -3771,7 +3771,7 @@ function EstimateReviewPanel({
         authBg = "#DCFCE7";
         authFg = "#15803D";
       } else if (workflowState === "SENIOR_AUTHORIZATION") {
-        verifyText = "N/A — senior review claims bypass standard adjuster verification";
+        verifyText = "N/A — senior authorization claims bypass standard adjuster verification";
         authText = "Held — pending senior adjuster sign-off";
         authBg = "#FEF3C7";
         authFg = "#B45309";
