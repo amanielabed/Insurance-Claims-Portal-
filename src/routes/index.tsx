@@ -396,8 +396,6 @@ function Index() {
   const [claimRef, setClaimRef] = useState<string>("");
   const [submittedAt, setSubmittedAt] = useState<number | null>(null);
   const [finalized, setFinalized] = useState(false);
-  const [viewMode, setViewMode] = useState<"flow" | "queue">("flow");
-  const [claimSummary, setClaimSummary] = useState<ClaimSummary | null>(null);
 
   const reset = () => {
     setClaimForm(null);
@@ -406,8 +404,6 @@ function Index() {
     setClaimRef("");
     setSubmittedAt(null);
     setFinalized(false);
-    setViewMode("flow");
-    setClaimSummary(null);
     setStep(1);
   };
 
@@ -424,8 +420,6 @@ function Index() {
     return step;
   })();
 
-  const inQueue = viewMode === "queue";
-
   return (
     <div
       className="flex flex-col h-screen"
@@ -433,19 +427,10 @@ function Index() {
     >
       <StepIndicator current={visualStep} />
       <div
-        key={inQueue ? "queue" : showConfirmation ? "confirmation" : step}
+        key={showConfirmation ? "confirmation" : step}
         className="flex-1 min-h-0 flex flex-col animate-fade-in"
       >
-        {inQueue && (
-          <ClaimsQueueScreen
-            claimRef={claimRef}
-            claimForm={claimForm}
-            summary={claimSummary}
-            onViewClaim={() => setViewMode("flow")}
-            onStartNewClaim={reset}
-          />
-        )}
-        {!inQueue && step === 1 && (
+        {step === 1 && (
           <InitiateClaimStep
             initial={claimForm}
             onContinue={(data) => {
@@ -454,7 +439,7 @@ function Index() {
             }}
           />
         )}
-        {!inQueue && step === 2 && !submitted && (
+        {step === 2 && !submitted && (
           <UploadPhotosStep
             initialPhotos={uploadedPhotos}
             onContinue={(photos) => {
@@ -467,7 +452,7 @@ function Index() {
             onBack={() => setStep(1)}
           />
         )}
-        {!inQueue && showConfirmation && (
+        {showConfirmation && (
           <SubmissionConfirmationStep
             claimRef={claimRef}
             submittedAt={submittedAt ?? Date.now()}
@@ -478,22 +463,21 @@ function Index() {
             }}
           />
         )}
-        {!inQueue && step === 3 && <DraftAssessmentStep claimForm={claimForm} onComplete={() => setStep(4)} />}
-        {!inQueue && step === 4 && (
+        {step === 3 && <DraftAssessmentStep claimForm={claimForm} onComplete={() => setStep(4)} />}
+        {step === 4 && (
           <ReviewEstimateStep
             claimForm={claimForm}
             uploadedPhotos={uploadedPhotos}
             claimRef={claimRef || `CLM-${new Date().getFullYear()}-000000`}
             onReset={reset}
             onFinalize={setFinalized}
-            onReturnToQueue={() => setViewMode("queue")}
-            onClaimSummaryChange={setClaimSummary}
           />
         )}
       </div>
     </div>
   );
 }
+
 
 function SubmissionConfirmationStep({
   claimRef,
@@ -587,136 +571,8 @@ function SubmissionConfirmationStep({
   );
 }
 
-type ClaimStatus = "authorized" | "pending_senior" | "info_requested" | "saved_draft";
-interface ClaimSummary {
-  status: ClaimStatus;
-  lastAction: string;
-}
 
-const STATUS_META: Record<
-  ClaimStatus,
-  { label: string; bg: string; fg: string; dot: string }
-> = {
-  authorized: {
-    label: "Authorized",
-    bg: COLORS.greenBg,
-    fg: COLORS.greenText,
-    dot: COLORS.green,
-  },
-  pending_senior: {
-    label: "Pending Authorization",
-    bg: COLORS.amberBg,
-    fg: COLORS.amberText,
-    dot: COLORS.amber,
-  },
-  info_requested: {
-    label: "Information Requested",
-    bg: COLORS.amberBg,
-    fg: COLORS.amberText,
-    dot: COLORS.amber,
-  },
-  saved_draft: {
-    label: "Saved Draft",
-    bg: "#F3F4F6",
-    fg: "#374151",
-    dot: "#9CA3AF",
-  },
-};
 
-function ClaimsQueueScreen({
-  claimRef,
-  claimForm,
-  summary,
-  onViewClaim,
-  onStartNewClaim,
-}: {
-  claimRef: string;
-  claimForm: ClaimForm | null;
-  summary: ClaimSummary | null;
-  onViewClaim: () => void;
-  onStartNewClaim: () => void;
-}) {
-  const status: ClaimStatus = summary?.status ?? "saved_draft";
-  const meta = STATUS_META[status];
-  const vehicle =
-    [claimForm?.year, claimForm?.make, claimForm?.model].filter(Boolean).join(" ").trim() || "—";
-  const policyholder = claimForm?.fullName?.trim() || "—";
-  const ref = claimRef || "—";
-
-  return (
-    <div className="flex-1 min-h-0 overflow-auto px-6 py-10">
-      <div className="max-w-xl mx-auto">
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold tracking-tight" style={{ color: COLORS.text }}>
-            Claims Queue
-          </h2>
-          <p className="text-sm mt-1" style={{ color: COLORS.muted }}>
-            Active claims and recently processed claims
-          </p>
-        </div>
-
-        <div
-          className="rounded-lg border p-5"
-          style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: COLORS.muted }}>
-                Claim #{ref}
-              </div>
-              <div className="mt-1.5 text-sm font-semibold" style={{ color: COLORS.text }}>
-                {policyholder}
-              </div>
-              <div className="text-xs mt-0.5" style={{ color: COLORS.muted }}>
-                {vehicle}
-              </div>
-            </div>
-            <div
-              className="shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
-              style={{ backgroundColor: meta.bg, color: meta.fg }}
-            >
-              <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: meta.dot }} />
-              {meta.label}
-            </div>
-          </div>
-
-          {summary?.lastAction && (
-            <div
-              className="mt-4 pt-4 border-t text-xs leading-relaxed"
-              style={{ borderColor: COLORS.border, color: COLORS.muted }}
-            >
-              {summary.lastAction}
-            </div>
-          )}
-
-          <div className="mt-4 flex justify-end">
-            <button
-              type="button"
-              onClick={onViewClaim}
-              className="rounded-md border px-3.5 py-2 text-xs font-semibold transition-colors"
-              style={{ borderColor: COLORS.blue, color: COLORS.blue, backgroundColor: "white" }}
-            >
-              View Claim
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-8 flex justify-center">
-          <button
-            type="button"
-            onClick={onStartNewClaim}
-            className="rounded-md px-5 py-2.5 text-sm font-semibold text-white transition-colors"
-            style={{ backgroundColor: COLORS.blue }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
-          >
-            Start New Claim
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 
 function StepIndicator({ current }: { current: number }) {
@@ -2269,16 +2125,12 @@ function ReviewEstimateStep({
   claimRef,
   onReset,
   onFinalize,
-  onReturnToQueue,
-  onClaimSummaryChange,
 }: {
   claimForm: ClaimForm | null;
   uploadedPhotos: UploadedPhoto[];
   claimRef: string;
   onReset: () => void;
   onFinalize?: (finalized: boolean) => void;
-  onReturnToQueue?: () => void;
-  onClaimSummaryChange?: (summary: ClaimSummary | null) => void;
 }) {
   const [selectedId, setSelectedId] = useState(claimData[0].id);
   const claim = useMemo(
@@ -2291,16 +2143,14 @@ function ReviewEstimateStep({
   const [highlightedPart, setHighlightedPart] = useState<number | null>(null);
   const [concernsDismissed, setConcernsDismissed] = useState(false);
   const [authorization, setAuthorization] = useState<AuthorizationDetails | null>(null);
-  const [seniorPending, setSeniorPending] = useState(false);
-  const [infoRequested, setInfoRequested] = useState(false);
+  const [seniorPending, setSeniorPending] = useState<{ amount: number } | null>(null);
   const [viewingSubmitted, setViewingSubmitted] = useState(false);
   const generateReportRef = useRef<((forAuthorization?: boolean) => Promise<void>) | null>(null);
 
   // Reset only the resolution state — preserves scenario, claimForm, photos, claimRef
-  const reviewAnotherScenario = () => {
+  const continueReviewing = () => {
     setAuthorization(null);
-    setSeniorPending(false);
-    setInfoRequested(false);
+    setSeniorPending(null);
     setViewingSubmitted(false);
   };
 
@@ -2310,40 +2160,18 @@ function ReviewEstimateStep({
     setHighlightedPart(null);
     setConcernsDismissed(false);
     setAuthorization(null);
-    setSeniorPending(false);
-    setInfoRequested(false);
+    setSeniorPending(null);
     setViewingSubmitted(false);
   }, [selectedId, claim.delegationState]);
 
   // Notify parent when claim reaches a final workflow state
   useEffect(() => {
-    onFinalize?.(authorization !== null || seniorPending || infoRequested);
-  }, [authorization, seniorPending, infoRequested, onFinalize]);
+    onFinalize?.(authorization !== null || seniorPending !== null);
+  }, [authorization, seniorPending, onFinalize]);
 
-  // Lift a compact claim summary so the Claims Queue can describe this claim
-  useEffect(() => {
-    if (authorization) {
-      onClaimSummaryChange?.({
-        status: "authorized",
-        lastAction: "Estimate approved and repair authorization issued.",
-      });
-    } else if (seniorPending) {
-      onClaimSummaryChange?.({
-        status: "pending_senior",
-        lastAction: "Estimate submitted for senior authorization.",
-      });
-    } else if (infoRequested) {
-      onClaimSummaryChange?.({
-        status: "info_requested",
-        lastAction: "Information request sent to policyholder.",
-      });
-    } else {
-      onClaimSummaryChange?.({
-        status: "saved_draft",
-        lastAction: "Draft estimate in review.",
-      });
-    }
-  }, [authorization, seniorPending, infoRequested, onClaimSummaryChange]);
+
+
+
 
 
   const isFastTrack = claim.delegationState === "FAST_TRACK";
@@ -2597,7 +2425,7 @@ function ReviewEstimateStep({
         )}
       </div>
 
-      {(authorization || seniorPending || infoRequested) && !viewingSubmitted && (
+      {(authorization || seniorPending) && !viewingSubmitted && (
         <div className="flex-1 min-h-0 overflow-auto p-6 animate-fade-in">
           {authorization ? (
             <ClaimAuthorizedScreen
@@ -2606,24 +2434,15 @@ function ReviewEstimateStep({
               authorization={authorization}
               adjusterName={ADJUSTER_NAME}
               onDownload={() => generateReportRef.current?.(true)}
-              onReturnToQueue={() => onReturnToQueue?.()}
-              onStartNewClaim={onReset}
-              onReviewAnotherScenario={reviewAnotherScenario}
-            />
-          ) : seniorPending ? (
-            <PendingSeniorAuthorizationScreen
-              claimRef={claimRef}
-              onReturnToQueue={() => onReturnToQueue?.()}
-              onViewEstimate={() => setViewingSubmitted(true)}
-              onDownloadEstimate={() => generateReportRef.current?.(false)}
-              onReviewAnotherScenario={reviewAnotherScenario}
+              onContinueReviewing={continueReviewing}
             />
           ) : (
-            <InformationRequestedScreen
+            <EstimateSubmittedScreen
               claimRef={claimRef}
-              onReturnToQueue={() => onReturnToQueue?.()}
-              onViewEstimate={() => setViewingSubmitted(true)}
-              onReviewAnotherScenario={reviewAnotherScenario}
+              claimForm={effectiveClaimForm}
+              amount={seniorPending!.amount}
+              onDownload={() => generateReportRef.current?.(false)}
+              onContinueReviewing={continueReviewing}
             />
           )}
         </div>
@@ -2634,7 +2453,7 @@ function ReviewEstimateStep({
         key={claim.id}
         className="flex-1 min-h-0 grid grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(420px,1.35fr)] gap-4 p-4 animate-fade-in"
         style={
-          (authorization || seniorPending || infoRequested) && !viewingSubmitted
+          (authorization || seniorPending) && !viewingSubmitted
             ? { display: "none" }
             : undefined
         }
@@ -2678,13 +2497,12 @@ function ReviewEstimateStep({
             concernsDismissed={concernsDismissed}
             hasConcerns={(claim.verificationConcerns?.length ?? 0) > 0}
             authorization={authorization}
-            seniorPending={seniorPending}
+            seniorPending={seniorPending !== null}
             onAuthorize={(details) => setAuthorization(details)}
-            onSeniorSubmit={() => setSeniorPending(true)}
+            onSeniorSubmit={(amount) => setSeniorPending({ amount })}
             generateReportRef={generateReportRef}
             readOnly={viewingSubmitted}
             onOpenNewClaim={onReset}
-            onInfoRequest={() => setInfoRequested(true)}
           />
         </Panel>
       </main>
@@ -2694,36 +2512,16 @@ function ReviewEstimateStep({
   );
 }
 
-function ClaimAuthorizedScreen({
-  claimRef,
-  claimForm,
-  authorization,
-  adjusterName,
-  onDownload,
-  onReturnToQueue,
-  onStartNewClaim,
-  onReviewAnotherScenario,
+function ResolutionRow({
+  label,
+  value,
+  mono,
 }: {
-  claimRef: string;
-  claimForm: ClaimForm | null;
-  authorization: AuthorizationDetails;
-  adjusterName: string;
-  onDownload: () => void;
-  onReturnToQueue: () => void;
-  onStartNewClaim: () => void;
-  onReviewAnotherScenario: () => void;
+  label: string;
+  value: string;
+  mono?: boolean;
 }) {
-  const vehicle =
-    [claimForm?.year, claimForm?.make, claimForm?.model].filter(Boolean).join(" ").trim() || "—";
-  const policyholder = claimForm?.fullName?.trim() || "—";
-  const dateLabel = new Date(authorization.authorizedAt).toLocaleString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const Row = ({ label, value, mono }: { label: string; value: string; mono?: boolean }) => (
+  return (
     <div
       className="flex items-start justify-between gap-4 py-2.5 border-b"
       style={{ borderColor: COLORS.border }}
@@ -2737,6 +2535,67 @@ function ClaimAuthorizedScreen({
       </span>
     </div>
   );
+}
+
+function ResolutionActions({
+  onContinueReviewing,
+  onDownload,
+  downloadLabel,
+}: {
+  onContinueReviewing: () => void;
+  onDownload: () => void;
+  downloadLabel: string;
+}) {
+  return (
+    <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+      <button
+        type="button"
+        onClick={onContinueReviewing}
+        className="rounded-md px-4 py-2 text-sm font-semibold text-white"
+        style={{ backgroundColor: COLORS.blue }}
+        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
+        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
+      >
+        Continue Reviewing
+      </button>
+      <button
+        type="button"
+        onClick={onDownload}
+        className="inline-flex items-center gap-1.5 rounded-md border px-4 py-2 text-sm font-medium"
+        style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: "white" }}
+      >
+        <FileText size={14} />
+        {downloadLabel}
+      </button>
+    </div>
+  );
+}
+
+function ClaimAuthorizedScreen({
+  claimRef,
+  claimForm,
+  authorization,
+  adjusterName,
+  onDownload,
+  onContinueReviewing,
+}: {
+  claimRef: string;
+  claimForm: ClaimForm | null;
+  authorization: AuthorizationDetails;
+  adjusterName: string;
+  onDownload: () => void;
+  onContinueReviewing: () => void;
+}) {
+  const vehicle =
+    [claimForm?.year, claimForm?.make, claimForm?.model].filter(Boolean).join(" ").trim() || "—";
+  const policyholder = claimForm?.fullName?.trim() || "—";
+  const dateLabel = new Date(authorization.authorizedAt).toLocaleString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -2745,12 +2604,12 @@ function ClaimAuthorizedScreen({
         style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
       >
         <div className="flex flex-col items-center text-center">
-          <CheckCircle size={48} strokeWidth={1.5} style={{ color: COLORS.green }} />
+          <CheckCircle size={40} strokeWidth={1.5} style={{ color: COLORS.green }} />
           <h2 className="mt-4 text-xl font-semibold" style={{ color: COLORS.text }}>
             Claim Authorized
           </h2>
           <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>
-            Repair authorization issued for Claim #{claimRef}
+            Claim #{claimRef} · {vehicle}
           </p>
           <div
             className="mt-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
@@ -2765,220 +2624,97 @@ function ClaimAuthorizedScreen({
         </div>
 
         <div className="mt-6">
-          <Row label="Policyholder" value={policyholder} />
-          <Row label="Vehicle" value={vehicle} />
-          <Row label="Authorized Amount" value={fmtCurrency(authorization.amount)} mono />
-          <Row
+          <ResolutionRow label="Policyholder" value={policyholder} />
+          <ResolutionRow label="Authorized Amount" value={fmtCurrency(authorization.amount)} mono />
+          <ResolutionRow
             label="Deductible"
             value={
               authorization.hasDeductible
                 ? fmtCurrency(authorization.deductibleAmount)
-                : "No deductible"
+                : "N/A"
             }
             mono
           />
-          <Row label="Repair Status" value="Authorized for Repair" />
-          <Row label="Authorization Date" value={dateLabel} />
-          <Row label="Authorized By" value={adjusterName} />
+          <ResolutionRow label="Authorization Date" value={dateLabel} />
+          <ResolutionRow label="Authorized By" value={adjusterName} />
         </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={onDownload}
-          className="inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-semibold text-white"
-          style={{ backgroundColor: COLORS.blue }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
-        >
-          <FileText size={14} />
-          Download Authorization Report
-        </button>
-        <button
-          type="button"
-          onClick={onReturnToQueue}
-          className="rounded-md border px-4 py-2 text-sm font-medium"
-          style={{ borderColor: COLORS.blue, color: COLORS.blue, backgroundColor: "white" }}
-        >
-          Return to Claims Queue
-        </button>
-        <button
-          type="button"
-          onClick={onReviewAnotherScenario}
-          className="rounded-md border px-4 py-2 text-sm font-medium"
-          style={{ borderColor: COLORS.border, color: COLORS.muted, backgroundColor: "white" }}
-        >
-          Review Another Scenario
-        </button>
-        <button
-          type="button"
-          onClick={onStartNewClaim}
-          className="rounded-md px-3 py-2 text-xs font-medium underline-offset-2 hover:underline"
+      <ResolutionActions
+        onContinueReviewing={onContinueReviewing}
+        onDownload={onDownload}
+        downloadLabel="Download Report"
+      />
+    </div>
+  );
+}
+
+function EstimateSubmittedScreen({
+  claimRef,
+  claimForm,
+  amount,
+  onDownload,
+  onContinueReviewing,
+}: {
+  claimRef: string;
+  claimForm: ClaimForm | null;
+  amount: number;
+  onDownload: () => void;
+  onContinueReviewing: () => void;
+}) {
+  const vehicle =
+    [claimForm?.year, claimForm?.make, claimForm?.model].filter(Boolean).join(" ").trim() || "—";
+  const policyholder = claimForm?.fullName?.trim() || "—";
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div
+        className="rounded-lg border p-8"
+        style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
+      >
+        <div className="flex flex-col items-center text-center">
+          <Clock size={40} strokeWidth={1.5} style={{ color: COLORS.amber }} />
+          <h2 className="mt-4 text-xl font-semibold" style={{ color: COLORS.text }}>
+            Estimate Submitted
+          </h2>
+          <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>
+            Claim #{claimRef} · {vehicle}
+          </p>
+          <div
+            className="mt-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
+            style={{ backgroundColor: COLORS.amberBg, color: COLORS.amberText }}
+          >
+            <span
+              className="inline-block w-1.5 h-1.5 rounded-full"
+              style={{ backgroundColor: COLORS.amber }}
+            />
+            Pending Authorization
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <ResolutionRow label="Policyholder" value={policyholder} />
+          <ResolutionRow label="Submitted Amount" value={fmtCurrency(amount)} mono />
+        </div>
+
+        <p
+          className="mt-5 text-sm leading-relaxed text-center"
           style={{ color: COLORS.muted }}
         >
-          Start New Claim (demo)
-        </button>
-
+          A senior adjuster will review and issue final repair authorization.
+        </p>
       </div>
+
+      <ResolutionActions
+        onContinueReviewing={onContinueReviewing}
+        onDownload={onDownload}
+        downloadLabel="Download Report"
+      />
     </div>
   );
 }
 
-function PendingSeniorAuthorizationScreen({
-  claimRef,
-  onReturnToQueue,
-  onViewEstimate,
-  onDownloadEstimate,
-  onReviewAnotherScenario,
-}: {
-  claimRef: string;
-  onReturnToQueue: () => void;
-  onViewEstimate: () => void;
-  onDownloadEstimate: () => void;
-  onReviewAnotherScenario: () => void;
-}) {
-  return (
-    <div className="max-w-2xl mx-auto">
-      <div
-        className="rounded-lg border p-8 text-center"
-        style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
-      >
-        <div className="flex justify-center">
-          <Clock size={48} strokeWidth={1.5} style={{ color: COLORS.amber }} />
-        </div>
-        <h2 className="mt-4 text-xl font-semibold" style={{ color: COLORS.text }}>
-          Pending Senior Authorization
-        </h2>
-        <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>
-          Claim #{claimRef} has been submitted for senior adjuster review.
-        </p>
-        <p className="mt-4 text-sm leading-relaxed" style={{ color: COLORS.muted }}>
-          The estimate has been submitted for final authorization review.
-        </p>
-        <div
-          className="mt-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
-          style={{ backgroundColor: COLORS.amberBg, color: COLORS.amberText }}
-        >
-          <span
-            className="inline-block w-1.5 h-1.5 rounded-full"
-            style={{ backgroundColor: COLORS.amber }}
-          />
-          Pending Senior Approval
-        </div>
-      </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={onReturnToQueue}
-          className="rounded-md border px-4 py-2 text-sm font-semibold"
-          style={{ borderColor: COLORS.blue, color: COLORS.blue, backgroundColor: "white" }}
-        >
-          Return to Claims Queue
-        </button>
-        <button
-          type="button"
-          onClick={onViewEstimate}
-          className="rounded-md border px-4 py-2 text-sm font-medium"
-          style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: "white" }}
-        >
-          View Submitted Estimate
-        </button>
-        <button
-          type="button"
-          onClick={onDownloadEstimate}
-          className="inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium"
-          style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: "white", border: `1px solid ${COLORS.border}` }}
-        >
-          <FileText size={14} />
-          Download Estimate Report
-        </button>
-        <button
-          type="button"
-          onClick={onReviewAnotherScenario}
-          className="rounded-md border px-4 py-2 text-sm font-medium"
-          style={{ borderColor: COLORS.border, color: COLORS.muted, backgroundColor: "white" }}
-        >
-          Review Another Scenario
-        </button>
-
-      </div>
-    </div>
-  );
-}
-
-function InformationRequestedScreen({
-  claimRef,
-  onReturnToQueue,
-  onViewEstimate,
-  onReviewAnotherScenario,
-}: {
-  claimRef: string;
-  onReturnToQueue: () => void;
-  onViewEstimate: () => void;
-  onReviewAnotherScenario: () => void;
-}) {
-  return (
-    <div className="max-w-2xl mx-auto">
-      <div
-        className="rounded-lg border p-8 text-center"
-        style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
-      >
-        <div className="flex justify-center">
-          <Clock size={48} strokeWidth={1.5} style={{ color: COLORS.amber }} />
-        </div>
-        <h2 className="mt-4 text-xl font-semibold" style={{ color: COLORS.text }}>
-          Information Requested
-        </h2>
-        <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>
-          Claim #{claimRef} is awaiting additional information from the policyholder.
-        </p>
-        <p className="mt-4 text-sm leading-relaxed" style={{ color: COLORS.muted }}>
-          The claim has been saved. Review will resume once the requested information is provided.
-        </p>
-        <div
-          className="mt-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
-          style={{ backgroundColor: COLORS.amberBg, color: COLORS.amberText }}
-        >
-          <span
-            className="inline-block w-1.5 h-1.5 rounded-full"
-            style={{ backgroundColor: COLORS.amber }}
-          />
-          Awaiting Response
-        </div>
-      </div>
-
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={onReturnToQueue}
-          className="rounded-md border px-4 py-2 text-sm font-semibold"
-          style={{ borderColor: COLORS.blue, color: COLORS.blue, backgroundColor: "white" }}
-        >
-          Return to Claims Queue
-        </button>
-        <button
-          type="button"
-          onClick={onViewEstimate}
-          className="rounded-md border px-4 py-2 text-sm font-medium"
-          style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: "white" }}
-        >
-          View Submitted Estimate
-        </button>
-        <button
-          type="button"
-          onClick={onReviewAnotherScenario}
-          className="rounded-md border px-4 py-2 text-sm font-medium"
-          style={{ borderColor: COLORS.border, color: COLORS.muted, backgroundColor: "white" }}
-        >
-          Review Another Scenario
-        </button>
-
-      </div>
-    </div>
-  );
-}
 
 
 function DemoGuide() {
@@ -3631,7 +3367,7 @@ function EstimateReviewPanel({
   authorization: AuthorizationDetails | null;
   seniorPending: boolean;
   onAuthorize: (details: AuthorizationDetails) => void;
-  onSeniorSubmit: () => void;
+  onSeniorSubmit: (amount: number) => void;
   generateReportRef: React.MutableRefObject<((forAuthorization?: boolean) => Promise<void>) | null>;
   readOnly?: boolean;
   onOpenNewClaim?: () => void;
@@ -5762,7 +5498,7 @@ function EstimateReviewPanel({
                     type="button"
                     onClick={() => {
                       setSeniorConfirmOpen(false);
-                      onSeniorSubmit();
+                      onSeniorSubmit(adjustedTotal);
                       toast.success("Estimate submitted for senior adjuster authorization.");
                     }}
                     className="rounded-md px-4 py-2 text-sm font-semibold text-white"
