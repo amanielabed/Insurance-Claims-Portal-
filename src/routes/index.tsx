@@ -4184,7 +4184,7 @@ function EstimateReviewPanel({
             if (isSignificant) {
               const flagY = rowY + Math.max(nameLines.length, reasonLines.length) * 14;
               setText(11, "#B45309", true);
-              pdf.text("⚠ Significant adjustment", cName, flagY);
+              pdf.text("Significant adjustment — variance exceeds 20%", cName, flagY);
             }
             y += rowH;
             pdf.setDrawColor("#F3F4F6");
