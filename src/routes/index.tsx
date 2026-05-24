@@ -898,15 +898,19 @@ const REFERENCE_SOURCES = [
   "OEM Repair Guidelines",
 ];
 
-const PROCESSING_STEPS: { label: string; duration: number }[] = [
-  { label: "Photo quality validation complete — all required views meet minimum clarity standards", duration: 600 },
-  { label: "Vehicle identified: 2022 Toyota Camry SE", duration: 600 },
-  { label: "Analyzing visible damage regions and identifying affected parts…", duration: 1100 },
-  { label: "Cross-checking repair scope against repair-cost references…", duration: 1000 },
-  { label: "Claim complexity evaluated — routing to appropriate review workflow", duration: 600 },
+const PROCESSING_STEPS_BASE: { label: (cf: ClaimForm | null) => string; duration: number }[] = [
+  { label: () => "Photo quality validation complete — all required views meet minimum clarity standards", duration: 600 },
+  { label: (cf) => {
+      const v = cf ? [cf.year, cf.make, cf.model].filter(Boolean).join(" ").trim() : "";
+      return `Vehicle identified: ${v || "—"}`;
+    }, duration: 600 },
+  { label: () => "Analyzing visible damage regions and identifying affected parts…", duration: 1100 },
+  { label: () => "Cross-checking repair scope against repair-cost references…", duration: 1000 },
+  { label: () => "Claim complexity evaluated — routing to appropriate review workflow", duration: 600 },
 ];
 
-function DraftAssessmentStep({ onComplete }: { onComplete: () => void }) {
+function DraftAssessmentStep({ claimForm, onComplete }: { claimForm: ClaimForm | null; onComplete: () => void }) {
+  const PROCESSING_STEPS = PROCESSING_STEPS_BASE.map((s) => ({ label: s.label(claimForm), duration: s.duration }));
   // activeIndex = index of currently-processing step; PROCESSING_STEPS.length means all done
   const [activeIndex, setActiveIndex] = useState(0);
   const [done, setDone] = useState(false);
