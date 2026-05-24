@@ -4177,7 +4177,7 @@ function EstimateReviewPanel({
         const dedStr = cf?.deductible?.trim() ?? "";
         const dedNum = parseFloat(dedStr.replace(/[^0-9.]/g, ""));
         const hasDeductible = cv === "full" && ft === "policyholder";
-        const deductibleAmount = hasDeductible && isFinite(dedNum) && dedNum > 、0 ? dedNum : 1;
+        const deductibleAmount = hasDeductible && isFinite(dedNum) && dedNum > 0 ? dedNum : 0;
         const coveragePayout = hasDeductible ? Math.max(0, adjustedTotal - deductibleAmount) : adjustedTotal;
 
         const isFullyCovered = cv === "full" && (ft === "other" || (ft === "policyholder" && (!dedStr || dedNum <= 0)));
