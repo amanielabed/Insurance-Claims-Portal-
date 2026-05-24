@@ -1039,6 +1039,7 @@ const INCIDENT_TYPES = [
 ] as const;
 
 type PolicyLookup = {
+  fullName: string;
   year: string;
   make: string;
   model: string;
@@ -1049,9 +1050,9 @@ type PolicyLookup = {
 function lookupPolicy(policyNumber: string): PolicyLookup | null {
   const p = policyNumber.trim().toUpperCase();
   if (p.startsWith("POL-2026"))
-    return { year: "2023", make: "Toyota", model: "Camry XSE", coverage: "full", deductible: "500" };
+    return { fullName: "Sarah Al-Mansouri", year: "2023", make: "Toyota", model: "Camry XSE", coverage: "full", deductible: "500" };
   if (p.startsWith("POL-2025"))
-    return { year: "2021", make: "Honda", model: "CR-V EX", coverage: "third_party", deductible: null };
+    return { fullName: "Omar Al-Kuwari", year: "2021", make: "Honda", model: "CR-V EX", coverage: "third_party", deductible: null };
   return null;
 }
 
@@ -1106,7 +1107,7 @@ const demoForm = (): ClaimForm => {
   const lookup = lookupPolicy(policyNumber)!;
   return {
     policyNumber,
-    fullName: "Jordan M. Whitaker",
+    fullName: lookup.fullName,
     dateOfLoss: new Date().toISOString().slice(0, 10),
     contactPhone: "(415) 555-0142",
     incidentType: "Rear-end collision",
@@ -1207,6 +1208,7 @@ function InitiateClaimStep({
     if (result) {
       setForm((prev) => ({
         ...prev,
+        fullName: prev.fullName.trim() ? prev.fullName : result.fullName,
         year: result.year,
         make: result.make,
         model: result.model,
@@ -1592,6 +1594,7 @@ function EligibilityCheck({
         coverage: result.coverage,
         deductible: result.deductible,
       });
+      if (!fullName.trim()) setFullName(result.fullName);
       setValidating(false);
 
     }, 700);
