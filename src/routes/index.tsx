@@ -3820,7 +3820,7 @@ function EstimateReviewPanel({
           // caption
           const cap = uploadedPhotos[i];
           const ts = new Date(cap.uploadedAt).toLocaleString("en-US", {
-            month: "short",
+            month: "long",
             day: "numeric",
             year: "numeric",
             hour: "numeric",
