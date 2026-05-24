@@ -3293,6 +3293,8 @@ function EstimateReviewPanel({
   claim,
   claimForm,
   uploadedPhotos,
+  claimRef,
+  adjusterName,
   isFastTrack,
   seniorReview,
   onTriggerSeniorReview,
@@ -3300,10 +3302,17 @@ function EstimateReviewPanel({
   onHighlight,
   concernsDismissed,
   hasConcerns,
+  authorization,
+  seniorPending,
+  onAuthorize,
+  onSeniorSubmit,
+  generateReportRef,
 }: {
   claim: Claim;
   claimForm: ClaimForm | null;
   uploadedPhotos: UploadedPhoto[];
+  claimRef: string;
+  adjusterName: string;
   isFastTrack: boolean;
   seniorReview: boolean;
   onTriggerSeniorReview: () => void;
@@ -3311,6 +3320,11 @@ function EstimateReviewPanel({
   onHighlight: (partIndex: number) => void;
   concernsDismissed: boolean;
   hasConcerns: boolean;
+  authorization: AuthorizationDetails | null;
+  seniorPending: boolean;
+  onAuthorize: (details: AuthorizationDetails) => void;
+  onSeniorSubmit: () => void;
+  generateReportRef: React.MutableRefObject<((forAuthorization?: boolean) => Promise<void>) | null>;
 }) {
   const [adjusted, setAdjusted] = useState<number[]>(() =>
     claim.parts.map((p) => p.draftEstimate),
