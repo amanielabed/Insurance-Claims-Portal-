@@ -5202,7 +5202,7 @@ function EstimateReviewPanel({
           workflowMode !== "FAST_TRACK" && verificationItems.length > 0;
 
         const primaryLabel =
-          workflowMode === "SENIOR_AUTHORIZATION" ? "Submit Estimate" : "Approve Estimate";
+          workflowMode === "SENIOR_AUTHORIZATION" ? "Submit for Senior Authorization" : "Save Estimate";
 
         const _cf = claimForm;
         const _cv = _cf?.coverage;
