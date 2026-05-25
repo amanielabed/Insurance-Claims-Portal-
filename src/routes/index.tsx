@@ -5474,7 +5474,7 @@ function EstimateReviewPanel({
                     className="rounded-md px-4 py-2 text-sm font-semibold text-white"
                     style={{ backgroundColor: COLORS.blue }}
                   >
-                    Confirm & Authorize
+                    Confirm & Save
                   </button>
                 </DialogFooter>
               </DialogContent>
