@@ -2628,10 +2628,10 @@ function ClaimAuthorizedScreen({
         <div className="flex flex-col items-center text-center">
           <CheckCircle size={40} strokeWidth={1.5} style={{ color: COLORS.green }} />
           <h2 className="mt-4 text-xl font-semibold" style={{ color: COLORS.text }}>
-            Claim Authorized
+            Estimate Saved
           </h2>
           <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>
-            Repair authorization issued for Claim #{claimRef}
+            Estimate progress saved for Claim #{claimRef}
           </p>
           <div
             className="mt-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
@@ -2641,14 +2641,14 @@ function ClaimAuthorizedScreen({
               className="inline-block w-1.5 h-1.5 rounded-full"
               style={{ backgroundColor: COLORS.green }}
             />
-            Authorized
+            Saved
           </div>
         </div>
 
         <div className="mt-6">
           <ResolutionRow label="Policyholder" value={policyholder} />
           <ResolutionRow label="Vehicle" value={vehicle} />
-          <ResolutionRow label="Authorized Amount" value={fmtCurrency(authorization.amount)} mono />
+          <ResolutionRow label="Estimate Amount" value={fmtCurrency(authorization.amount)} mono />
           <ResolutionRow
             label="Deductible"
             value={
@@ -2658,9 +2658,8 @@ function ClaimAuthorizedScreen({
             }
             mono
           />
-          <ResolutionRow label="Repair Status" value="Authorized for Repair" />
-          <ResolutionRow label="Authorization Date" value={dateLabel} />
-          <ResolutionRow label="Authorized By" value={adjusterName} />
+          <ResolutionRow label="Saved On" value={dateLabel} />
+          <ResolutionRow label="Saved By" value={adjusterName} />
         </div>
       </div>
 
