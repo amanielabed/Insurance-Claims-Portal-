@@ -2720,7 +2720,7 @@ function EstimateSubmittedScreen({
               className="inline-block w-1.5 h-1.5 rounded-full"
               style={{ backgroundColor: COLORS.amber }}
             />
-            Pending Authorization
+            Pending Senior Authorization
           </div>
         </div>
 
