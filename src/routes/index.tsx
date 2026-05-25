@@ -2145,6 +2145,7 @@ function ReviewEstimateStep({
   const [authorization, setAuthorization] = useState<AuthorizationDetails | null>(null);
   const [seniorPending, setSeniorPending] = useState<{ amount: number; submittedAt: number } | null>(null);
   const [viewingSubmitted, setViewingSubmitted] = useState(false);
+  const [reviewedScenarios, setReviewedScenarios] = useState<Set<string>>(() => new Set());
   const generateReportRef = useRef<((forAuthorization?: boolean) => Promise<void>) | null>(null);
 
   // Reset only the resolution state — preserves scenario, claimForm, photos, claimRef
@@ -2164,10 +2165,24 @@ function ReviewEstimateStep({
     setViewingSubmitted(false);
   }, [selectedId, claim.delegationState]);
 
+  // Track scenarios that reach a completion state
+  useEffect(() => {
+    if (authorization !== null || seniorPending !== null) {
+      setReviewedScenarios((prev) => {
+        if (prev.has(selectedId)) return prev;
+        const next = new Set(prev);
+        next.add(selectedId);
+        return next;
+      });
+    }
+  }, [authorization, seniorPending, selectedId]);
+
   // Notify parent when claim reaches a final workflow state
   useEffect(() => {
     onFinalize?.(authorization !== null || seniorPending !== null);
   }, [authorization, seniorPending, onFinalize]);
+
+  const allScenariosReviewed = reviewedScenarios.size >= SCENARIOS.length;
 
 
 
