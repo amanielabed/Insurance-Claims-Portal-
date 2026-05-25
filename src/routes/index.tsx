@@ -5247,7 +5247,7 @@ function EstimateReviewPanel({
             hasDeductible: approvalHasDeductible,
             authorizedAt: Date.now(),
           });
-          toast.success("Estimate approved and routed for repair processing.");
+          toast.success("Estimate saved.");
         };
 
         const handleEditToggle = () => {
