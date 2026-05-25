@@ -5427,9 +5427,9 @@ function EstimateReviewPanel({
             <Dialog open={approvalConfirmOpen} onOpenChange={setApprovalConfirmOpen}>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Confirm Estimate Approval</DialogTitle>
+                  <DialogTitle>Save Estimate</DialogTitle>
                   <DialogDescription>
-                    You are approving a repair estimate of{" "}
+                    You are saving a draft estimate of{" "}
                     <span className="font-semibold" style={{ color: COLORS.text }}>
                       {fmtCurrency(adjustedTotal)}
                     </span>{" "}
@@ -5437,7 +5437,7 @@ function EstimateReviewPanel({
                     <span className="font-semibold" style={{ color: COLORS.text }}>
                       {approvalVehicle}
                     </span>
-                    . This will authorize repair processing for the claim.
+                    . Estimate progress will be preserved for this claim.
                   </DialogDescription>
                 </DialogHeader>
                 {approvalHasDeductible && (
