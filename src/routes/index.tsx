@@ -2314,6 +2314,21 @@ function ReviewEstimateStep({
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {allScenariosReviewed && (
+            <button
+              type="button"
+              onClick={() =>
+                toast.success("Session summary generated for all three delegation scenarios.")
+              }
+              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold text-white transition-colors"
+              style={{ backgroundColor: COLORS.blue }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
+            >
+              <FileText size={13} />
+              Generate Session Summary
+            </button>
+          )}
           <label className="text-xs font-medium" style={{ color: COLORS.muted }}>
             Demo Claim
           </label>
