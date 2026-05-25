@@ -4416,13 +4416,13 @@ function EstimateReviewPanel({
         pdf.line(M, y, pageW - M, y);
       });
 
-      // ===== AUTHORIZATION RECORD (post-approval only) =====
+      // ===== ESTIMATE RECORD (post-save only) =====
       if (forAuthorization && authorization) {
         if (y + 200 > pageH - M - 30) {
           pdf.addPage();
           y = M;
         }
-        sectionLabel("Authorization Record");
+        sectionLabel("Estimate Record");
         const authDate = new Date(authorization.authorizedAt).toLocaleString("en-US", {
           year: "numeric",
           month: "long",
@@ -4433,22 +4433,21 @@ function EstimateReviewPanel({
         const aRows: { label: string; value: string; badge?: { bg: string; fg: string } }[] = [
           {
             label: "Status",
-            value: "Authorized",
+            value: "Saved",
             badge: { bg: "#DCFCE7", fg: "#15803D" },
           },
-          { label: "Authorized Amount", value: fmtCurrency(authorization.amount) },
+          { label: "Estimate Amount", value: fmtCurrency(authorization.amount) },
           {
             label: "Deductible",
             value: authorization.hasDeductible
               ? fmtCurrency(authorization.deductibleAmount)
               : "No deductible",
           },
-          { label: "Authorization Date", value: authDate },
-          { label: "Authorized By", value: adjusterName },
-          { label: "Repair Status", value: "Authorized for Repair" },
+          { label: "Saved On", value: authDate },
+          { label: "Saved By", value: adjusterName },
           {
             label: "Next Step",
-            value: "Repair facility may begin authorized repairs.",
+            value: "Estimate progress preserved for continued review.",
           },
         ];
         aRows.forEach((r) => {
