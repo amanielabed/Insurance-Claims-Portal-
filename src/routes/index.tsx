@@ -2145,6 +2145,7 @@ function ReviewEstimateStep({
   const [authorization, setAuthorization] = useState<AuthorizationDetails | null>(null);
   const [seniorPending, setSeniorPending] = useState<{ amount: number; submittedAt: number } | null>(null);
   const [viewingSubmitted, setViewingSubmitted] = useState(false);
+  const [reviewedScenarios, setReviewedScenarios] = useState<Set<string>>(() => new Set());
   const generateReportRef = useRef<((forAuthorization?: boolean) => Promise<void>) | null>(null);
 
   // Reset only the resolution state — preserves scenario, claimForm, photos, claimRef
@@ -2164,10 +2165,24 @@ function ReviewEstimateStep({
     setViewingSubmitted(false);
   }, [selectedId, claim.delegationState]);
 
+  // Track scenarios that reach a completion state
+  useEffect(() => {
+    if (authorization !== null || seniorPending !== null) {
+      setReviewedScenarios((prev) => {
+        if (prev.has(selectedId)) return prev;
+        const next = new Set(prev);
+        next.add(selectedId);
+        return next;
+      });
+    }
+  }, [authorization, seniorPending, selectedId]);
+
   // Notify parent when claim reaches a final workflow state
   useEffect(() => {
     onFinalize?.(authorization !== null || seniorPending !== null);
   }, [authorization, seniorPending, onFinalize]);
+
+  const allScenariosReviewed = reviewedScenarios.size >= SCENARIOS.length;
 
 
 
@@ -2299,6 +2314,21 @@ function ReviewEstimateStep({
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {allScenariosReviewed && (
+            <button
+              type="button"
+              onClick={() =>
+                toast.success("Session summary generated for all three delegation scenarios.")
+              }
+              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold text-white transition-colors"
+              style={{ backgroundColor: COLORS.blue }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
+            >
+              <FileText size={13} />
+              Generate Session Summary
+            </button>
+          )}
           <label className="text-xs font-medium" style={{ color: COLORS.muted }}>
             Demo Claim
           </label>
@@ -2598,10 +2628,10 @@ function ClaimAuthorizedScreen({
         <div className="flex flex-col items-center text-center">
           <CheckCircle size={40} strokeWidth={1.5} style={{ color: COLORS.green }} />
           <h2 className="mt-4 text-xl font-semibold" style={{ color: COLORS.text }}>
-            Claim Authorized
+            Estimate Saved
           </h2>
           <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>
-            Repair authorization issued for Claim #{claimRef}
+            Estimate progress saved for Claim #{claimRef}
           </p>
           <div
             className="mt-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
@@ -2611,14 +2641,14 @@ function ClaimAuthorizedScreen({
               className="inline-block w-1.5 h-1.5 rounded-full"
               style={{ backgroundColor: COLORS.green }}
             />
-            Authorized
+            Saved
           </div>
         </div>
 
         <div className="mt-6">
           <ResolutionRow label="Policyholder" value={policyholder} />
           <ResolutionRow label="Vehicle" value={vehicle} />
-          <ResolutionRow label="Authorized Amount" value={fmtCurrency(authorization.amount)} mono />
+          <ResolutionRow label="Estimate Amount" value={fmtCurrency(authorization.amount)} mono />
           <ResolutionRow
             label="Deductible"
             value={
@@ -2628,9 +2658,8 @@ function ClaimAuthorizedScreen({
             }
             mono
           />
-          <ResolutionRow label="Repair Status" value="Authorized for Repair" />
-          <ResolutionRow label="Authorization Date" value={dateLabel} />
-          <ResolutionRow label="Authorized By" value={adjusterName} />
+          <ResolutionRow label="Saved On" value={dateLabel} />
+          <ResolutionRow label="Saved By" value={adjusterName} />
         </div>
       </div>
 
@@ -2691,7 +2720,7 @@ function EstimateSubmittedScreen({
               className="inline-block w-1.5 h-1.5 rounded-full"
               style={{ backgroundColor: COLORS.amber }}
             />
-            Pending Authorization
+            Pending Senior Authorization
           </div>
         </div>
 
@@ -4387,13 +4416,13 @@ function EstimateReviewPanel({
         pdf.line(M, y, pageW - M, y);
       });
 
-      // ===== AUTHORIZATION RECORD (post-approval only) =====
+      // ===== ESTIMATE RECORD (post-save only) =====
       if (forAuthorization && authorization) {
         if (y + 200 > pageH - M - 30) {
           pdf.addPage();
           y = M;
         }
-        sectionLabel("Authorization Record");
+        sectionLabel("Estimate Record");
         const authDate = new Date(authorization.authorizedAt).toLocaleString("en-US", {
           year: "numeric",
           month: "long",
@@ -4404,22 +4433,21 @@ function EstimateReviewPanel({
         const aRows: { label: string; value: string; badge?: { bg: string; fg: string } }[] = [
           {
             label: "Status",
-            value: "Authorized",
+            value: "Saved",
             badge: { bg: "#DCFCE7", fg: "#15803D" },
           },
-          { label: "Authorized Amount", value: fmtCurrency(authorization.amount) },
+          { label: "Estimate Amount", value: fmtCurrency(authorization.amount) },
           {
             label: "Deductible",
             value: authorization.hasDeductible
               ? fmtCurrency(authorization.deductibleAmount)
               : "No deductible",
           },
-          { label: "Authorization Date", value: authDate },
-          { label: "Authorized By", value: adjusterName },
-          { label: "Repair Status", value: "Authorized for Repair" },
+          { label: "Saved On", value: authDate },
+          { label: "Saved By", value: adjusterName },
           {
             label: "Next Step",
-            value: "Repair facility may begin authorized repairs.",
+            value: "Estimate progress preserved for continued review.",
           },
         ];
         aRows.forEach((r) => {
@@ -5172,7 +5200,7 @@ function EstimateReviewPanel({
           workflowMode !== "FAST_TRACK" && verificationItems.length > 0;
 
         const primaryLabel =
-          workflowMode === "SENIOR_AUTHORIZATION" ? "Submit Estimate" : "Approve Estimate";
+          workflowMode === "SENIOR_AUTHORIZATION" ? "Submit for Senior Authorization" : "Save Estimate";
 
         const _cf = claimForm;
         const _cv = _cf?.coverage;
@@ -5217,7 +5245,7 @@ function EstimateReviewPanel({
             hasDeductible: approvalHasDeductible,
             authorizedAt: Date.now(),
           });
-          toast.success("Estimate approved and routed for repair processing.");
+          toast.success("Estimate saved.");
         };
 
         const handleEditToggle = () => {
@@ -5398,9 +5426,9 @@ function EstimateReviewPanel({
             <Dialog open={approvalConfirmOpen} onOpenChange={setApprovalConfirmOpen}>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Confirm Estimate Approval</DialogTitle>
+                  <DialogTitle>Save Estimate</DialogTitle>
                   <DialogDescription>
-                    You are approving a repair estimate of{" "}
+                    You are saving a draft estimate of{" "}
                     <span className="font-semibold" style={{ color: COLORS.text }}>
                       {fmtCurrency(adjustedTotal)}
                     </span>{" "}
@@ -5408,7 +5436,7 @@ function EstimateReviewPanel({
                     <span className="font-semibold" style={{ color: COLORS.text }}>
                       {approvalVehicle}
                     </span>
-                    . This will authorize repair processing for the claim.
+                    . Estimate progress will be preserved for this claim.
                   </DialogDescription>
                 </DialogHeader>
                 {approvalHasDeductible && (
@@ -5445,7 +5473,7 @@ function EstimateReviewPanel({
                     className="rounded-md px-4 py-2 text-sm font-semibold text-white"
                     style={{ backgroundColor: COLORS.blue }}
                   >
-                    Confirm & Authorize
+                    Confirm & Save
                   </button>
                 </DialogFooter>
               </DialogContent>
