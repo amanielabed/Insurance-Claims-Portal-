@@ -5308,12 +5308,21 @@ function EstimateReviewPanel({
                     type="button"
                     onClick={() => {
                       const hasRequest = anyRequestItemSelected;
+                      const selectedItems = (Object.keys(requestItems) as (keyof typeof requestItems)[]).filter(
+                        (k) => requestItems[k],
+                      );
+                      const message = requestMessage;
                       setRequestInfoOpen(false);
                       resetRequestInfo();
                       if (hasRequest) {
                         // Distinct path: an active information request puts the
                         // claim into the "Awaiting Information" state.
                         onAwaitingInfo();
+                        onInformationRequest({
+                          items: selectedItems,
+                          message,
+                          timestamp: new Date().toISOString(),
+                        });
                         toast.success(
                           "Review progress saved. Claim is awaiting requested information.",
                         );
