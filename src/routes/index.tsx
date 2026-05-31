@@ -2323,6 +2323,17 @@ function ReviewEstimateStep({
         SENIOR_AUTHORIZATION: "Senior Authorization",
       };
 
+      const GRAY = { bg: "#F3F4F6", fg: "#6B7280" };
+      const BLUE = { bg: "#DBEAFE", fg: "#1D4ED8" };
+
+      const fmtActionTime = (t: number) =>
+        new Date(t).toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+
       type Computed = {
         scenario: ScenarioMeta;
         claim: Claim;
@@ -2332,6 +2343,12 @@ function ReviewEstimateStep({
         diff: number;
         pct: number;
         isSenior: boolean;
+        actions: ChangeLogEntry[];
+        statusText: string;
+        statusBadge: { bg: string; fg: string };
+        latestActionAt: number | null;
+        editRecallCount: number;
+        hasAction: boolean;
       };
       const computed: Computed[] = SCENARIOS.map((s) => {
         const c = claimData.find((cd) => cd.id === s.id)!;
@@ -2340,6 +2357,29 @@ function ReviewEstimateStep({
         const adjustedTotal = snap?.adjustedTotal ?? draftTotal;
         const diff = adjustedTotal - draftTotal;
         const pct = draftTotal ? (diff / draftTotal) * 100 : 0;
+        const isSenior = s.state === "SENIOR_AUTHORIZATION";
+        const actions = changeLog.filter((e) => e.id === s.id);
+        const editRecallCount = actions.filter((a) =>
+          a.action.includes("reopened") || a.action.includes("recalled"),
+        ).length;
+        const latestActionAt = actions.length ? actions[actions.length - 1].at : null;
+        let statusText: string;
+        let statusBadge: { bg: string; fg: string };
+        if (snap) {
+          if (snap.status === "PENDING_SENIOR") {
+            statusText = "Pending Senior Authorization";
+            statusBadge = AMBER;
+          } else {
+            statusText = "Estimate Saved";
+            statusBadge = GREEN;
+          }
+        } else if (actions.length > 0) {
+          statusText = "In Progress";
+          statusBadge = BLUE;
+        } else {
+          statusText = "Not Started";
+          statusBadge = GRAY;
+        }
         return {
           scenario: s,
           claim: c,
@@ -2348,9 +2388,16 @@ function ReviewEstimateStep({
           adjustedTotal,
           diff,
           pct,
-          isSenior: s.state === "SENIOR_AUTHORIZATION",
+          isSenior,
+          actions,
+          statusText,
+          statusBadge,
+          latestActionAt,
+          editRecallCount,
+          hasAction: actions.length > 0,
         };
       });
+
       const fmtPct = (p: number) => `${p >= 0 ? "+" : "−"}${Math.abs(p).toFixed(1)}%`;
       const fmtDiff = (d: number) => `${d >= 0 ? "+" : "−"}${fmtCurrency(Math.abs(d))}`;
 
