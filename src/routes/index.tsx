@@ -2184,20 +2184,40 @@ function ReviewEstimateStep({
   const [highlightedPart, setHighlightedPart] = useState<number | null>(null);
   const [concernsDismissed, setConcernsDismissed] = useState(false);
   const [savedEstimates, setSavedEstimates] = useState<Map<string, SavedSnapshot>>(() => new Map());
+  const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>([]);
   const [isGeneratingFullReport, setIsGeneratingFullReport] = useState(false);
 
-  const handleSave = (snap: SavedSnapshot) =>
+  const logAction = (id: string, action: string) =>
+    setChangeLog((prev) => [
+      ...prev,
+      { id, scenarioName: SCENARIO_NAME_BY_ID[id] ?? id, action, at: Date.now() },
+    ]);
+
+  const handleSave = (snap: SavedSnapshot) => {
+    const alreadySaved = changeLog.some(
+      (e) => e.id === snap.id && (e.action === "Estimate saved" || e.action === "Submitted for Senior Authorization"),
+    );
     setSavedEstimates((prev) => {
       const next = new Map(prev);
       next.set(snap.id, snap);
       return next;
     });
-  const handleUnlock = (id: string) =>
+    if (snap.status === "PENDING_SENIOR") {
+      logAction(snap.id, alreadySaved ? "Re-submitted for Senior Authorization" : "Submitted for Senior Authorization");
+    } else {
+      logAction(snap.id, alreadySaved ? "Estimate re-saved after edit" : "Estimate saved");
+    }
+  };
+  const handleUnlock = (id: string) => {
+    const wasSenior = savedEstimates.get(id)?.status === "PENDING_SENIOR";
     setSavedEstimates((prev) => {
       const next = new Map(prev);
       next.delete(id);
       return next;
     });
+    logAction(id, wasSenior ? "Submission recalled for editing" : "Estimate reopened for editing");
+  };
+
 
   // Sync escalation when switching claims — auto-load senior authorization for SENIOR_AUTHORIZATION scenarios
   useEffect(() => {
