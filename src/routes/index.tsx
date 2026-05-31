@@ -4235,7 +4235,6 @@ function EstimateReviewPanel({
                         type="number"
                         step="0.01"
                         value={drafts[i]}
-                        readOnly={!editMode}
                         onChange={(e) =>
                           setDrafts((prev) => {
                             const n = [...prev];
@@ -4247,12 +4246,12 @@ function EstimateReviewPanel({
                         onKeyDown={(e) => {
                           if (e.key === "Enter") (e.target as HTMLInputElement).blur();
                         }}
-                        className="w-24 text-right tabular-nums rounded border px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-24 text-right tabular-nums rounded border px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         style={{
-                          borderColor: editMode ? "#93C5FD" : "#D1D5DB",
-                          backgroundColor: editMode ? COLORS.surface : "#F9FAFB",
-                          color: editMode ? COLORS.text : COLORS.muted,
-                          cursor: editMode ? "text" : "not-allowed",
+                          borderColor: "#D1D5DB",
+                          backgroundColor: COLORS.surface,
+                          color: COLORS.text,
+                          cursor: "text",
                         }}
                       />
                     </div>
