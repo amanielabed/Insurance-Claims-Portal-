@@ -2251,6 +2251,17 @@ function ReviewEstimateStep({
   const [highlightedPart, setHighlightedPart] = useState<number | null>(null);
   const [concernsDismissed, setConcernsDismissed] = useState(false);
   const [savedEstimates, setSavedEstimates] = useState<Map<string, SavedSnapshot>>(() => new Map());
+  // Tracks scenarios that have had a valid claims-agent action taken on them
+  // (Complete Review, Submit for Senior Authorization, or Save Review Progress
+  // after requesting information). Drives Step 6 availability — a scenario is
+  // "handled" even while awaiting requested information.
+  const [handledScenarios, setHandledScenarios] = useState<Set<string>>(() => new Set());
+  const markHandled = (id: string) =>
+    setHandledScenarios((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
   // Tracks claims with an outstanding information request — a review cannot be
   // completed or submitted for senior authorization while awaiting information.
   const [awaitingInfoIds, setAwaitingInfoIds] = useState<Set<string>>(() => new Set());
@@ -2328,11 +2339,18 @@ function ReviewEstimateStep({
       next.set(snap.id, snap);
       return next;
     });
+    markHandled(snap.id);
     if (snap.status === "PENDING_SENIOR") {
       logAction(snap.id, alreadySaved ? "Re-submitted for Senior Authorization" : "Submitted for Senior Authorization");
     } else {
       logAction(snap.id, alreadySaved ? "Estimate resubmitted after edit" : "Estimate submitted");
     }
+  };
+  // Save Review Progress while awaiting requested information — counts as a
+  // valid action so the scenario is "handled" for Step 6 availability.
+  const handleSaveProgress = (id: string) => {
+    markHandled(id);
+    logAction(id, "Review progress saved (awaiting requested information)");
   };
   const handleUnlock = (id: string) => {
     const wasSenior = savedEstimates.get(id)?.status === "PENDING_SENIOR";
@@ -2352,7 +2370,10 @@ function ReviewEstimateStep({
     setConcernsDismissed(false);
   }, [selectedId, claim.delegationState]);
 
-  const allScenariosSaved = savedEstimates.size >= SCENARIOS.length;
+  // Step 6 becomes reachable once every scenario has had a valid action taken
+  // on it — including scenarios saved while awaiting requested information.
+  const handledCount = SCENARIOS.filter((s) => handledScenarios.has(s.id)).length;
+  const allScenariosHandled = SCENARIOS.every((s) => handledScenarios.has(s.id));
 
   // Step 6 (Final Resolution) is only "active" once the adjuster explicitly
   // proceeds to the final report screen — not merely when all scenarios saved.
@@ -2499,9 +2520,12 @@ function ReviewEstimateStep({
             statusText = "Pending Senior Authorization";
             statusBadge = AMBER;
           } else {
-            statusText = "Estimate Submitted";
+            statusText = "Review Complete";
             statusBadge = GREEN;
           }
+        } else if (awaitingInfoIds.has(s.id) && handledScenarios.has(s.id)) {
+          statusText = "Awaiting Information";
+          statusBadge = AMBER;
         } else if (actions.length > 0) {
           statusText = "In Progress";
           statusBadge = BLUE;
@@ -2977,10 +3001,26 @@ function ReviewEstimateStep({
     ].map((row) => {
       const snap = savedEstimates.get(row.id);
       const pending = snap?.status === "PENDING_SENIOR";
+      const awaiting = !snap && awaitingInfoIds.has(row.id) && handledScenarios.has(row.id);
+      let statusLabel: string;
+      let kind: "complete" | "pending" | "awaiting";
+      if (pending) {
+        statusLabel = "Pending Senior Authorization";
+        kind = "pending";
+      } else if (snap) {
+        statusLabel = "Review Complete";
+        kind = "complete";
+      } else if (awaiting) {
+        statusLabel = "Awaiting Information";
+        kind = "awaiting";
+      } else {
+        statusLabel = "Not Started";
+        kind = "awaiting";
+      }
       return {
         name: row.name,
-        statusLabel: pending ? "Pending Senior Authorization" : "Estimate Submitted",
-        pending,
+        statusLabel,
+        kind,
       };
     });
     return (
@@ -2994,7 +3034,7 @@ function ReviewEstimateStep({
             <h1 className="text-2xl font-semibold tracking-tight">Session Complete</h1>
           </div>
           <p className="text-sm" style={{ color: COLORS.muted }}>
-            All delegation states reviewed for Claim #{claimRef}
+            All delegation states handled for Claim #{claimRef}
           </p>
 
           <div
@@ -3019,20 +3059,21 @@ function ReviewEstimateStep({
                   <span
                     className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold"
                     style={
-                      row.pending
-                        ? { backgroundColor: COLORS.amberBg, color: COLORS.amberText }
-                        : { backgroundColor: "#DCFCE7", color: "#15803D" }
+                      row.kind === "complete"
+                        ? { backgroundColor: "#DCFCE7", color: "#15803D" }
+                        : { backgroundColor: COLORS.amberBg, color: COLORS.amberText }
                     }
                   >
                     {row.statusLabel}
                   </span>
                 </span>
+
               </div>
             ))}
           </div>
 
           <p className="mt-4 text-sm font-medium" style={{ color: COLORS.text }}>
-            Total estimates submitted: 3 of 3
+            Total scenarios handled: {handledCount} of {SCENARIOS.length}
           </p>
 
           <div className="mt-8">
@@ -3388,6 +3429,7 @@ function ReviewEstimateStep({
             awaitingInfo={awaitingInfoIds.has(claim.id)}
             onAwaitingInfo={() => markAwaitingInfo(claim.id)}
             onClearAwaitingInfo={() => clearAwaitingInfo(claim.id)}
+            onSaveProgress={() => handleSaveProgress(claim.id)}
             onInformationRequest={(req) => setInformationRequest(req)}
             adjusted={currentReview.adjusted}
             setAdjusted={(v) => updateScenarioReviewField(claim.id, "adjusted", v)}
@@ -3405,29 +3447,40 @@ function ReviewEstimateStep({
         </Panel>
       </main>
 
-      {/* Final report transition — a clear completion signal appears once all
-          three delegation states have been reviewed. Transition stays
-          user-controlled (no auto-redirect). */}
-      {allScenariosSaved && (
-        <div className="px-4 pb-4 shrink-0 flex flex-col gap-2.5">
+      {/* Final report transition — a clear completion signal appears once every
+          delegation state has been handled (reviewed, submitted, or saved while
+          awaiting information). Transition stays user-controlled (no auto-redirect). */}
+      <div className="px-4 pb-4 shrink-0 flex flex-col gap-2.5">
+        {!allScenariosHandled && (
           <div
-            className="rounded-md px-4 py-2.5 text-sm font-semibold text-center"
-            style={{ backgroundColor: COLORS.green, color: "#FFFFFF" }}
+            className="rounded-md px-4 py-2.5 text-sm font-medium text-center"
+            style={{ backgroundColor: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.muted }}
           >
-            All delegation states reviewed. Ready to generate final report.
+            {handledCount} of {SCENARIOS.length} scenarios handled
           </div>
-          <button
-            type="button"
-            onClick={() => setShowFinalReport(true)}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold text-white transition-colors"
-            style={{ backgroundColor: COLORS.blue }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
-          >
-            Proceed to Final Report
-          </button>
-        </div>
-      )}
+        )}
+        {allScenariosHandled && (
+          <>
+            <div
+              className="rounded-md px-4 py-2.5 text-sm font-semibold text-center"
+              style={{ backgroundColor: COLORS.green, color: "#FFFFFF" }}
+            >
+              All delegation states handled. Ready to generate final report.
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowFinalReport(true)}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold text-white transition-colors"
+              style={{ backgroundColor: COLORS.blue }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
+            >
+              Proceed to Final Report
+            </button>
+          </>
+        )}
+      </div>
+
 
 
 
@@ -4128,6 +4181,7 @@ function EstimateReviewPanel({
   awaitingInfo,
   onAwaitingInfo,
   onClearAwaitingInfo,
+  onSaveProgress,
 
   onInformationRequest,
 
@@ -4161,6 +4215,7 @@ function EstimateReviewPanel({
   awaitingInfo: boolean;
   onAwaitingInfo: () => void;
   onClearAwaitingInfo: () => void;
+  onSaveProgress: () => void;
 
   onInformationRequest: (req: InformationRequest) => void;
 
@@ -5134,10 +5189,12 @@ function EstimateReviewPanel({
                     type="button"
                     onClick={
                       awaitingInfo
-                        ? () =>
+                        ? () => {
+                            onSaveProgress();
                             toast.success(
                               "Review progress saved. Claim is awaiting requested information.",
-                            )
+                            );
+                          }
                         : handlePrimary
                     }
                     disabled={primaryDisabled}
