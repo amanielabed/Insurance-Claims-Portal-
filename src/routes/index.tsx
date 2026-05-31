@@ -404,6 +404,20 @@ type SavedSnapshot = {
   savedAt: number;
 };
 
+type ChangeLogEntry = {
+  id: string;
+  scenarioName: string;
+  action: string;
+  at: number;
+};
+
+const SCENARIO_NAME_BY_ID: Record<string, string> = {
+  "2026-001": "Fast-Track",
+  "2026-002": "Verification Recommended",
+  "2026-003": "Senior Authorization",
+};
+
+
 const STEPS = [
   "Submit Claim",
   "Upload Photos",
@@ -2170,20 +2184,40 @@ function ReviewEstimateStep({
   const [highlightedPart, setHighlightedPart] = useState<number | null>(null);
   const [concernsDismissed, setConcernsDismissed] = useState(false);
   const [savedEstimates, setSavedEstimates] = useState<Map<string, SavedSnapshot>>(() => new Map());
+  const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>([]);
   const [isGeneratingFullReport, setIsGeneratingFullReport] = useState(false);
 
-  const handleSave = (snap: SavedSnapshot) =>
+  const logAction = (id: string, action: string) =>
+    setChangeLog((prev) => [
+      ...prev,
+      { id, scenarioName: SCENARIO_NAME_BY_ID[id] ?? id, action, at: Date.now() },
+    ]);
+
+  const handleSave = (snap: SavedSnapshot) => {
+    const alreadySaved = changeLog.some(
+      (e) => e.id === snap.id && (e.action === "Estimate saved" || e.action === "Submitted for Senior Authorization"),
+    );
     setSavedEstimates((prev) => {
       const next = new Map(prev);
       next.set(snap.id, snap);
       return next;
     });
-  const handleUnlock = (id: string) =>
+    if (snap.status === "PENDING_SENIOR") {
+      logAction(snap.id, alreadySaved ? "Re-submitted for Senior Authorization" : "Submitted for Senior Authorization");
+    } else {
+      logAction(snap.id, alreadySaved ? "Estimate re-saved after edit" : "Estimate saved");
+    }
+  };
+  const handleUnlock = (id: string) => {
+    const wasSenior = savedEstimates.get(id)?.status === "PENDING_SENIOR";
     setSavedEstimates((prev) => {
       const next = new Map(prev);
       next.delete(id);
       return next;
     });
+    logAction(id, wasSenior ? "Submission recalled for editing" : "Estimate reopened for editing");
+  };
+
 
   // Sync escalation when switching claims — auto-load senior authorization for SENIOR_AUTHORIZATION scenarios
   useEffect(() => {
@@ -2289,6 +2323,17 @@ function ReviewEstimateStep({
         SENIOR_AUTHORIZATION: "Senior Authorization",
       };
 
+      const GRAY = { bg: "#F3F4F6", fg: "#6B7280" };
+      const BLUE = { bg: "#DBEAFE", fg: "#1D4ED8" };
+
+      const fmtActionTime = (t: number) =>
+        new Date(t).toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+
       type Computed = {
         scenario: ScenarioMeta;
         claim: Claim;
@@ -2298,6 +2343,12 @@ function ReviewEstimateStep({
         diff: number;
         pct: number;
         isSenior: boolean;
+        actions: ChangeLogEntry[];
+        statusText: string;
+        statusBadge: { bg: string; fg: string };
+        latestActionAt: number | null;
+        editRecallCount: number;
+        hasAction: boolean;
       };
       const computed: Computed[] = SCENARIOS.map((s) => {
         const c = claimData.find((cd) => cd.id === s.id)!;
@@ -2306,6 +2357,29 @@ function ReviewEstimateStep({
         const adjustedTotal = snap?.adjustedTotal ?? draftTotal;
         const diff = adjustedTotal - draftTotal;
         const pct = draftTotal ? (diff / draftTotal) * 100 : 0;
+        const isSenior = s.state === "SENIOR_AUTHORIZATION";
+        const actions = changeLog.filter((e) => e.id === s.id);
+        const editRecallCount = actions.filter((a) =>
+          a.action.includes("reopened") || a.action.includes("recalled"),
+        ).length;
+        const latestActionAt = actions.length ? actions[actions.length - 1].at : null;
+        let statusText: string;
+        let statusBadge: { bg: string; fg: string };
+        if (snap) {
+          if (snap.status === "PENDING_SENIOR") {
+            statusText = "Pending Senior Authorization";
+            statusBadge = AMBER;
+          } else {
+            statusText = "Estimate Saved";
+            statusBadge = GREEN;
+          }
+        } else if (actions.length > 0) {
+          statusText = "In Progress";
+          statusBadge = BLUE;
+        } else {
+          statusText = "Not Started";
+          statusBadge = GRAY;
+        }
         return {
           scenario: s,
           claim: c,
@@ -2314,9 +2388,16 @@ function ReviewEstimateStep({
           adjustedTotal,
           diff,
           pct,
-          isSenior: s.state === "SENIOR_AUTHORIZATION",
+          isSenior,
+          actions,
+          statusText,
+          statusBadge,
+          latestActionAt,
+          editRecallCount,
+          hasAction: actions.length > 0,
         };
       });
+
       const fmtPct = (p: number) => `${p >= 0 ? "+" : "−"}${Math.abs(p).toFixed(1)}%`;
       const fmtDiff = (d: number) => `${d >= 0 ? "+" : "−"}${fmtCurrency(Math.abs(d))}`;
 
@@ -2334,6 +2415,23 @@ function ReviewEstimateStep({
       infoRow("Claim Reference", claimRef);
       infoRow("Report Date", reportDate);
       infoRow("Prepared By", ADJUSTER_NAME);
+      const completedCount = computed.filter((r) => r.snap).length;
+      const inProgressCount = computed.filter((r) => !r.snap && r.hasAction).length;
+      infoRow("Report Type", "Live Session Report");
+      infoRow(
+        "Session Progress",
+        `${completedCount} of ${SCENARIOS.length} reviewed${inProgressCount ? ` · ${inProgressCount} in progress` : ""}`,
+      );
+      y += 4;
+      wrapped(
+        "This is a live session report reflecting the current state of work at the time of generation, including any scenarios not yet started.",
+        M,
+        W,
+        9,
+        "#6B7280",
+        false,
+      );
+
 
       // ===== CLAIMS SUMMARY TABLE =====
       sectionTitle("Claims Summary");
@@ -2364,8 +2462,6 @@ function ReviewEstimateStep({
       y += 18;
       computed.forEach((r) => {
         need(22);
-        const badge = r.isSenior ? AMBER : GREEN;
-        const statusText = r.isSenior ? "Pending Senior Authorization" : "Estimate Saved";
         drawCell(scenarioNameMap[r.scenario.state], cols[0], y + 12, "#111827", true);
         drawCell(reviewTypeMap[r.scenario.state], cols[1], y + 12);
         drawCell(fmtCurrency(r.draftTotal), cols[2], y + 12);
@@ -2376,12 +2472,13 @@ function ReviewEstimateStep({
           y + 12,
           r.diff === 0 ? "#6B7280" : r.diff > 0 ? "#B45309" : "#15803D",
         );
-        drawBadge(statusText, cols[5].x + 2, y + 3, badge.bg, badge.fg);
+        drawBadge(r.statusText, cols[5].x + 2, y + 3, r.statusBadge.bg, r.statusBadge.fg);
         pdf.setDrawColor("#E5E7EB");
         pdf.setLineWidth(0.5);
         pdf.line(M, y + 18, pageW - M, y + 18);
         y += 18;
       });
+
       const combinedDraft = computed.reduce((a, r) => a + r.draftTotal, 0);
       const combinedAdjusted = computed.reduce((a, r) => a + r.adjustedTotal, 0);
       const combinedDiff = combinedAdjusted - combinedDraft;
@@ -2397,15 +2494,24 @@ function ReviewEstimateStep({
 
       // ===== PER-SCENARIO SECTIONS =====
       computed.forEach((r, idx) => {
-        const badge = r.isSenior ? AMBER : GREEN;
-        const statusText = r.isSenior ? "Pending Senior Authorization" : "Estimate Saved";
         sectionTitle(`Section ${idx + 1} — ${scenarioNameMap[r.scenario.state]}`);
         need(20);
         setText(10, "#6B7280");
         pdf.text("Status", M, y + 10);
-        drawBadge(statusText, M + 50, y + 1, badge.bg, badge.fg);
+        drawBadge(r.statusText, M + 50, y + 1, r.statusBadge.bg, r.statusBadge.fg);
         y += 20;
+        infoRow("Scenario ID", r.claim.id);
         infoRow("Review Type", reviewTypeMap[r.scenario.state]);
+        infoRow("Action Taken", r.hasAction ? "Yes" : "No");
+        infoRow(
+          "Latest Action",
+          r.latestActionAt ? fmtActionTime(r.latestActionAt) : "—",
+        );
+        infoRow("Edits / Recalls", String(r.editRecallCount));
+        if (!r.hasAction) {
+          y += 2;
+          wrapped("No actions have been taken on this scenario.", M, W, 9, "#6B7280", true);
+        }
         wrapped("Damage description:", M, W, 10, "#6B7280", true);
         wrapped(r.scenario.description, M, W, 10, "#374151");
         y += 4;
@@ -2416,6 +2522,7 @@ function ReviewEstimateStep({
           `${fmtDiff(r.diff)} (${fmtPct(r.pct)})`,
           r.diff === 0 ? "#111827" : r.diff > 0 ? "#B45309" : "#15803D",
         );
+
 
         y += 8;
         setText(9, "#111827", true);
@@ -2517,7 +2624,18 @@ function ReviewEstimateStep({
           });
         }
 
-        if (r.isSenior) {
+        // Per-scenario actions taken
+        y += 8;
+        wrapped("Actions Taken", M, W, 9, "#111827", true);
+        if (r.actions.length === 0) {
+          wrapped("No actions have been taken on this scenario.", M, W, 9, "#6B7280");
+        } else {
+          r.actions.forEach((a) => {
+            wrapped(`• ${fmtActionTime(a.at)} — ${a.action}`, M, W, 9, "#374151");
+          });
+        }
+
+        if (r.snap && r.snap.status === "PENDING_SENIOR") {
           y += 10;
           const boxText =
             "This estimate has been submitted for senior adjuster authorization. Repair cannot proceed until senior sign-off is confirmed.";
@@ -2533,6 +2651,47 @@ function ReviewEstimateStep({
           y += boxH;
         }
       });
+
+      // ===== SESSION CHANGE LOG =====
+      sectionTitle("Change Log — Actions Taken This Session");
+      if (changeLog.length === 0) {
+        wrapped("No actions have been taken in this session yet.", M, W, 10, "#6B7280");
+      } else {
+        const lcols = [
+          { x: M, w: 120, align: "left" as const, label: "Timestamp" },
+          { x: M + 120, w: 150, align: "left" as const, label: "Scenario" },
+          { x: M + 270, w: W - 270, align: "left" as const, label: "Action" },
+        ];
+        const drawLCell = (
+          text: string,
+          col: (typeof lcols)[number],
+          rowY: number,
+          color = "#374151",
+          bold = false,
+        ) => {
+          setText(8.5, color, bold);
+          const lines = pdf.splitTextToSize(text, col.w - 4) as string[];
+          pdf.text(lines[0] ?? "", col.x + 2, rowY);
+        };
+        need(22);
+        pdf.setFillColor("#F3F4F6");
+        pdf.rect(M, y, W, 16, "F");
+        lcols.forEach((c) => drawLCell(c.label.toUpperCase(), c, y + 11, "#6B7280", true));
+        y += 16;
+        [...changeLog]
+          .sort((a, b) => a.at - b.at)
+          .forEach((e) => {
+            need(20);
+            drawLCell(fmtActionTime(e.at), lcols[0], y + 11, "#111827");
+            drawLCell(e.scenarioName, lcols[1], y + 11);
+            drawLCell(e.action, lcols[2], y + 11);
+            pdf.setDrawColor("#E5E7EB");
+            pdf.setLineWidth(0.5);
+            pdf.line(M, y + 16, pageW - M, y + 16);
+            y += 16;
+          });
+      }
+
 
       // ===== FOOTER ON EVERY PAGE =====
       const footerText =
@@ -2691,20 +2850,20 @@ function ReviewEstimateStep({
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {allScenariosSaved && (
-            <button
-              type="button"
-              disabled={isGeneratingFullReport}
-              onClick={generateFullReport}
-              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold text-white transition-colors disabled:opacity-60"
-              style={{ backgroundColor: COLORS.blue }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
-            >
-              <FileText size={13} />
-              {isGeneratingFullReport ? "Generating…" : "Generate Full Report"}
-            </button>
-          )}
+          <button
+            type="button"
+            disabled={isGeneratingFullReport}
+            onClick={generateFullReport}
+            title="Generate a live session report reflecting current progress"
+            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold text-white transition-colors disabled:opacity-60"
+            style={{ backgroundColor: COLORS.blue }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
+          >
+            <FileText size={13} />
+            {isGeneratingFullReport ? "Generating…" : "Generate Full Report"}
+          </button>
+
           <label className="text-xs font-medium" style={{ color: COLORS.muted }}>
             Demo Claim
           </label>
