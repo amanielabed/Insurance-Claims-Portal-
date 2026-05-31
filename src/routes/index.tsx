@@ -4607,27 +4607,46 @@ function EstimateReviewPanel({
               </div>
             ) : (
               <>
+                {(() => {
+                  const ackRequired = !isFastTrack && hasConcerns && !concernsDismissed;
+                  return (
+                <>
+                {ackRequired && (
+                  <div
+                    className="shrink-0 flex items-center gap-2 rounded-md border-2 px-3 py-2 mt-1"
+                    style={{ backgroundColor: "#FFFBEB", borderColor: COLORS.amber }}
+                  >
+                    <AlertTriangle size={14} style={{ color: COLORS.amberText }} className="shrink-0" />
+                    <span className="text-xs font-medium" style={{ color: "#92400E" }}>
+                      Acknowledge the review guidance in Assessment Review to continue.
+                    </span>
+                  </div>
+                )}
                 {/* Persistent Action Bar — always 3 actions, never disabled by warnings */}
                 <div className="shrink-0 flex items-center gap-2 pt-1">
                   {/* PRIMARY */}
                   <button
                     type="button"
                     onClick={handlePrimary}
+                    disabled={ackRequired}
                     className="flex-1 rounded-md py-2.5 text-sm font-semibold transition-colors"
                     style={{
-                      backgroundColor: COLORS.blue,
+                      backgroundColor: ackRequired ? "#9CA3AF" : COLORS.blue,
                       color: "white",
                       border: "none",
+                      cursor: ackRequired ? "not-allowed" : "pointer",
+                      opacity: ackRequired ? 0.7 : 1,
                     }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.backgroundColor = COLORS.blueHover)
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.backgroundColor = COLORS.blue)
-                    }
+                    onMouseEnter={(e) => {
+                      if (!ackRequired) e.currentTarget.style.backgroundColor = COLORS.blueHover;
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!ackRequired) e.currentTarget.style.backgroundColor = COLORS.blue;
+                    }}
                   >
                     {primaryLabel}
                   </button>
+
 
                   {/* SECONDARY: Edit / Save Edits */}
                   <button
