@@ -2914,21 +2914,6 @@ function ReviewEstimateStep({
         </div>
       )}
 
-      {currentScenario.state === "SENIOR_AUTHORIZATION" && (
-        <div
-          className="flex items-start gap-2 px-6 py-2 border-b text-[12px]"
-          style={{
-            backgroundColor: "#FEF2F2",
-            borderLeft: `3px solid #DC2626`,
-            borderColor: "#FECACA",
-            color: "#991B1B",
-          }}
-        >
-          <span className="shrink-1 leading-relaxed">
-            High-value repair estimate. Senior authorization is required before repair approval can be issued.
-          </span>
-        </div>
-      )}
 
 
       {/* Header */}
@@ -4689,8 +4674,6 @@ function EstimateReviewPanel({
             "Some estimate ranges were generated using comparable repair scenarios.",
           );
 
-        const showVerificationPanel =
-          workflowMode !== "FAST_TRACK" && verificationItems.length > 0;
 
         const primaryLabel =
           workflowMode === "SENIOR_AUTHORIZATION" ? "Submit for Senior Authorization" : "Save Estimate";
@@ -4777,48 +4760,6 @@ function EstimateReviewPanel({
 
         return (
           <>
-            {/* Verification Recommended Panel — informational only, never blocks */}
-            {showVerificationPanel && (
-              <div
-                className="shrink-0 rounded-md border-l-2 border px-3 py-2.5"
-                style={{
-                  backgroundColor: COLORS.amberBg,
-                  borderColor: COLORS.amberBorder,
-                  borderLeftColor: COLORS.amber,
-                }}
-              >
-                <div className="flex items-start gap-2">
-                  <AlertTriangle
-                    size={14}
-                    className="mt-0.5 shrink-0"
-                    style={{ color: COLORS.amberText }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div
-                      className="text-xs font-semibold"
-                      style={{ color: COLORS.amberText }}
-                    >
-                      Verification Recommended
-                    </div>
-                    <ul className="mt-1 flex flex-col gap-1">
-                      {verificationItems.map((item, idx) => (
-                        <li
-                          key={idx}
-                          className="flex items-start gap-1.5 text-[12px] leading-snug"
-                          style={{ color: "#92400E" }}
-                        >
-                          <span
-                            className="mt-1.5 w-1 h-1 rounded-full shrink-0"
-                            style={{ backgroundColor: COLORS.amber }}
-                          />
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {isSaved ? (
               <div className="shrink-0 flex flex-col gap-2 pt-1">
@@ -4874,17 +4815,6 @@ function EstimateReviewPanel({
                   const ackRequired = !isFastTrack && hasConcerns && !concernsDismissed;
                   return (
                 <>
-                {ackRequired && (
-                  <div
-                    className="shrink-0 flex items-center gap-2 rounded-md border-2 px-3 py-2 mt-1"
-                    style={{ backgroundColor: "#FFFBEB", borderColor: COLORS.amber }}
-                  >
-                    <AlertTriangle size={14} style={{ color: COLORS.amberText }} className="shrink-0" />
-                    <span className="text-xs font-medium" style={{ color: "#92400E" }}>
-                      Acknowledge the review guidance in Assessment Review to continue.
-                    </span>
-                  </div>
-                )}
                 {/* Persistent Action Bar — always 3 actions, never disabled by warnings */}
                 <div className="shrink-0 flex items-center gap-2 pt-1">
                   {/* PRIMARY */}
