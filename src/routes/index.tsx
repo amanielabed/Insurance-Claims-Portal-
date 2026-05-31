@@ -4897,9 +4897,9 @@ function EstimateReviewPanel({
             <Dialog open={approvalConfirmOpen} onOpenChange={setApprovalConfirmOpen}>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Save Estimate</DialogTitle>
+                  <DialogTitle>Complete Review</DialogTitle>
                   <DialogDescription>
-                    You are saving a draft estimate of{" "}
+                    You are completing your review of an estimate of{" "}
                     <span className="font-semibold" style={{ color: COLORS.text }}>
                       {fmtCurrency(adjustedTotal)}
                     </span>{" "}
@@ -4944,7 +4944,7 @@ function EstimateReviewPanel({
                     className="rounded-md px-4 py-2 text-sm font-semibold text-white"
                     style={{ backgroundColor: COLORS.blue }}
                   >
-                    Confirm & Save
+                    Confirm & Complete Review
                   </button>
                 </DialogFooter>
               </DialogContent>
