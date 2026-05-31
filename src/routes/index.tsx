@@ -3098,32 +3098,73 @@ function AssessmentReviewPanel({
               No additional review triggers detected.
             </p>
           ) : concernsDismissed ? (
-            <div className="flex items-center gap-1.5 text-xs" style={{ color: COLORS.muted }}>
-              <CheckCircle size={12} />
-              Verification concerns noted by adjuster.
+            <div
+              className="rounded-md border-2 px-3 py-2.5 flex items-center gap-2"
+              style={{ backgroundColor: COLORS.greenBg, borderColor: "#86EFAC" }}
+            >
+              <span
+                className="inline-flex items-center justify-center w-5 h-5 rounded-full shrink-0"
+                style={{ backgroundColor: "#16A34A" }}
+              >
+                <Check size={13} color="white" strokeWidth={3} />
+              </span>
+              <span className="text-sm font-semibold" style={{ color: COLORS.greenText }}>
+                Review acknowledged
+              </span>
             </div>
           ) : (
-            <div className="flex flex-col gap-1.5">
-              <p className="text-xs font-medium" style={{ color: COLORS.amberText }}>
-                Review before approving:
-              </p>
-              {claim.verificationConcerns?.map((concern, i) => (
-                <div key={i} className="flex items-start gap-2 text-sm" style={{ color: "#374151" }}>
-                  <span className="mt-1.5 w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: COLORS.amber }} />
-                  {concern}
+            <div
+              className="rounded-lg border-2 p-4"
+              style={{
+                backgroundColor: "#FFFBEB",
+                borderColor: COLORS.amber,
+                boxShadow: "0 1px 3px rgba(245, 158, 11, 0.15)",
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className="inline-flex items-center justify-center w-6 h-6 rounded-full shrink-0"
+                  style={{ backgroundColor: COLORS.amber }}
+                >
+                  <AlertTriangle size={14} color="white" />
+                </span>
+                <div className="flex flex-col">
+                  <span
+                    className="text-[11px] font-bold uppercase tracking-wide"
+                    style={{ color: COLORS.amberText, letterSpacing: "0.08em" }}
+                  >
+                    Review Required
+                  </span>
+                  <span className="text-xs" style={{ color: "#92400E" }}>
+                    Please review the information below before continuing.
+                  </span>
                 </div>
-              ))}
+              </div>
+
+              <div className="mt-3 flex flex-col gap-1.5">
+                {claim.verificationConcerns?.map((concern, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm" style={{ color: "#374151" }}>
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: COLORS.amber }} />
+                    {concern}
+                  </div>
+                ))}
+              </div>
+
               <button
                 type="button"
                 onClick={onDismissConcerns}
-                className="self-start text-xs font-medium underline-offset-2 hover:underline mt-1"
-                style={{ color: COLORS.blue }}
+                className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
+                style={{ backgroundColor: COLORS.amber }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#D97706")}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.amber)}
               >
-                Noted — proceed
+                <Check size={15} strokeWidth={3} />
+                Noted, proceed
               </button>
             </div>
           )}
         </div>
+
       </div>
 
 
