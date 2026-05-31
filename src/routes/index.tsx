@@ -2446,8 +2446,21 @@ function ReviewEstimateStep({
           latestActionAt,
           editRecallCount,
           hasAction: actions.length > 0,
+          photos: scenarioPhotos(c),
         };
       });
+
+      // Preload every damage photo as a JPEG data URL so they can always be
+      // embedded into the report, regardless of scenario status.
+      const photoCache = new Map<string, { dataURL: string; w: number; h: number } | null>();
+      const photoUrls = new Set<string>();
+      computed.forEach((r) => r.photos.forEach((p) => photoUrls.add(p.url)));
+      await Promise.all(
+        [...photoUrls].map(async (u) => {
+          photoCache.set(u, await loadImageForPdf(u));
+        }),
+      );
+
 
       const fmtPct = (p: number) => `${p >= 0 ? "+" : "−"}${Math.abs(p).toFixed(1)}%`;
       const fmtDiff = (d: number) => `${d >= 0 ? "+" : "−"}${fmtCurrency(Math.abs(d))}`;
