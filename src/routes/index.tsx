@@ -3867,6 +3867,17 @@ function EstimateReviewPanel({
   onUnlock,
 
   onInfoRequest,
+
+  adjusted,
+  setAdjusted,
+  drafts,
+  setDrafts,
+  adjusterNotes,
+  setAdjusterNotes,
+  overrides,
+  setOverrides,
+  log,
+  setLog,
 }: {
   claim: Claim;
   claimForm: ClaimForm | null;
@@ -3885,20 +3896,23 @@ function EstimateReviewPanel({
   onUnlock: () => void;
 
   onInfoRequest?: () => void;
+
+  adjusted: number[];
+  setAdjusted: Dispatch<SetStateAction<number[]>>;
+  drafts: string[];
+  setDrafts: Dispatch<SetStateAction<string[]>>;
+  adjusterNotes: string;
+  setAdjusterNotes: Dispatch<SetStateAction<string>>;
+  overrides: Record<number, Override>;
+  setOverrides: Dispatch<SetStateAction<Record<number, Override>>>;
+  log: LogEntry[];
+  setLog: Dispatch<SetStateAction<LogEntry[]>>;
 }) {
-  const [adjusted, setAdjusted] = useState<number[]>(() =>
-    claim.parts.map((p) => p.draftEstimate),
-  );
-  const [drafts, setDrafts] = useState<string[]>(() =>
-    claim.parts.map((p) => p.draftEstimate.toFixed(2)),
-  );
-  const [log, setLog] = useState<LogEntry[]>([]);
   const [expanded, setExpanded] = useState<number | null>(null);
   const toggleExpanded = (row: number) =>
     setExpanded((prev) => (prev === row ? null : row));
 
   const NOTES_LIMIT = 500;
-  const [adjusterNotes, setAdjusterNotes] = useState("");
   const notesRef = useRef<HTMLTextAreaElement>(null);
   const [notesSavedVisible, setNotesSavedVisible] = useState(false);
   const notesSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
