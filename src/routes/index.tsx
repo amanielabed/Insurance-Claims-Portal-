@@ -475,7 +475,7 @@ const STEPS = [
   "Claim Submitted",
   "Draft Assessment",
   "Claims Agent Review",
-  "Final Resolution",
+  "Session Summary",
 ] as const;
 const SUBMISSION_STEPS = 3;
 
@@ -2598,6 +2598,15 @@ function ReviewEstimateStep({
         "#6B7280",
         false,
       );
+      y += 2;
+      wrapped(
+        "This report summarizes the current review session. Some claims may remain pending additional information or senior authorization before claim closure.",
+        M,
+        W,
+        9,
+        "#6B7280",
+        false,
+      );
 
 
       // ===== CLAIMS SUMMARY TABLE =====
@@ -3032,10 +3041,10 @@ function ReviewEstimateStep({
         <div className="mx-auto w-full max-w-2xl px-6 py-12 animate-fade-in">
           <div className="flex items-center gap-2 mb-1">
             <CheckCircle size={22} style={{ color: "#16A34A" }} />
-            <h1 className="text-2xl font-semibold tracking-tight">Session Complete</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Review Session Summary</h1>
           </div>
           <p className="text-sm" style={{ color: COLORS.muted }}>
-            All delegation states handled for Claim #{claimRef}
+            All delegation states have been reviewed or actioned for Claim #{claimRef}.
           </p>
 
           <div
@@ -3091,11 +3100,11 @@ function ReviewEstimateStep({
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
             >
               <FileText size={16} />
-              {isGeneratingFullReport ? "Generating…" : "Generate Full Session Report"}
+              {isGeneratingFullReport ? "Generating…" : "Generate Session Summary Report"}
             </button>
             {sessionReportDownloaded && (
               <p className="mt-2 text-xs font-medium" style={{ color: "#15803D" }}>
-                Report downloaded. Session complete.
+                Report downloaded.
               </p>
             )}
           </div>
@@ -3466,7 +3475,7 @@ function ReviewEstimateStep({
               className="rounded-md px-4 py-2.5 text-sm font-semibold text-center"
               style={{ backgroundColor: COLORS.green, color: "#FFFFFF" }}
             >
-              All delegation states handled. Ready to generate final report.
+              All delegation states have been reviewed or actioned. Ready to view the session summary.
             </div>
             <button
               type="button"
@@ -3476,7 +3485,7 @@ function ReviewEstimateStep({
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
             >
-              Proceed to Final Report
+              Proceed to Session Summary
             </button>
           </>
         )}
