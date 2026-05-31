@@ -3035,7 +3035,7 @@ function ReviewEstimateStep({
             <h1 className="text-2xl font-semibold tracking-tight">Session Complete</h1>
           </div>
           <p className="text-sm" style={{ color: COLORS.muted }}>
-            All delegation states reviewed for Claim #{claimRef}
+            All delegation states handled for Claim #{claimRef}
           </p>
 
           <div
