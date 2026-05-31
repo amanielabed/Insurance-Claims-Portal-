@@ -1604,7 +1604,7 @@ function InitiateClaimStep({
               invalid={!!errors.fullName}
             />
           </Field>
-          <Field label="Date of Loss" required error={errors.dateOfLoss}>
+          <Field label="Date of Incident" required error={errors.dateOfLoss}>
             <TextInput
               type="date"
               value={form.dateOfLoss}
