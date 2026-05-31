@@ -2233,6 +2233,21 @@ function ReviewEstimateStep({
   const [highlightedPart, setHighlightedPart] = useState<number | null>(null);
   const [concernsDismissed, setConcernsDismissed] = useState(false);
   const [savedEstimates, setSavedEstimates] = useState<Map<string, SavedSnapshot>>(() => new Map());
+  // Tracks claims with an outstanding information request — a review cannot be
+  // completed or submitted for senior authorization while awaiting information.
+  const [awaitingInfoIds, setAwaitingInfoIds] = useState<Set<string>>(() => new Set());
+  const markAwaitingInfo = (id: string) =>
+    setAwaitingInfoIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  const clearAwaitingInfo = (id: string) =>
+    setAwaitingInfoIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>([]);
   const [isGeneratingFullReport, setIsGeneratingFullReport] = useState(false);
 
