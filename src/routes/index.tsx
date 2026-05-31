@@ -78,7 +78,7 @@ const SCENARIOS: ScenarioMeta[] = [
     fault: "other",
     coverageLabel: "Full Coverage Policy",
     faultLabel: "Other party at fault",
-    deductibleLabel: "N/A — liability handled by at-fault party",
+    deductibleLabel: "N/A",
     deductibleValue: "",
     estimateRange: "$329.50",
   },
@@ -2108,7 +2108,7 @@ function EligibilityCheck({
                         Deductible
                       </div>
                       <div className="text-sm font-medium" style={{ color: COLORS.text }}>
-                        N/A — handled by at-fault party
+                        N/A
                       </div>
                     </div>
                     <div className="text-[11px] italic" style={{ color: COLORS.muted }}>
