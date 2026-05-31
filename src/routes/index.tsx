@@ -5188,8 +5188,15 @@ function EstimateReviewPanel({
                       setRequestInfoOpen(false);
                       resetRequestInfo();
                       if (hasRequest) {
-                        toast.success("Progress saved. Information request sent to policyholder.");
+                        // Distinct path: an active information request puts the
+                        // claim into the "Awaiting Information" state.
+                        onAwaitingInfo();
+                        toast.success(
+                          "Review progress saved. Claim is awaiting requested information.",
+                        );
                       } else {
+                        // Distinct path: no items requested — progress is saved
+                        // and the awaiting-info flag must not be set.
                         toast.success("Estimate progress saved.");
                       }
                     }}
