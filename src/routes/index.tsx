@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -2236,6 +2236,42 @@ function ReviewEstimateStep({
   const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>([]);
   const [isGeneratingFullReport, setIsGeneratingFullReport] = useState(false);
 
+  // Per-scenario review state lifted from EstimateReviewPanel so unsaved work
+  // (adjusted values, draft strings, notes, rationale overrides, activity log)
+  // is preserved when the adjuster switches between scenarios.
+  const defaultScenarioReviewState = (id: string): ScenarioReviewState => {
+    const c = claimData.find((cd) => cd.id === id) ?? claimData[0];
+    return {
+      adjusted: c.parts.map((p) => p.draftEstimate),
+      drafts: c.parts.map((p) => p.draftEstimate.toFixed(2)),
+      adjusterNotes: "",
+      overrides: {},
+      log: [],
+    };
+  };
+  const [reviewByScenario, setReviewByScenario] = useState<
+    Record<string, ScenarioReviewState>
+  >({});
+  const currentReview =
+    reviewByScenario[claim.id] ?? defaultScenarioReviewState(claim.id);
+  const updateScenarioReviewField = <K extends keyof ScenarioReviewState>(
+    id: string,
+    key: K,
+    value: SetStateAction<ScenarioReviewState[K]>,
+  ) => {
+    setReviewByScenario((prev) => {
+      const cur = prev[id] ?? defaultScenarioReviewState(id);
+      const nextVal =
+        typeof value === "function"
+          ? (value as (p: ScenarioReviewState[K]) => ScenarioReviewState[K])(
+              cur[key],
+            )
+          : value;
+      return { ...prev, [id]: { ...cur, [key]: nextVal } };
+    });
+  };
+
+
   const logAction = (id: string, action: string) =>
     setChangeLog((prev) => [
       ...prev,
@@ -3116,6 +3152,18 @@ function ReviewEstimateStep({
             isSaved={savedEstimates.has(claim.id)}
             onSave={handleSave}
             onUnlock={() => handleUnlock(claim.id)}
+            adjusted={currentReview.adjusted}
+            setAdjusted={(v) => updateScenarioReviewField(claim.id, "adjusted", v)}
+            drafts={currentReview.drafts}
+            setDrafts={(v) => updateScenarioReviewField(claim.id, "drafts", v)}
+            adjusterNotes={currentReview.adjusterNotes}
+            setAdjusterNotes={(v) =>
+              updateScenarioReviewField(claim.id, "adjusterNotes", v)
+            }
+            overrides={currentReview.overrides}
+            setOverrides={(v) => updateScenarioReviewField(claim.id, "overrides", v)}
+            log={currentReview.log}
+            setLog={(v) => updateScenarioReviewField(claim.id, "log", v)}
           />
         </Panel>
       </main>
@@ -3605,6 +3653,24 @@ interface LogEntry {
   to: number;
 }
 
+// Rationale tracking for adjuster overrides (module scope so review state can be lifted)
+type RationaleCode =
+  | "additional_damage"
+  | "labor_rate"
+  | "scope_change"
+  | "parts_availability"
+  | "other";
+type Override = { reason: RationaleCode | null; other: string };
+
+// Per-scenario review state preserved across scenario switches
+type ScenarioReviewState = {
+  adjusted: number[];
+  drafts: string[];
+  adjusterNotes: string;
+  overrides: Record<number, Override>;
+  log: LogEntry[];
+};
+
 const SOURCE_META: Record<
   SourceKey,
   { short: string; label: string; bg: string; fg: string; border: string }
@@ -3801,6 +3867,17 @@ function EstimateReviewPanel({
   onUnlock,
 
   onInfoRequest,
+
+  adjusted,
+  setAdjusted,
+  drafts,
+  setDrafts,
+  adjusterNotes,
+  setAdjusterNotes,
+  overrides,
+  setOverrides,
+  log,
+  setLog,
 }: {
   claim: Claim;
   claimForm: ClaimForm | null;
@@ -3819,20 +3896,23 @@ function EstimateReviewPanel({
   onUnlock: () => void;
 
   onInfoRequest?: () => void;
+
+  adjusted: number[];
+  setAdjusted: Dispatch<SetStateAction<number[]>>;
+  drafts: string[];
+  setDrafts: Dispatch<SetStateAction<string[]>>;
+  adjusterNotes: string;
+  setAdjusterNotes: Dispatch<SetStateAction<string>>;
+  overrides: Record<number, Override>;
+  setOverrides: Dispatch<SetStateAction<Record<number, Override>>>;
+  log: LogEntry[];
+  setLog: Dispatch<SetStateAction<LogEntry[]>>;
 }) {
-  const [adjusted, setAdjusted] = useState<number[]>(() =>
-    claim.parts.map((p) => p.draftEstimate),
-  );
-  const [drafts, setDrafts] = useState<string[]>(() =>
-    claim.parts.map((p) => p.draftEstimate.toFixed(2)),
-  );
-  const [log, setLog] = useState<LogEntry[]>([]);
   const [expanded, setExpanded] = useState<number | null>(null);
   const toggleExpanded = (row: number) =>
     setExpanded((prev) => (prev === row ? null : row));
 
   const NOTES_LIMIT = 500;
-  const [adjusterNotes, setAdjusterNotes] = useState("");
   const notesRef = useRef<HTMLTextAreaElement>(null);
   const [notesSavedVisible, setNotesSavedVisible] = useState(false);
   const notesSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -3861,10 +3941,8 @@ function EstimateReviewPanel({
   const [pendingPrimaryMode, setPendingPrimaryMode] = useState<
     "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION" | null
   >(null);
-  const [editMode, setEditMode] = useState(false);
-  useEffect(() => {
-    if (isSaved) setEditMode(false);
-  }, [isSaved]);
+
+
 
   // Request Information modal state
   const [requestInfoOpen, setRequestInfoOpen] = useState(false);
@@ -3886,15 +3964,7 @@ function EstimateReviewPanel({
   };
   const anyRequestItemSelected = Object.values(requestItems).some(Boolean);
 
-  // Rationale tracking for adjuster overrides
-  type RationaleCode =
-    | "additional_damage"
-    | "labor_rate"
-    | "scope_change"
-    | "parts_availability"
-    | "other";
-  type Override = { reason: RationaleCode | null; other: string };
-  const [overrides, setOverrides] = useState<Record<number, Override>>({});
+  // Rationale tracking for adjuster overrides (state lifted to parent)
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const isOverrideConfirmed = (o: Override | undefined) =>
@@ -4165,7 +4235,6 @@ function EstimateReviewPanel({
                         type="number"
                         step="0.01"
                         value={drafts[i]}
-                        readOnly={!editMode}
                         onChange={(e) =>
                           setDrafts((prev) => {
                             const n = [...prev];
@@ -4177,12 +4246,12 @@ function EstimateReviewPanel({
                         onKeyDown={(e) => {
                           if (e.key === "Enter") (e.target as HTMLInputElement).blur();
                         }}
-                        className="w-24 text-right tabular-nums rounded border px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-24 text-right tabular-nums rounded border px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         style={{
-                          borderColor: editMode ? "#93C5FD" : "#D1D5DB",
-                          backgroundColor: editMode ? COLORS.surface : "#F9FAFB",
-                          color: editMode ? COLORS.text : COLORS.muted,
-                          cursor: editMode ? "text" : "not-allowed",
+                          borderColor: "#D1D5DB",
+                          backgroundColor: COLORS.surface,
+                          color: COLORS.text,
+                          cursor: "text",
                         }}
                       />
                     </div>
@@ -4491,36 +4560,7 @@ function EstimateReviewPanel({
         );
       })()}
 
-      {/* Estimate Sources */}
 
-      <div
-        className="shrink-0 rounded-md border px-3 py-2.5"
-        style={{ backgroundColor: "#FAFAFA", borderColor: COLORS.border }}
-      >
-        <Label>Estimate Sources</Label>
-        <ul className="mt-1.5 flex flex-col gap-1 text-xs" style={{ color: COLORS.text }}>
-          <li>
-            <span className="font-semibold">Mitchell RepairCenter</span>
-            <span style={{ color: COLORS.muted }}> — labor benchmarks</span>
-          </li>
-          <li>
-            <span className="font-semibold">CCC Intelligent Solutions</span>
-            <span style={{ color: COLORS.muted }}> — parts pricing</span>
-          </li>
-          <li>
-            <span className="font-semibold">OEM Repair Guidelines</span>
-            <span style={{ color: COLORS.muted }}> — repair procedures</span>
-          </li>
-        </ul>
-        <p className="text-[11px] mt-2 leading-snug" style={{ color: COLORS.muted }}>
-          Draft estimates combine repair labor references, parts pricing, and manufacturer repair guidance with regional adjustment factors.
-        </p>
-      </div>
-
-      {/* Disclaimer */}
-      <p className="shrink-0 text-[11px] leading-snug" style={{ color: COLORS.muted }}>
-        Draft estimates are generated using standardized repair references and require adjuster review before final authorization.
-      </p>
 
       {/* Override Summary */}
       {(() => {
@@ -4753,10 +4793,7 @@ function EstimateReviewPanel({
           toast.success("Estimate saved.");
         };
 
-        const handleEditToggle = () => {
-          if (editMode) syncDraftValues();
-          setEditMode((v) => !v);
-        };
+
 
         return (
           <>
@@ -4838,21 +4875,6 @@ function EstimateReviewPanel({
                     }}
                   >
                     {primaryLabel}
-                  </button>
-
-
-                  {/* SECONDARY: Edit / Save Edits */}
-                  <button
-                    type="button"
-                    onClick={handleEditToggle}
-                    className="rounded-md border px-3 py-2.5 text-sm font-semibold transition-colors"
-                    style={{
-                      borderColor: COLORS.blue,
-                      color: editMode ? "white" : COLORS.blue,
-                      backgroundColor: editMode ? COLORS.blue : "transparent",
-                    }}
-                  >
-                    {editMode ? "Save Edits" : "Edit Estimate"}
                   </button>
 
                   {/* TERTIARY: Save & Request Information */}
