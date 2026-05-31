@@ -2421,7 +2421,7 @@ function ReviewEstimateStep({
             statusText = "Pending Senior Authorization";
             statusBadge = AMBER;
           } else {
-            statusText = "Estimate Saved";
+            statusText = "Review Complete";
             statusBadge = GREEN;
           }
         } else if (actions.length > 0) {
@@ -4676,7 +4676,7 @@ function EstimateReviewPanel({
 
 
         const primaryLabel =
-          workflowMode === "SENIOR_AUTHORIZATION" ? "Submit for Senior Authorization" : "Save Estimate";
+          workflowMode === "SENIOR_AUTHORIZATION" ? "Submit for Senior Authorization" : "Complete Review";
 
         const _cf = claimForm;
         const _cv = _cf?.coverage;
@@ -4787,8 +4787,8 @@ function EstimateReviewPanel({
                     }}
                   >
                     {workflowMode === "SENIOR_AUTHORIZATION"
-                      ? "Submitted for Senior Authorization ✓"
-                      : "Estimate Saved ✓"}
+                      ? "Estimate Submitted ✓"
+                      : "Review Complete ✓"}
                   </span>
                 </div>
                 {workflowMode === "SENIOR_AUTHORIZATION" && (
