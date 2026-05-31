@@ -1479,7 +1479,7 @@ function InitiateClaimStep({
     const next: Partial<Record<keyof ClaimForm, string>> = {};
     if (!form.policyNumber.trim()) next.policyNumber = "Policy number is required.";
     if (!form.fullName.trim()) next.fullName = "Full name is required.";
-    if (!form.dateOfLoss) next.dateOfLoss = "Date of loss is required.";
+    if (!form.dateOfLoss) next.dateOfLoss = "Date of incident is required.";
     if (!form.incidentType) next.incidentType = "Select an incident type.";
     if (form.incidentType === "Other" && !form.incidentTypeOther.trim())
       next.incidentTypeOther = "Please describe the incident type.";
