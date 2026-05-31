@@ -2415,6 +2415,23 @@ function ReviewEstimateStep({
       infoRow("Claim Reference", claimRef);
       infoRow("Report Date", reportDate);
       infoRow("Prepared By", ADJUSTER_NAME);
+      const completedCount = computed.filter((r) => r.snap).length;
+      const inProgressCount = computed.filter((r) => !r.snap && r.hasAction).length;
+      infoRow("Report Type", "Live Session Report");
+      infoRow(
+        "Session Progress",
+        `${completedCount} of ${SCENARIOS.length} reviewed${inProgressCount ? ` · ${inProgressCount} in progress` : ""}`,
+      );
+      y += 4;
+      wrapped(
+        "This is a live session report reflecting the current state of work at the time of generation, including any scenarios not yet started.",
+        M,
+        W,
+        9,
+        "#6B7280",
+        false,
+      );
+
 
       // ===== CLAIMS SUMMARY TABLE =====
       sectionTitle("Claims Summary");
