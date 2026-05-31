@@ -2339,11 +2339,18 @@ function ReviewEstimateStep({
       next.set(snap.id, snap);
       return next;
     });
+    markHandled(snap.id);
     if (snap.status === "PENDING_SENIOR") {
       logAction(snap.id, alreadySaved ? "Re-submitted for Senior Authorization" : "Submitted for Senior Authorization");
     } else {
       logAction(snap.id, alreadySaved ? "Estimate resubmitted after edit" : "Estimate submitted");
     }
+  };
+  // Save Review Progress while awaiting requested information — counts as a
+  // valid action so the scenario is "handled" for Step 6 availability.
+  const handleSaveProgress = (id: string) => {
+    markHandled(id);
+    logAction(id, "Review progress saved (awaiting requested information)");
   };
   const handleUnlock = (id: string) => {
     const wasSenior = savedEstimates.get(id)?.status === "PENDING_SENIOR";
