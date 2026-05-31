@@ -2521,9 +2521,12 @@ function ReviewEstimateStep({
             statusText = "Pending Senior Authorization";
             statusBadge = AMBER;
           } else {
-            statusText = "Estimate Submitted";
+            statusText = "Review Complete";
             statusBadge = GREEN;
           }
+        } else if (awaitingInfoIds.has(s.id) && handledScenarios.has(s.id)) {
+          statusText = "Awaiting Information";
+          statusBadge = AMBER;
         } else if (actions.length > 0) {
           statusText = "In Progress";
           statusBadge = BLUE;
