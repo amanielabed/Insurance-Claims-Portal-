@@ -3917,6 +3917,9 @@ function EstimateReviewPanel({
   isSaved: boolean;
   onSave: (snapshot: SavedSnapshot) => void;
   onUnlock: () => void;
+  awaitingInfo: boolean;
+  onAwaitingInfo: () => void;
+  onClearAwaitingInfo: () => void;
 
   onInfoRequest?: () => void;
 
