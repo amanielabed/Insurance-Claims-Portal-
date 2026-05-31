@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { AlertTriangle, Check, CheckCircle, Clock, FileText } from "lucide-react";
 import claimSimpleImage from "@/assets/claim-simple.jpg";
 import claimComplexImage from "@/assets/claim-complex.jpg";
@@ -477,6 +477,23 @@ const STEPS = [
   "Final Resolution",
 ] as const;
 const SUBMISSION_STEPS = 3;
+
+// Readable labels for information-request items selected in the Request
+// Information modal. Used in both the individual scenario report and the
+// consolidated session report.
+const REQUEST_ITEM_LABELS: Record<string, string> = {
+  police_report: "Police report",
+  additional_photos: "Additional damage photos",
+  supporting_docs: "Supporting documentation",
+  customer_clarification: "Customer clarification",
+};
+
+type InformationRequest = {
+  items: string[];
+  message: string;
+  timestamp: string;
+};
+
 
 export interface UploadedPhoto {
   slotId: string;
@@ -1462,7 +1479,7 @@ function InitiateClaimStep({
     const next: Partial<Record<keyof ClaimForm, string>> = {};
     if (!form.policyNumber.trim()) next.policyNumber = "Policy number is required.";
     if (!form.fullName.trim()) next.fullName = "Full name is required.";
-    if (!form.dateOfLoss) next.dateOfLoss = "Date of loss is required.";
+    if (!form.dateOfLoss) next.dateOfLoss = "Date of incident is required.";
     if (!form.incidentType) next.incidentType = "Select an incident type.";
     if (form.incidentType === "Other" && !form.incidentTypeOther.trim())
       next.incidentTypeOther = "Please describe the incident type.";
@@ -1587,7 +1604,7 @@ function InitiateClaimStep({
               invalid={!!errors.fullName}
             />
           </Field>
-          <Field label="Date of Loss" required error={errors.dateOfLoss}>
+          <Field label="Date of Incident" required error={errors.dateOfLoss}>
             <TextInput
               type="date"
               value={form.dateOfLoss}
@@ -2251,6 +2268,14 @@ function ReviewEstimateStep({
     });
   const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>([]);
   const [isGeneratingFullReport, setIsGeneratingFullReport] = useState(false);
+  // Information request submitted via the Request Information modal (global to
+  // the session). Surfaced in the generated reports.
+  const [informationRequest, setInformationRequest] = useState<InformationRequest | null>(null);
+  // Compact summary bar "View Details" collapsible toggle.
+  const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
+  // Step 6 (Final Resolution / Session Complete) screen toggle.
+  const [showFinalReport, setShowFinalReport] = useState(false);
+  const [sessionReportDownloaded, setSessionReportDownloaded] = useState(false);
 
   // Per-scenario review state lifted from EstimateReviewPanel so unsaved work
   // (adjusted values, draft strings, notes, rationale overrides, activity log)
@@ -2329,10 +2354,11 @@ function ReviewEstimateStep({
 
   const allScenariosSaved = savedEstimates.size >= SCENARIOS.length;
 
-  // Notify parent when every scenario has reached its saved/submitted state
+  // Step 6 (Final Resolution) is only "active" once the adjuster explicitly
+  // proceeds to the final report screen — not merely when all scenarios saved.
   useEffect(() => {
-    onFinalize?.(allScenariosSaved);
-  }, [allScenariosSaved, onFinalize]);
+    onFinalize?.(showFinalReport);
+  }, [showFinalReport, onFinalize]);
 
   const generateFullReport = async () => {
     setIsGeneratingFullReport(true);
@@ -2738,6 +2764,35 @@ function ReviewEstimateStep({
         wrapped("Adjuster notes:", M, W, 9, "#111827", true);
         wrapped(r.snap?.notes?.trim() || "No notes entered", M, W, 9, "#374151");
 
+        // ===== INFORMATION REQUESTS ===== (after Adjuster Notes, before Verification Record)
+        y += 10;
+        wrapped("INFORMATION REQUESTS", M, W, 9, "#111827", true);
+        if (!informationRequest || informationRequest.items.length === 0) {
+          wrapped("No additional information requested.", M, W, 9, "#6B7280");
+        } else {
+          const reqSent = new Date(informationRequest.timestamp).toLocaleString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          wrapped(`Request sent: ${reqSent}`, M, W, 9, "#374151");
+          wrapped("Items requested:", M, W, 9, "#374151", true);
+          informationRequest.items.forEach((it) =>
+            wrapped(`• ${REQUEST_ITEM_LABELS[it] ?? it}`, M, W, 9, "#374151"),
+          );
+          if (informationRequest.message.trim()) {
+            wrapped(
+              `Message to policyholder: "${informationRequest.message.trim()}"`,
+              M,
+              W,
+              9,
+              "#374151",
+            );
+          }
+        }
+
         if (r.snap && r.snap.overrides.length > 0) {
           y += 8;
           wrapped("Adjuster Overrides", M, W, 9, "#111827", true);
@@ -2912,6 +2967,100 @@ function ReviewEstimateStep({
         deductible: currentScenario.deductibleValue,
       }
     : null;
+
+  // ===== STEP 6 — Final Resolution / Session Complete =====
+  if (showFinalReport) {
+    const step6Rows = [
+      { name: "Fast-Track Approval", id: "2026-001" },
+      { name: "Verification Required", id: "2026-002" },
+      { name: "Senior Authorization", id: "2026-003" },
+    ].map((row) => {
+      const snap = savedEstimates.get(row.id);
+      const pending = snap?.status === "PENDING_SENIOR";
+      return {
+        name: row.name,
+        statusLabel: pending ? "Pending Senior Authorization" : "Review Complete",
+        pending,
+      };
+    });
+    return (
+      <div
+        className="flex flex-col flex-1 min-h-0 overflow-auto"
+        style={{ backgroundColor: COLORS.bg, color: COLORS.text }}
+      >
+        <div className="mx-auto w-full max-w-2xl px-6 py-12 animate-fade-in">
+          <div className="flex items-center gap-2 mb-1">
+            <CheckCircle size={22} style={{ color: "#16A34A" }} />
+            <h1 className="text-2xl font-semibold tracking-tight">Session Complete</h1>
+          </div>
+          <p className="text-sm" style={{ color: COLORS.muted }}>
+            All delegation states reviewed for Claim #{claimRef}
+          </p>
+
+          <div
+            className="mt-8 rounded-xl border overflow-hidden"
+            style={{ borderColor: COLORS.border, backgroundColor: COLORS.surface }}
+          >
+            <div
+              className="grid grid-cols-2 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider"
+              style={{ backgroundColor: "#F9FAFB", color: COLORS.muted, borderBottom: `1px solid ${COLORS.border}` }}
+            >
+              <span>Scenario</span>
+              <span>Status</span>
+            </div>
+            {step6Rows.map((row) => (
+              <div
+                key={row.name}
+                className="grid grid-cols-2 items-center px-4 py-3 text-sm border-b last:border-b-0"
+                style={{ borderColor: COLORS.border }}
+              >
+                <span className="font-medium" style={{ color: COLORS.text }}>{row.name}</span>
+                <span>
+                  <span
+                    className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold"
+                    style={
+                      row.pending
+                        ? { backgroundColor: COLORS.amberBg, color: COLORS.amberText }
+                        : { backgroundColor: "#DCFCE7", color: "#15803D" }
+                    }
+                  >
+                    {row.statusLabel}
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-4 text-sm font-medium" style={{ color: COLORS.text }}>
+            Total scenarios reviewed: 3 of 3
+          </p>
+
+          <div className="mt-8">
+            <button
+              type="button"
+              disabled={isGeneratingFullReport}
+              onClick={async () => {
+                await generateFullReport();
+                setSessionReportDownloaded(true);
+              }}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold text-white transition-colors disabled:opacity-60"
+              style={{ backgroundColor: COLORS.blue }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
+            >
+              <FileText size={16} />
+              {isGeneratingFullReport ? "Generating…" : "Generate Full Session Report"}
+            </button>
+            {sessionReportDownloaded && (
+              <p className="mt-2 text-xs font-medium" style={{ color: "#15803D" }}>
+                Report downloaded. Session complete.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -3123,66 +3272,73 @@ function ReviewEstimateStep({
         )}
       </div>
 
-      {/* Vehicle & Policy Information */}
-      {effectiveClaimForm && (
-        <div className="px-4 pt-4">
-          <Card className="border" style={{ borderColor: COLORS.border }}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold" style={{ color: COLORS.text }}>
-                Vehicle & Policy Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                <div className="flex gap-2">
-                  <span className="font-medium" style={{ color: COLORS.muted }}>Vehicle:</span>
-                  <span style={{ color: COLORS.text }}>
-                    {effectiveClaimForm.year} {effectiveClaimForm.make} {effectiveClaimForm.model}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="font-medium" style={{ color: COLORS.muted }}>VIN:</span>
-                  <span className="tabular-nums" style={{ color: COLORS.text }}>{effectiveClaimForm.vin}</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="font-medium" style={{ color: COLORS.muted }}>Policy Number:</span>
-                  <span className="tabular-nums" style={{ color: COLORS.text }}>{effectiveClaimForm.policyNumber}</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="font-medium" style={{ color: COLORS.muted }}>Coverage Type:</span>
-                  <span style={{ color: COLORS.text }}>{currentScenario.coverageLabel}</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="font-medium" style={{ color: COLORS.muted }}>Deductible:</span>
-                  <span style={{ color: COLORS.text }}>{currentScenario.deductibleLabel}</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="font-medium" style={{ color: COLORS.muted }}>Date of Loss:</span>
-                  <span style={{ color: COLORS.text }}>
-                    {effectiveClaimForm.dateOfLoss
-                      ? new Date(effectiveClaimForm.dateOfLoss + "T00:00:00").toLocaleDateString("en-GB", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })
-                      : "—"}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="font-medium" style={{ color: COLORS.muted }}>Incident Type:</span>
-                  <span style={{ color: COLORS.text }}>
-                    {effectiveClaimForm.incidentType === "other"
-                      ? effectiveClaimForm.incidentTypeOther || "Other"
-                      : effectiveClaimForm.incidentType
-                        ? effectiveClaimForm.incidentType.charAt(0).toUpperCase() + effectiveClaimForm.incidentType.slice(1)
-                        : "—"}
-                  </span>
-                </div>
+      {/* Compact Vehicle & Policy summary bar */}
+      {effectiveClaimForm && (() => {
+        const vehicleStr = [effectiveClaimForm.year, effectiveClaimForm.make, effectiveClaimForm.model]
+          .filter(Boolean)
+          .join(" ") || "—";
+        const dateStr = effectiveClaimForm.dateOfLoss
+          ? new Date(effectiveClaimForm.dateOfLoss + "T00:00:00").toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })
+          : "—";
+        const incidentStr =
+          effectiveClaimForm.incidentType === "other"
+            ? effectiveClaimForm.incidentTypeOther || "Other"
+            : effectiveClaimForm.incidentType
+              ? effectiveClaimForm.incidentType.charAt(0).toUpperCase() + effectiveClaimForm.incidentType.slice(1)
+              : "—";
+        const Item = ({ label, value }: { label: string; value: string }) => (
+          <span className="whitespace-nowrap">
+            <span className="font-medium">{label}:</span> <span style={{ color: COLORS.text }}>{value}</span>
+          </span>
+        );
+        return (
+          <div className="border-b shrink-0" style={{ borderColor: COLORS.border }}>
+            <div
+              className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 text-xs"
+              style={{ backgroundColor: "#F9FAFB", color: COLORS.muted }}
+            >
+              <Item label="Vehicle" value={vehicleStr} />
+              <span style={{ color: COLORS.border }}>|</span>
+              <Item label="Policy" value={effectiveClaimForm.policyNumber || "—"} />
+              <span style={{ color: COLORS.border }}>|</span>
+              <Item label="Coverage" value={currentScenario.coverageLabel} />
+              <span style={{ color: COLORS.border }}>|</span>
+              <Item label="Deductible" value={currentScenario.deductibleLabel} />
+              <span style={{ color: COLORS.border }}>|</span>
+              <Item label="Incident" value={incidentStr} />
+              <span style={{ color: COLORS.border }}>|</span>
+              <Item label="Date of Incident" value={dateStr} />
+              <button
+                type="button"
+                onClick={() => setViewDetailsOpen((v) => !v)}
+                className="ml-auto font-medium hover:underline"
+                style={{ color: COLORS.blue }}
+              >
+                {viewDetailsOpen ? "Hide Details" : "View Details"}
+              </button>
+            </div>
+            {viewDetailsOpen && (
+              <div
+                className="grid grid-cols-2 gap-x-8 gap-y-2 px-4 pb-3 pt-1 text-xs animate-fade-in"
+                style={{ backgroundColor: "#F9FAFB", color: COLORS.muted }}
+              >
+                <Item label="Vehicle" value={vehicleStr} />
+                <Item label="VIN" value={effectiveClaimForm.vin || "—"} />
+                <Item label="Policy Number" value={effectiveClaimForm.policyNumber || "—"} />
+                <Item label="Coverage Type" value={currentScenario.coverageLabel} />
+                <Item label="Deductible" value={currentScenario.deductibleLabel} />
+                <Item label="Incident Type" value={incidentStr} />
+                <Item label="Date of Incident" value={dateStr} />
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+            )}
+          </div>
+        );
+      })()}
+
 
       <main
         key={claim.id}
@@ -3232,6 +3388,7 @@ function ReviewEstimateStep({
             awaitingInfo={awaitingInfoIds.has(claim.id)}
             onAwaitingInfo={() => markAwaitingInfo(claim.id)}
             onClearAwaitingInfo={() => clearAwaitingInfo(claim.id)}
+            onInformationRequest={(req) => setInformationRequest(req)}
             adjusted={currentReview.adjusted}
             setAdjusted={(v) => updateScenarioReviewField(claim.id, "adjusted", v)}
             drafts={currentReview.drafts}
@@ -3247,6 +3404,23 @@ function ReviewEstimateStep({
           />
         </Panel>
       </main>
+
+      {/* Proceed to Final Report — shown once all three scenarios are saved/submitted */}
+      {allScenariosSaved && (
+        <div className="px-4 pb-4 shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowFinalReport(true)}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold text-white transition-colors"
+            style={{ backgroundColor: COLORS.blue }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
+          >
+            Proceed to Final Report
+          </button>
+        </div>
+      )}
+
 
       <DemoGuide />
     </div>
@@ -3950,7 +4124,7 @@ function EstimateReviewPanel({
   onAwaitingInfo,
   onClearAwaitingInfo,
 
-  onInfoRequest,
+  onInformationRequest,
 
 
   adjusted,
@@ -3983,7 +4157,7 @@ function EstimateReviewPanel({
   onAwaitingInfo: () => void;
   onClearAwaitingInfo: () => void;
 
-  onInfoRequest?: () => void;
+  onInformationRequest: (req: InformationRequest) => void;
 
   adjusted: number[];
   setAdjusted: Dispatch<SetStateAction<number[]>>;
@@ -5252,12 +5426,21 @@ function EstimateReviewPanel({
                     type="button"
                     onClick={() => {
                       const hasRequest = anyRequestItemSelected;
+                      const selectedItems = (Object.keys(requestItems) as (keyof typeof requestItems)[]).filter(
+                        (k) => requestItems[k],
+                      );
+                      const message = requestMessage;
                       setRequestInfoOpen(false);
                       resetRequestInfo();
                       if (hasRequest) {
                         // Distinct path: an active information request puts the
                         // claim into the "Awaiting Information" state.
                         onAwaitingInfo();
+                        onInformationRequest({
+                          items: selectedItems,
+                          message,
+                          timestamp: new Date().toISOString(),
+                        });
                         toast.success(
                           "Review progress saved. Claim is awaiting requested information.",
                         );
