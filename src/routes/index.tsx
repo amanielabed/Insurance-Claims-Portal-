@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import claimSimpleImage from "@/assets/claim-simple.jpg";
+import { AlertTriangle, Check, CheckCircle, Clock, FileText } from "lucide-react";
 import claimComplexImage from "@/assets/claim-complex.jpg";
 
 
