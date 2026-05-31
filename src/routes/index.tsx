@@ -2968,6 +2968,100 @@ function ReviewEstimateStep({
       }
     : null;
 
+  // ===== STEP 6 — Final Resolution / Session Complete =====
+  if (showFinalReport) {
+    const step6Rows = [
+      { name: "Fast-Track Approval", id: "2026-001" },
+      { name: "Verification Required", id: "2026-002" },
+      { name: "Senior Authorization", id: "2026-003" },
+    ].map((row) => {
+      const snap = savedEstimates.get(row.id);
+      const pending = snap?.status === "PENDING_SENIOR";
+      return {
+        name: row.name,
+        statusLabel: pending ? "Pending Senior Authorization" : "Review Complete",
+        pending,
+      };
+    });
+    return (
+      <div
+        className="flex flex-col flex-1 min-h-0 overflow-auto"
+        style={{ backgroundColor: COLORS.bg, color: COLORS.text }}
+      >
+        <div className="mx-auto w-full max-w-2xl px-6 py-12 animate-fade-in">
+          <div className="flex items-center gap-2 mb-1">
+            <CheckCircle size={22} style={{ color: "#16A34A" }} />
+            <h1 className="text-2xl font-semibold tracking-tight">Session Complete</h1>
+          </div>
+          <p className="text-sm" style={{ color: COLORS.muted }}>
+            All delegation states reviewed for Claim #{claimRef}
+          </p>
+
+          <div
+            className="mt-8 rounded-xl border overflow-hidden"
+            style={{ borderColor: COLORS.border, backgroundColor: COLORS.surface }}
+          >
+            <div
+              className="grid grid-cols-2 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider"
+              style={{ backgroundColor: "#F9FAFB", color: COLORS.muted, borderBottom: `1px solid ${COLORS.border}` }}
+            >
+              <span>Scenario</span>
+              <span>Status</span>
+            </div>
+            {step6Rows.map((row) => (
+              <div
+                key={row.name}
+                className="grid grid-cols-2 items-center px-4 py-3 text-sm border-b last:border-b-0"
+                style={{ borderColor: COLORS.border }}
+              >
+                <span className="font-medium" style={{ color: COLORS.text }}>{row.name}</span>
+                <span>
+                  <span
+                    className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold"
+                    style={
+                      row.pending
+                        ? { backgroundColor: COLORS.amberBg, color: COLORS.amberText }
+                        : { backgroundColor: "#DCFCE7", color: "#15803D" }
+                    }
+                  >
+                    {row.statusLabel}
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-4 text-sm font-medium" style={{ color: COLORS.text }}>
+            Total scenarios reviewed: 3 of 3
+          </p>
+
+          <div className="mt-8">
+            <button
+              type="button"
+              disabled={isGeneratingFullReport}
+              onClick={async () => {
+                await generateFullReport();
+                setSessionReportDownloaded(true);
+              }}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold text-white transition-colors disabled:opacity-60"
+              style={{ backgroundColor: COLORS.blue }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
+            >
+              <FileText size={16} />
+              {isGeneratingFullReport ? "Generating…" : "Generate Full Session Report"}
+            </button>
+            {sessionReportDownloaded && (
+              <p className="mt-2 text-xs font-medium" style={{ color: "#15803D" }}>
+                Report downloaded. Session complete.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="flex flex-col flex-1 min-h-0"
