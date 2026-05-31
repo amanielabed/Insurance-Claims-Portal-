@@ -2725,20 +2725,20 @@ function ReviewEstimateStep({
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {allScenariosSaved && (
-            <button
-              type="button"
-              disabled={isGeneratingFullReport}
-              onClick={generateFullReport}
-              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold text-white transition-colors disabled:opacity-60"
-              style={{ backgroundColor: COLORS.blue }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
-            >
-              <FileText size={13} />
-              {isGeneratingFullReport ? "Generating…" : "Generate Full Report"}
-            </button>
-          )}
+          <button
+            type="button"
+            disabled={isGeneratingFullReport}
+            onClick={generateFullReport}
+            title="Generate a live session report reflecting current progress"
+            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold text-white transition-colors disabled:opacity-60"
+            style={{ backgroundColor: COLORS.blue }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
+          >
+            <FileText size={13} />
+            {isGeneratingFullReport ? "Generating…" : "Generate Full Report"}
+          </button>
+
           <label className="text-xs font-medium" style={{ color: COLORS.muted }}>
             Demo Claim
           </label>
