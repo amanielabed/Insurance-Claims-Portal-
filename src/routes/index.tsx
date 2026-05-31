@@ -3405,6 +3405,23 @@ function ReviewEstimateStep({
         </Panel>
       </main>
 
+      {/* Proceed to Final Report — shown once all three scenarios are saved/submitted */}
+      {allScenariosSaved && (
+        <div className="px-4 pb-4 shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowFinalReport(true)}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold text-white transition-colors"
+            style={{ backgroundColor: COLORS.blue }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
+          >
+            Proceed to Final Report
+          </button>
+        </div>
+      )}
+
+
       <DemoGuide />
     </div>
   );
