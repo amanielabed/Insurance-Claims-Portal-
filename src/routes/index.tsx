@@ -2066,7 +2066,7 @@ function EligibilityCheck({
                     Coverage Type
                   </div>
                   <div className="text-sm font-medium" style={{ color: COLORS.text }}>
-                    Comprehensive
+                    Full Coverage
                   </div>
                 </div>
                 {fault === "policyholder" ? (
