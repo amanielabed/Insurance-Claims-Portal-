@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { AlertTriangle, Check, CheckCircle, Clock, FileText, ChevronRight, Lock } from "lucide-react";
+import { AlertTriangle, Check, CheckCircle, Clock, FileText } from "lucide-react";
 import claimSimpleImage from "@/assets/claim-simple.jpg";
 import claimComplexImage from "@/assets/claim-complex.jpg";
 
@@ -2145,12 +2145,6 @@ function TextInput({
 
 const ADJUSTER_NAME = "Claims Agent";
 
-type AuthorizationDetails = {
-  amount: number;
-  deductibleAmount: number;
-  hasDeductible: boolean;
-  authorizedAt: number;
-};
 
 function ReviewEstimateStep({
   claimForm,
@@ -2697,19 +2691,18 @@ function ReviewEstimateStep({
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {allScenariosReviewed && (
+          {allScenariosSaved && (
             <button
               type="button"
-              onClick={() =>
-                toast.success("Session summary generated for all three delegation scenarios.")
-              }
-              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold text-white transition-colors"
+              disabled={isGeneratingFullReport}
+              onClick={generateFullReport}
+              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold text-white transition-colors disabled:opacity-60"
               style={{ backgroundColor: COLORS.blue }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
             >
               <FileText size={13} />
-              Generate Session Summary
+              {isGeneratingFullReport ? "Generating…" : "Generate Full Report"}
             </button>
           )}
           <label className="text-xs font-medium" style={{ color: COLORS.muted }}>
@@ -2830,39 +2823,9 @@ function ReviewEstimateStep({
         )}
       </div>
 
-      {(authorization || seniorPending) && !viewingSubmitted && (
-        <div className="flex-1 min-h-0 overflow-auto p-6 animate-fade-in">
-          {authorization ? (
-            <ClaimAuthorizedScreen
-              claimRef={claimRef}
-              claimForm={effectiveClaimForm}
-              authorization={authorization}
-              adjusterName={ADJUSTER_NAME}
-              onDownload={() => generateReportRef.current?.(true)}
-              onContinueReviewing={continueReviewing}
-            />
-          ) : (
-            <EstimateSubmittedScreen
-              claimRef={claimRef}
-              claimForm={effectiveClaimForm}
-              amount={seniorPending!.amount}
-              submittedAt={seniorPending!.submittedAt}
-              onDownload={() => generateReportRef.current?.(false)}
-              onContinueReviewing={continueReviewing}
-            />
-          )}
-        </div>
-      )}
-
-
       <main
         key={claim.id}
         className="flex-1 min-h-0 grid grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(420px,1.35fr)] gap-4 p-4 animate-fade-in"
-        style={
-          (authorization || seniorPending) && !viewingSubmitted
-            ? { display: "none" }
-            : undefined
-        }
       >
         {/* Damage Photo */}
         <Panel title="Damage Photo">
@@ -2902,12 +2865,9 @@ function ReviewEstimateStep({
             }
             concernsDismissed={concernsDismissed}
             hasConcerns={(claim.verificationConcerns?.length ?? 0) > 0}
-            authorization={authorization}
-            seniorPending={seniorPending !== null}
-            onAuthorize={(details) => setAuthorization(details)}
-            onSeniorSubmit={(amount) => setSeniorPending({ amount, submittedAt: Date.now() })}
-            generateReportRef={generateReportRef}
-            readOnly={viewingSubmitted}
+            isSaved={savedEstimates.has(claim.id)}
+            onSave={handleSave}
+            onUnlock={() => handleUnlock(claim.id)}
           />
         </Panel>
       </main>
@@ -2917,220 +2877,6 @@ function ReviewEstimateStep({
   );
 }
 
-function ResolutionRow({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <div
-      className="flex items-start justify-between gap-4 py-2.5 border-b"
-      style={{ borderColor: COLORS.border }}
-    >
-      <span className="text-sm" style={{ color: COLORS.muted }}>{label}</span>
-      <span
-        className={`text-sm font-medium text-right ${mono ? "tabular-nums" : ""}`}
-        style={{ color: COLORS.text }}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function ResolutionActions({
-  onContinueReviewing,
-  onDownload,
-  downloadLabel,
-}: {
-  onContinueReviewing: () => void;
-  onDownload: () => void;
-  downloadLabel: string;
-}) {
-  return (
-    <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-      <button
-        type="button"
-        onClick={onContinueReviewing}
-        className="rounded-md px-4 py-2 text-sm font-semibold text-white"
-        style={{ backgroundColor: COLORS.blue }}
-        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
-        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
-      >
-        Continue Reviewing Claim Details
-      </button>
-      <button
-        type="button"
-        onClick={onDownload}
-        className="inline-flex items-center gap-1.5 rounded-md border px-4 py-2 text-sm font-medium"
-        style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: "white" }}
-      >
-        <FileText size={14} />
-        {downloadLabel}
-      </button>
-    </div>
-  );
-}
-
-function ClaimAuthorizedScreen({
-  claimRef,
-  claimForm,
-  authorization,
-  adjusterName,
-  onDownload,
-  onContinueReviewing,
-}: {
-  claimRef: string;
-  claimForm: ClaimForm | null;
-  authorization: AuthorizationDetails;
-  adjusterName: string;
-  onDownload: () => void;
-  onContinueReviewing: () => void;
-}) {
-  const vehicle =
-    [claimForm?.year, claimForm?.make, claimForm?.model].filter(Boolean).join(" ").trim() || "—";
-  const policyholder = claimForm?.fullName?.trim() || "—";
-  const dateLabel = new Date(authorization.authorizedAt).toLocaleString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  return (
-    <div className="max-w-2xl mx-auto">
-      <div
-        className="rounded-lg border p-8"
-        style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
-      >
-        <div className="flex flex-col items-center text-center">
-          <CheckCircle size={40} strokeWidth={1.5} style={{ color: COLORS.green }} />
-          <h2 className="mt-4 text-xl font-semibold" style={{ color: COLORS.text }}>
-            Estimate Saved
-          </h2>
-          <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>
-            Estimate progress saved for Claim #{claimRef}
-          </p>
-          <div
-            className="mt-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
-            style={{ backgroundColor: COLORS.greenBg, color: COLORS.greenText }}
-          >
-            <span
-              className="inline-block w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: COLORS.green }}
-            />
-            Saved
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <ResolutionRow label="Policyholder" value={policyholder} />
-          <ResolutionRow label="Vehicle" value={vehicle} />
-          <ResolutionRow label="Estimate Amount" value={fmtCurrency(authorization.amount)} mono />
-          <ResolutionRow
-            label="Deductible"
-            value={
-              authorization.hasDeductible
-                ? fmtCurrency(authorization.deductibleAmount)
-                : "N/A"
-            }
-            mono
-          />
-          <ResolutionRow label="Saved On" value={dateLabel} />
-          <ResolutionRow label="Saved By" value={adjusterName} />
-        </div>
-      </div>
-
-      <ResolutionActions
-        onContinueReviewing={onContinueReviewing}
-        onDownload={onDownload}
-        downloadLabel="Download Report"
-      />
-    </div>
-  );
-}
-
-function EstimateSubmittedScreen({
-  claimRef,
-  claimForm,
-  amount,
-  submittedAt,
-  onDownload,
-  onContinueReviewing,
-}: {
-  claimRef: string;
-  claimForm: ClaimForm | null;
-  amount: number;
-  submittedAt: number;
-  onDownload: () => void;
-  onContinueReviewing: () => void;
-}) {
-  const vehicle =
-    [claimForm?.year, claimForm?.make, claimForm?.model].filter(Boolean).join(" ").trim() || "—";
-  const policyholder = claimForm?.fullName?.trim() || "—";
-  const dateLabel = new Date(submittedAt).toLocaleString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  return (
-    <div className="max-w-2xl mx-auto">
-      <div
-        className="rounded-lg border p-8"
-        style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
-      >
-        <div className="flex flex-col items-center text-center">
-          <Clock size={40} strokeWidth={1.5} style={{ color: COLORS.amber }} />
-          <h2 className="mt-4 text-xl font-semibold" style={{ color: COLORS.text }}>
-            Estimate Submitted
-          </h2>
-          <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>
-            Claim #{claimRef} · {vehicle}
-          </p>
-          <div
-            className="mt-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
-            style={{ backgroundColor: COLORS.amberBg, color: COLORS.amberText }}
-          >
-            <span
-              className="inline-block w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: COLORS.amber }}
-            />
-            Pending Senior Authorization
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <ResolutionRow label="Policyholder" value={policyholder} />
-          <ResolutionRow label="Policy" value={claimForm?.policyNumber?.trim() || "—"} mono />
-          <ResolutionRow label="Submitted Amount" value={fmtCurrency(amount)} mono />
-          <ResolutionRow label="Deductible" value="N/A" mono />
-          <ResolutionRow label="Submitted" value={dateLabel} />
-        </div>
-
-        <p
-          className="mt-5 text-sm leading-relaxed text-center"
-          style={{ color: COLORS.muted }}
-        >
-          A senior adjuster will review and issue final repair authorization.
-        </p>
-      </div>
-
-      <ResolutionActions
-        onContinueReviewing={onContinueReviewing}
-        onDownload={onDownload}
-        downloadLabel="Download Report"
-      />
-    </div>
-  );
-}
 
 
 
@@ -3761,13 +3507,10 @@ function EstimateReviewPanel({
   onHighlight,
   concernsDismissed,
   hasConcerns,
-  authorization,
-  seniorPending,
-  onAuthorize,
-  onSeniorSubmit,
-  generateReportRef,
-  readOnly = false,
-  
+  isSaved,
+  onSave,
+  onUnlock,
+
   onInfoRequest,
 }: {
   claim: Claim;
@@ -3782,13 +3525,10 @@ function EstimateReviewPanel({
   onHighlight: (partIndex: number) => void;
   concernsDismissed: boolean;
   hasConcerns: boolean;
-  authorization: AuthorizationDetails | null;
-  seniorPending: boolean;
-  onAuthorize: (details: AuthorizationDetails) => void;
-  onSeniorSubmit: (amount: number) => void;
-  generateReportRef: React.MutableRefObject<((forAuthorization?: boolean) => Promise<void>) | null>;
-  readOnly?: boolean;
-  
+  isSaved: boolean;
+  onSave: (snapshot: SavedSnapshot) => void;
+  onUnlock: () => void;
+
   onInfoRequest?: () => void;
 }) {
   const [adjusted, setAdjusted] = useState<number[]>(() =>
@@ -3832,13 +3572,10 @@ function EstimateReviewPanel({
   const [pendingPrimaryMode, setPendingPrimaryMode] = useState<
     "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION" | null
   >(null);
-  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [editMode, setEditMode] = useState(false);
   useEffect(() => {
-    if (readOnly) setEditMode(false);
-  }, [readOnly]);
-  const seniorSubmitted = seniorPending;
-  const isAuthorized = authorization !== null;
+    if (isSaved) setEditMode(false);
+  }, [isSaved]);
 
   // Request Information modal state
   const [requestInfoOpen, setRequestInfoOpen] = useState(false);
@@ -3982,939 +3719,8 @@ function EstimateReviewPanel({
   };
 
 
-  const generateReport = async (forAuthorization: boolean = isAuthorized) => {
-    const reportAdjusted = syncDraftValues();
-    const reportTotal = reportAdjusted.reduce((s, n) => s + (isFinite(n) ? n : 0), 0);
-    const fileName = `${claimRef}_Estimate_Report.pdf`;
-
-    const workflowState: "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION" =
-      seniorReview || claim.delegationState === "SENIOR_AUTHORIZATION"
-        ? "SENIOR_AUTHORIZATION"
-        : claim.delegationState;
-    const stateLabel = {
-      FAST_TRACK: "Fast-Track",
-      VERIFICATION_RECOMMENDED: "Verification Recommended",
-      SENIOR_AUTHORIZATION: "Senior Authorization",
-    }[workflowState];
-    const stateBadge = {
-      FAST_TRACK: { bg: "#DCFCE7", fg: "#15803D" },
-      VERIFICATION_RECOMMENDED: { bg: "#FEF3C7", fg: "#B45309" },
-      SENIOR_AUTHORIZATION: { bg: "#FEE2E2", fg: "#B91C1C" },
-    }[workflowState];
-
-    setIsGeneratingReport(true);
-    const tid = toast.loading("Generating claim summary report…");
-
-    try {
-      const { jsPDF } = await import("jspdf");
-      const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const M = 40;
-      const W = pageW - M * 2;
-      let y = M;
-
-      const need = (h: number) => {
-        if (y + h > pageH - M - 30) {
-          pdf.addPage();
-          y = M;
-        }
-      };
-      const formatLossDate = (s: string | undefined): string => {
-        if (!s || !s.trim()) return "—";
-        const d = new Date(s);
-        if (isNaN(d.getTime())) return s;
-        return d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-      };
-      const setText = (size: number, color = "#111827", bold = false, italic = false) => {
-        const style = bold ? (italic ? "bolditalic" : "bold") : italic ? "italic" : "normal";
-        pdf.setFont("helvetica", style);
-        pdf.setFontSize(size);
-        pdf.setTextColor(color);
-      };
-      const wrapped = (
-        t: string,
-        x: number,
-        maxW: number,
-        size = 13,
-        color = "#374151",
-        bold = false,
-        italic = false,
-      ) => {
-        setText(size, color, bold, italic);
-        const lh = size * 1.35;
-        const lines = pdf.splitTextToSize(t, maxW) as string[];
-        lines.forEach((ln) => {
-          need(lh);
-          pdf.text(ln, x, y + size);
-          y += lh;
-        });
-      };
-      const sectionLabel = (label: string) => {
-        need(34);
-        y += 16;
-        setText(11, "#111827", true);
-        pdf.text(label.toUpperCase(), M, y + 8);
-        y += 18;
-      };
-      const drawBadge = (
-        text: string,
-        x: number,
-        yCenter: number,
-        bg: string,
-        fg: string,
-        border?: string,
-      ) => {
-        setText(11, fg, true);
-        const tw = pdf.getTextWidth(text);
-        const bw = tw + 12;
-        const bh = 16;
-        const by = yCenter - bh / 2;
-        pdf.setFillColor(bg);
-        if (border) {
-          pdf.setDrawColor(border);
-          pdf.setLineWidth(0.5);
-          pdf.roundedRect(x, by, bw, bh, 3, 3, "FD");
-        } else {
-          pdf.roundedRect(x, by, bw, bh, 3, 3, "F");
-        }
-        pdf.setTextColor(fg);
-        pdf.text(text, x + 6, by + 11);
-        return bw;
-      };
-      const dateStr = new Date().toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-
-      // ===== HEADER =====
-      setText(18, "#111827");
-      // weight 500 ~ normal
-      pdf.text("Claim Assessment Report", M, y + 14);
-      // right badge
-      setText(11, stateBadge.fg, true);
-      const btw = pdf.getTextWidth(stateLabel);
-      const bbw = btw + 18;
-      pdf.setFillColor(stateBadge.bg);
-      pdf.roundedRect(pageW - M - bbw, y + 2, bbw, 20, 4, 4, "F");
-      pdf.setTextColor(stateBadge.fg);
-      pdf.text(stateLabel, pageW - M - bbw + 9, y + 16);
-      y += 26;
-      setText(13, "#6B7280");
-      pdf.text(`Claim #${claimRef} · ${claim.type} · ${dateStr}`, M, y + 10);
-      y += 22;
-      pdf.setDrawColor("#111827");
-      pdf.setLineWidth(1.5);
-      pdf.line(M, y, pageW - M, y);
-      y += 4;
-
-      // ===== SECTION 1 — REVIEW SUMMARY =====
-      sectionLabel("Review Summary");
-      const cardGap = 8;
-      const cardW = (W - 4 * cardGap) / 5;
-      const cardH = 60;
-      const cf2 = claimForm;
-      const dedEntered = cf2?.deductible?.trim();
-      const deductibleValue =
-        cf2?.fault === "policyholder"
-          ? (dedEntered ? `$${dedEntered}` : "N/A")
-          : cf2?.fault === "other"
-            ? "N/A"
-            : "—";
-
-      const stats = [
-        { label: "Review type", value: stateLabel, color: "#111827" },
-        {
-          label: "Assessment confidence",
-          value: claim.reviewConfidence,
-          color: claim.reviewConfidence === "Low" ? "#B45309" : "#111827",
-        },
-        {
-          label: "Risk level",
-          value: claim.riskLevel.charAt(0) + claim.riskLevel.slice(1).toLowerCase(),
-          color: claim.riskLevel === "HIGH" ? "#B91C1C" : "#111827",
-        },
-        { label: "Draft total", value: fmtCurrency(draftTotal), color: "#111827" },
-        { label: "Deductible", value: deductibleValue, color: "#111827" },
-      ];
-      need(cardH + 8);
-      stats.forEach((s, i) => {
-        const x = M + i * (cardW + cardGap);
-        pdf.setFillColor("#F3F4F6");
-        pdf.roundedRect(x, y, cardW, cardH, 4, 4, "F");
-        setText(10, "#6B7280", false);
-        pdf.text(s.label.toUpperCase(), x + 10, y + 18);
-        setText(13, s.color, true);
-        pdf.text(s.value, x + 10, y + 44);
-      });
-      y += cardH + 12;
-
-
-      if (workflowState === "SENIOR_AUTHORIZATION") {
-        const alertH = 52;
-        need(alertH + 8);
-        pdf.setFillColor("#FEF2F2");
-        pdf.rect(M, y, W, alertH, "F");
-        pdf.setFillColor("#DC2626");
-        pdf.rect(M, y, 3, alertH, "F");
-        setText(13, "#991B1B", true);
-        pdf.text("Senior authorization required", M + 14, y + 18);
-        setText(11, "#7F1D1D");
-        const msg =
-          "This claim must be reviewed and signed off by a senior adjuster before any repair authorization can be issued.";
-        const lines = pdf.splitTextToSize(msg, W - 28) as string[];
-        lines.forEach((ln, idx) => pdf.text(ln, M + 14, y + 32 + idx * 12));
-        y += alertH + 12;
-      }
-
-      // ===== SECTION 2 — POLICYHOLDER & VEHICLE =====
-      sectionLabel("Policyholder & Vehicle");
-      const cf = claimForm;
-      const labelX = M;
-      const valX = M + 180;
-      const infoRows: [string, string][] = [
-        ["Policyholder name", cf?.fullName?.trim() || "—"],
-        ["Policy number", cf?.policyNumber?.trim() || "—"],
-        [
-          "Vehicle",
-          cf ? [cf.year, cf.make, cf.model].filter(Boolean).join(" ").trim() || "—" : "—",
-        ],
-        [
-          "Incident type",
-          cf
-            ? (cf.incidentType === "Other" ? cf.incidentTypeOther : cf.incidentType) ||
-              claim.type
-            : claim.type,
-        ],
-        ["Date of loss", formatLossDate(cf?.dateOfLoss)],
-      ];
-      infoRows.forEach(([label, val]) => {
-        need(24);
-        setText(11, "#6B7280");
-        pdf.text(label, labelX, y + 14);
-        setText(13, "#111827");
-        pdf.text(val, valX, y + 14);
-        y += 22;
-        pdf.setDrawColor("#F3F4F6");
-        pdf.setLineWidth(0.5);
-        pdf.line(M, y, pageW - M, y);
-      });
-      // ===== SECTION — UPLOADED DAMAGE PHOTOS =====
-      sectionLabel("Uploaded Damage Photos");
-
-      // Load uploaded photo blob URLs into data URLs for embedding
-      const toDataUrl = (url: string): Promise<{ data: string; w: number; h: number } | null> =>
-        new Promise((resolve) => {
-          const img = new Image();
-          img.crossOrigin = "anonymous";
-          img.onload = () => {
-            try {
-              const canvas = document.createElement("canvas");
-              canvas.width = img.naturalWidth;
-              canvas.height = img.naturalHeight;
-              const ctx = canvas.getContext("2d");
-              if (!ctx) return resolve(null);
-              ctx.drawImage(img, 0, 0);
-              resolve({
-                data: canvas.toDataURL("image/jpeg", 0.85),
-                w: img.naturalWidth,
-                h: img.naturalHeight,
-              });
-            } catch {
-              resolve(null);
-            }
-          };
-          img.onerror = () => resolve(null);
-          img.src = url;
-        });
-
-      const photoData = await Promise.all(uploadedPhotos.map((p) => toDataUrl(p.url)));
-
-      const photoGap = 12;
-      const photosPerRow = 3;
-      const photoW = (W - photoGap * (photosPerRow - 1)) / photosPerRow;
-      const photoH = photoW * 0.72;
-
-      if (uploadedPhotos.length === 0) {
-        // Demo mode / no real uploads — render neutral placeholder rectangles
-        const placeholderCaptions = [
-          "Primary Damage View",
-          "Wide Context Shot",
-          "Secondary Damage Angle",
-        ];
-        const blockH = photoH + 20;
-        need(blockH + 6);
-        placeholderCaptions.forEach((caption, i) => {
-          const px = M + i * (photoW + photoGap);
-          const py = y;
-          pdf.setFillColor("#F3F4F6");
-          pdf.setDrawColor("#E5E7EB");
-          pdf.setLineWidth(0.5);
-          pdf.roundedRect(px, py, photoW, photoH, 3, 3, "FD");
-          setText(11, "#9CA3AF");
-          pdf.text(caption, px + photoW / 2, py + photoH / 2 + 3, { align: "center" });
-        });
-        y += blockH;
-      } else {
-        const captionH = 44;
-        const blockH = photoH + captionH + 6;
-
-        for (let i = 0; i < uploadedPhotos.length; i++) {
-          const col = i % photosPerRow;
-          if (col === 0) need(blockH + 6);
-          const px = M + col * (photoW + photoGap);
-          const py = y;
-          // frame
-          pdf.setFillColor("#F9FAFB");
-          pdf.setDrawColor("#E5E7EB");
-          pdf.setLineWidth(0.5);
-          pdf.roundedRect(px, py, photoW, photoH, 3, 3, "FD");
-          const pd = photoData[i];
-          if (pd) {
-            // contain image inside frame
-            const ratio = Math.min(photoW / pd.w, photoH / pd.h);
-            const iw = pd.w * ratio;
-            const ih = pd.h * ratio;
-            const ix = px + (photoW - iw) / 2;
-            const iy = py + (photoH - ih) / 2;
-            try {
-              pdf.addImage(pd.data, "JPEG", ix, iy, iw, ih);
-            } catch {
-              setText(9, "#9CA3AF");
-              pdf.text("Image unavailable", px + photoW / 2, py + photoH / 2, { align: "center" });
-            }
-          } else {
-            setText(9, "#9CA3AF");
-            pdf.text("Image unavailable", px + photoW / 2, py + photoH / 2, { align: "center" });
-          }
-
-          // caption
-          const cap = uploadedPhotos[i];
-          const ts = new Date(cap.uploadedAt).toLocaleString("en-US", {
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-          });
-          setText(10, "#111827", true);
-          pdf.text(cap.name, px, py + photoH + 12);
-          setText(9, "#6B7280");
-          pdf.text(ts, px, py + photoH + 24);
-          // accepted pill
-          drawBadge("Accepted", px, py + photoH + 36, "#DCFCE7", "#15803D");
-
-          if (col === photosPerRow - 1 || i === uploadedPhotos.length - 1) {
-            y += blockH;
-          }
-        }
-        y += 8;
-      }
-
-      // ===== SECTION 2b — COVERAGE SUMMARY =====
-      sectionLabel("Coverage Summary");
-      const cv = cf?.coverage;
-      const ft = cf?.fault;
-      const coverageTypeText = "Full Coverage Policy";
-      const faultText =
-        ft === "policyholder" ? "Policyholder at fault" :
-        ft === "other" ? "Other party at fault" :
-        ft === "unclear" ? "Fault disputed / unclear" :
-        ft === "single_vehicle" ? "Single-vehicle incident" : "—";
-      const dedVal = cf?.deductible?.trim();
-      const deductibleApplicable =
-        ft === "policyholder"
-          ? (dedVal ? `$${dedVal} (retrieved from policy record)` : "N/A")
-          : ft === "other"
-            ? "N/A — handled by at-fault party"
-            : "Pending";
-
-      const claimBasis = "Own damage — full coverage";
-      const covRows: [string, string][] = [
-        ["Coverage type", coverageTypeText],
-        ["Fault determination", faultText],
-        ["Deductible applicable", deductibleApplicable],
-        ["Claim basis", claimBasis],
-      ];
-      covRows.forEach(([label, val]) => {
-        need(24);
-        setText(11, "#6B7280");
-        pdf.text(label, labelX, y + 14);
-        setText(13, "#111827");
-        const wrapped = pdf.splitTextToSize(val, pageW - M - valX) as string[];
-        wrapped.forEach((ln, idx) => pdf.text(ln, valX, y + 14 + idx * 14));
-        y += 22 + Math.max(0, (wrapped.length - 1) * 14);
-        pdf.setDrawColor("#F3F4F6");
-        pdf.setLineWidth(0.5);
-        pdf.line(M, y, pageW - M, y);
-      });
-      void cv;
-      // Deductible exceeds repair cost note
-      {
-        const dedNum = parseFloat((cf?.deductible || "").replace(/[^0-9.]/g, ""));
-        if (
-          isFinite(dedNum) &&
-          dedNum > 0 &&
-          dedNum > draftTotal &&
-          draftTotal > 0
-        ) {
-          const noteLines = pdf.splitTextToSize(
-            `Note: Deductible (${fmtCurrency(dedNum)}) exceeds draft repair estimate (${fmtCurrency(draftTotal)}). Policyholder may be responsible for full repair cost pending final assessment.`,
-            W - 24,
-          ) as string[];
-          const noteH = noteLines.length * 13 + 12;
-          need(noteH + 6);
-          pdf.setFillColor("#F9FAFB");
-          pdf.rect(M, y, W, noteH, "F");
-          setText(10, "#6B7280", false, true);
-          noteLines.forEach((ln, idx) => pdf.text(ln, M + 12, y + 14 + idx * 13));
-          y += noteH + 4;
-        }
-      }
-      y += 4;
-
-
-
-      // ===== SECTION 3 — ESTIMATE BREAKDOWN =====
-      // Page break if table would start too close to bottom
-      if (y + 150 > pageH - M - 30) {
-        pdf.addPage();
-        y = M;
-      }
-      sectionLabel("Estimate Breakdown");
-      // Proportional columns: Item 35%, Scope 10%, Labor 10%, Cost Basis 20%, Draft 12%, Adjusted 13%
-      const colItem = M;                       // text left (35%)
-      const colScope = M + Math.round(W * 0.35);   // text left (10%)
-      const colLabor = M + Math.round(W * 0.45);   // text left (10%)
-      const colBasis = M + Math.round(W * 0.55);   // badges left (20%)
-      const colDraftR = M + Math.round(W * 0.87);  // right-aligned (12% column ending here)
-      const colAdjR = pageW - M;                   // right-aligned (13%)
-      const itemMaxW = Math.round(W * 0.35) - 6;
-      const basisMaxW = Math.round(W * 0.20) - 6;
-      need(24);
-      setText(9, "#6B7280", true);
-      pdf.text("LINE ITEM", colItem, y + 10);
-      pdf.text("SCOPE", colScope, y + 10);
-      pdf.text("LABOR", colLabor, y + 10);
-      pdf.text("COST BASIS", colBasis, y + 10);
-      pdf.text("DRAFT EST.", colDraftR, y + 10, { align: "right" });
-      pdf.text("ADJUSTED EST.", colAdjR, y + 10, { align: "right" });
-      y += 18;
-      pdf.setDrawColor("#E5E7EB");
-      pdf.setLineWidth(0.5);
-      pdf.line(M, y, pageW - M, y);
-      y += 6;
-
-      const badgeColors: Record<SourceKey, { bg: string; fg: string; border?: string }> = {
-        mitchell: { bg: "#EFF6FF", fg: "#1D4ED8" },
-        ccc: { bg: "#F5F3FF", fg: "#6D28D9" },
-        oem: { bg: "#FFFFFF", fg: "#374151", border: "#D1D5DB" },
-        verify: { bg: "#FEF3C7", fg: "#B45309" },
-      };
-
-      claim.parts.forEach((part, i) => {
-        const draftVal = part.draftEstimate;
-        const adjVal = reportAdjusted[i];
-        const hasVerify = part.sources.includes("verify");
-        // name may wrap to multiple lines
-        setText(10, "#111827");
-        const nameLines = pdf.splitTextToSize(part.name, itemMaxW) as string[];
-        const rowH = Math.max(24, nameLines.length * 14 + 8);
-        need(rowH + 4);
-        const rowY = y + 12;
-        nameLines.forEach((ln, idx) => pdf.text(ln, colItem, rowY + idx * 14));
-        setText(10, "#374151");
-        const scopeLines = pdf.splitTextToSize(part.suggestedRepairScope, Math.round(W * 0.10) - 6) as string[];
-        scopeLines.slice(0, 2).forEach((ln, idx) => pdf.text(ln, colScope, rowY + idx * 14));
-        pdf.text(`${part.laborHours}h`, colLabor, rowY);
-        let bx = colBasis;
-        part.sources.forEach((src) => {
-          const c = badgeColors[src];
-          if (bx - colBasis > basisMaxW - 30) return;
-          const bw = drawBadge(SOURCE_META[src].short, bx, rowY - 4, c.bg, c.fg, c.border);
-          bx += bw + 3;
-        });
-        // Draft estimate — always original, never override
-        setText(10, "#111827");
-        pdf.text(fmtCurrency(draftVal), colDraftR, rowY, { align: "right" });
-        // Adjusted estimate (right column)
-        if (hasVerify) {
-          const tri = colAdjR - pdf.getTextWidth(fmtCurrency(adjVal)) - 12;
-          pdf.setFillColor("#F59E0B");
-          pdf.triangle(tri, rowY - 1, tri + 8, rowY - 1, tri + 4, rowY - 8, "F");
-          setText(10, "#B45309", true);
-        } else if (adjVal !== draftVal) {
-          setText(10, "#B45309", true);
-        } else {
-          setText(10, "#111827");
-        }
-        pdf.text(fmtCurrency(adjVal), colAdjR, rowY, { align: "right" });
-        y += rowH;
-        pdf.setDrawColor("#F3F4F6");
-        pdf.setLineWidth(0.5);
-        pdf.line(M, y, pageW - M, y);
-      });
-
-
-      // totals row
-      need(36);
-      pdf.setDrawColor("#111827");
-      pdf.setLineWidth(1.5);
-      pdf.line(M, y, pageW - M, y);
-      y += 4;
-      setText(13, "#111827", true);
-      pdf.text("Total", M, y + 16);
-      pdf.text(fmtCurrency(reportTotal), pageW - M, y + 16, { align: "right" });
-      y += 24;
-      wrapped(
-        "Lines marked Verify are extrapolated from comparable claims and require senior adjuster confirmation before authorization.",
-        M,
-        W,
-        11,
-        "#6B7280",
-      );
-
-      // ===== SECTION 3b — PAYMENT SUMMARY =====
-      sectionLabel("Payment Summary");
-      {
-        const cf2 = claimForm;
-        const cv2 = cf2?.coverage;
-        const ft2 = cf2?.fault;
-        const dedStr2 = cf2?.deductible?.trim() ?? "";
-        const dedNum2 = parseFloat(dedStr2.replace(/[^0-9.]/g, ""));
-        const hasDeductible2 = ft2 === "policyholder";
-        const deductibleAmount2 = hasDeductible2 && isFinite(dedNum2) && dedNum2 > 0 ? dedNum2 : 0;
-        const coveragePayout2 = hasDeductible2 ? Math.max(0, reportTotal - deductibleAmount2) : reportTotal;
-        const isFullyCovered2 = ft2 === "other" || (ft2 === "policyholder" && (!dedStr2 || dedNum2 <= 0));
-        void cv2;
-
-        const payRows: [string, string][] = [
-          ["Repair Estimate Total", fmtCurrency(reportTotal)],
-        ];
-        if (ft2 === "other") {
-          payRows.push(["Policy Deductible", "N/A — handled by at-fault party"]);
-          payRows.push(["Coverage Status", "Fully Covered"]);
-        } else if (isFullyCovered2) {
-          payRows.push(["Policy Deductible", "$0"]);
-          payRows.push(["Coverage Status", "Fully Covered"]);
-        } else if (hasDeductible2) {
-          payRows.push(["Policy Deductible", `−${fmtCurrency(deductibleAmount2)}`]);
-          payRows.push(["Estimated Insurance Coverage", fmtCurrency(coveragePayout2)]);
-        } else {
-          payRows.push(["Policy Deductible", "Pending"]);
-        }
-
-        payRows.forEach(([label, val]) => {
-          need(24);
-          setText(11, "#6B7280");
-          pdf.text(label, labelX, y + 14);
-          setText(13, "#111827", true);
-          pdf.text(val, valX, y + 14);
-          y += 22;
-          pdf.setDrawColor("#F3F4F6");
-          pdf.setLineWidth(0.5);
-          pdf.line(M, y, pageW - M, y);
-        });
-
-        const helperText = ft2 === "other"
-          ? "No policyholder contribution required. The at-fault party's coverage applies."
-          : isFullyCovered2
-            ? "No policyholder contribution required for this repair."
-            : hasDeductible2
-              ? "Your policy includes a deductible, which is the portion of the repair cost paid by the policyholder before insurance coverage applies."
-              : "Deductible amount will be determined during final review.";
-        const helperLines = pdf.splitTextToSize(helperText, W - 24) as string[];
-        const helperH = helperLines.length * 13 + 12;
-        need(helperH + 4);
-        pdf.setFillColor("#FAFAFB");
-        pdf.rect(M, y, W, helperH, "F");
-        setText(10, "#6B7280", false, true);
-        helperLines.forEach((ln, idx) => pdf.text(ln, M + 12, y + 14 + idx * 13));
-        y += helperH + 4;
-      }
-
-      // ===== SECTION 4 — ESTIMATE SOURCES =====
-      sectionLabel("Estimate Sources");
-      const srcRows: { key: SourceKey; desc: string }[] = [
-        { key: "mitchell", desc: "Labor benchmarks" },
-        { key: "ccc", desc: "Parts pricing" },
-        { key: "oem", desc: "Procedure compliance" },
-        { key: "verify", desc: "Extrapolated, verification required" },
-      ];
-      srcRows.forEach((r) => {
-        need(22);
-        const c = badgeColors[r.key];
-        const w = drawBadge(SOURCE_META[r.key].short, M, y + 10, c.bg, c.fg, c.border);
-        setText(13, "#374151");
-        pdf.text(`— ${r.desc}`, M + w + 10, y + 14);
-        y += 22;
-      });
-      y += 4;
-      wrapped(
-        "Methodology: Draft estimates combine industry labor benchmarks, current parts pricing, and OEM repair procedures. Items lacking sufficient evidence are extrapolated from comparable claims and flagged for human verification.",
-        M,
-        W,
-        12,
-        "#6B7280",
-      );
-
-      // ===== SECTION 4b — ESTIMATE ADJUSTMENTS & OVERRIDE RECORD =====
-      sectionLabel("Estimate Adjustments & Override Record");
-      {
-        const reasonText = (i: number): string => {
-          const o = overrides[i];
-          if (!o || !o.reason) return "Rationale not recorded";
-          switch (o.reason) {
-            case "additional_damage":
-              return "Additional damage visible not captured in photos";
-            case "labor_rate":
-              return "Local labor rate differs from regional benchmark";
-            case "scope_change":
-              return "Repair scope changed";
-            case "parts_availability":
-              return "Parts availability — alternative sourcing";
-            case "other":
-              return o.other.trim() || "Other (no detail provided)";
-          }
-        };
-        const adjustedRows = claim.parts
-          .map((part, i) => {
-            const original = part.draftEstimate;
-            const adj = reportAdjusted[i];
-            if (adj === original) return null;
-            const variance = adj - original;
-            const variancePct = original !== 0 ? (variance / original) * 100 : 0;
-            return { i, name: part.name, original, adj, variance, variancePct, reason: reasonText(i) };
-          })
-          .filter(Boolean) as { i: number; name: string; original: number; adj: number; variance: number; variancePct: number; reason: string }[];
-
-        if (adjustedRows.length === 0) {
-          need(32);
-          pdf.setFillColor("#F9FAFB");
-          pdf.rect(M, y, W, 28, "F");
-          setText(12, "#6B7280", false, true);
-          pdf.text("No adjustments made. Draft estimate approved as reviewed.", M + 12, y + 18);
-          y += 36;
-        } else {
-          // Page break if table would start within 150pt of bottom
-          if (y + 150 > pageH - M - 30) {
-            pdf.addPage();
-            y = M;
-          }
-          // Override table columns: Item 25%, Draft 13%, Adjusted 13%, Var 12%, Var% 10%, Rationale 27%
-          const cName = M;                           // text left
-          const itemMaxW = Math.round(W * 0.25) - 6;
-          const cDraft = M + Math.round(W * 0.38);   // right-align
-          const cAdj = M + Math.round(W * 0.51);     // right-align
-          const cVar = M + Math.round(W * 0.63);     // right-align
-          const cPct = M + Math.round(W * 0.73);     // right-align
-          const cReason = M + Math.round(W * 0.73) + 6; // text left
-          const reasonMaxW = pageW - M - cReason;
-          need(24);
-          setText(9, "#6B7280", true);
-          pdf.text("LINE ITEM", cName, y + 10);
-          pdf.text("DRAFT", cDraft, y + 10, { align: "right" });
-          pdf.text("ADJUSTED", cAdj, y + 10, { align: "right" });
-          pdf.text("VARIANCE", cVar, y + 10, { align: "right" });
-          pdf.text("VAR %", cPct, y + 10, { align: "right" });
-          pdf.text("RATIONALE", cReason, y + 10);
-          y += 16;
-          pdf.setDrawColor("#E5E7EB");
-          pdf.setLineWidth(0.5);
-          pdf.line(M, y, pageW - M, y);
-          y += 4;
-
-
-          let draftSum = 0;
-          let adjSum = 0;
-          claim.parts.forEach((p, i) => {
-            draftSum += p.draftEstimate;
-            adjSum += reportAdjusted[i];
-          });
-
-          adjustedRows.forEach((r) => {
-            const nameLines = pdf.splitTextToSize(r.name, itemMaxW) as string[];
-            const reasonLines = pdf.splitTextToSize(r.reason, reasonMaxW) as string[];
-            const isSignificant = Math.abs(r.variancePct) > 20;
-            const extraH = isSignificant ? 14 : 0;
-            const rowH = Math.max(nameLines.length, reasonLines.length) * 14 + 10 + extraH;
-            need(rowH);
-            const rowY = y + 14;
-            setText(12, "#111827");
-            nameLines.forEach((ln, idx) => pdf.text(ln, cName, rowY + idx * 14));
-            setText(12, "#374151");
-            pdf.text(fmtCurrency(r.original), cDraft, rowY, { align: "right" });
-            pdf.text(fmtCurrency(r.adj), cAdj, rowY, { align: "right" });
-            const varColor = r.variance > 0 ? "#B45309" : "#047857";
-            setText(12, varColor, true);
-            const sign = r.variance > 0 ? "+" : "−";
-            pdf.text(`${sign}${fmtCurrency(Math.abs(r.variance))}`, cVar, rowY, { align: "right" });
-            pdf.text(`${r.variance > 0 ? "+" : "−"}${Math.abs(r.variancePct).toFixed(1)}%`, cPct, rowY, { align: "right" });
-            setText(11, "#374151", false, true);
-            reasonLines.forEach((ln, idx) => pdf.text(ln, cReason, rowY + idx * 14));
-            if (isSignificant) {
-              const flagY = rowY + Math.max(nameLines.length, reasonLines.length) * 14;
-              setText(11, "#B45309", true);
-              pdf.text("Significant adjustment — variance exceeds 20%", cName, flagY);
-            }
-            y += rowH;
-            pdf.setDrawColor("#F3F4F6");
-            pdf.line(M, y, pageW - M, y);
-          });
-
-          // Summary totals
-          const netVar = adjSum - draftSum;
-          const netVarPct = draftSum !== 0 ? (netVar / draftSum) * 100 : 0;
-          y += 6;
-          need(60);
-          setText(12, "#374151");
-          pdf.text("Draft Total", M, y + 12);
-          pdf.text(fmtCurrency(draftSum), pageW - M, y + 12, { align: "right" });
-          y += 16;
-          pdf.text("Adjusted Total", M, y + 12);
-          pdf.text(fmtCurrency(adjSum), pageW - M, y + 12, { align: "right" });
-          y += 16;
-          setText(12, "#111827", true);
-          pdf.text("Net Variance", M, y + 12);
-          const netSign = netVar >= 0 ? "+" : "−";
-          const netColor = netVar > 0 ? "#B45309" : netVar < 0 ? "#047857" : "#111827";
-          setText(12, netColor, true);
-          pdf.text(
-            `${netSign}${fmtCurrency(Math.abs(netVar))} (${netVar >= 0 ? "+" : "−"}${Math.abs(netVarPct).toFixed(1)}%)`,
-            pageW - M,
-            y + 12,
-            { align: "right" },
-          );
-          y += 20;
-
-          // Significant variance indicator
-          if (Math.abs(netVarPct) > 20) {
-            need(22);
-            setText(11, "#B45309", true);
-            pdf.text("Significant adjustment — variance exceeds 20%", M, y + 12);
-            y += 18;
-          }
-
-          // Auditability callout
-          y += 4;
-          const calloutLines = pdf.splitTextToSize(
-            "All estimate adjustments are recorded with supporting rationale to preserve review transparency and operational auditability.",
-            W - 24,
-          ) as string[];
-          const calloutH = calloutLines.length * 14 + 16;
-          need(calloutH + 4);
-          pdf.setFillColor("#F8FAFC");
-          pdf.rect(M, y, W, calloutH, "F");
-          pdf.setFillColor("#3B82F6");
-          pdf.rect(M, y, 3, calloutH, "F");
-          setText(11, "#475569");
-          calloutLines.forEach((ln, idx) => pdf.text(ln, M + 14, y + 14 + idx * 14));
-          y += calloutH + 8;
-        }
-      }
-
-      // ===== SECTION 5 — ADJUSTER NOTES =====
-      sectionLabel("Adjuster Notes");
-      const notesText = adjusterNotes.trim();
-      setText(13, "#111827");
-      const noteLines = pdf.splitTextToSize(
-        notesText || "No adjuster notes entered for this claim.",
-        W - 24,
-      ) as string[];
-      const boxH = Math.max(44, noteLines.length * 16 + 20);
-      need(boxH + 4);
-      pdf.setFillColor("#F9FAFB");
-      pdf.rect(M, y, W, boxH, "F");
-      if (notesText) {
-        setText(13, "#111827");
-      } else {
-        setText(13, "#9CA3AF", false, true);
-      }
-      noteLines.forEach((ln, idx) => pdf.text(ln, M + 12, y + 20 + idx * 16));
-      y += boxH + 12;
-
-      // ===== SECTION 6 — VERIFICATION & AUTHORIZATION =====
-      // Force page break if fewer than 4 rows (≈ 4 × 26pt + header ≈ 130pt) fit
-      if (y + 140 > pageH - M - 30) {
-        pdf.addPage();
-        y = M;
-      }
-      sectionLabel("Verification & Authorization Record");
-      let verifyText: string;
-      let authText: string;
-      let authBg = "#F3F4F6";
-      let authFg = "#374151";
-      if (workflowState === "FAST_TRACK") {
-        verifyText = "N/A — automated fast-track, no manual verification required";
-        authText = "Auto-authorized pending confirmation";
-        authBg = "#DCFCE7";
-        authFg = "#15803D";
-      } else if (workflowState === "SENIOR_AUTHORIZATION") {
-        verifyText = "N/A — senior authorization claims bypass standard adjuster verification";
-        authText = "Held — pending senior adjuster sign-off";
-        authBg = "#FEF3C7";
-        authFg = "#B45309";
-      } else {
-        verifyText = "Reviewed by adjuster";
-        authText = "Submitted for authorization";
-        authBg = "#DBEAFE";
-        authFg = "#1D4ED8";
-      }
-      const vRows: {
-        label: string;
-        value: string;
-        badge?: { bg: string; fg: string };
-      }[] = [
-        { label: "Review type", value: stateLabel },
-        { label: "Verification checks", value: verifyText },
-        { label: "Authorization status", value: authText, badge: { bg: authBg, fg: authFg } },
-        { label: "Adjusted total", value: fmtCurrency(reportTotal) },
-        {
-          label: "Report generated",
-          value: new Date().toLocaleString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-          }),
-        },
-      ];
-      vRows.forEach((r) => {
-        need(26);
-        setText(11, "#6B7280");
-        pdf.text(r.label, M, y + 14);
-        if (r.badge) {
-          drawBadge(r.value, M + 180, y + 12, r.badge.bg, r.badge.fg);
-        } else {
-          setText(13, "#111827");
-          const vLines = pdf.splitTextToSize(r.value, W - 180) as string[];
-          vLines.forEach((ln, idx) => pdf.text(ln, M + 180, y + 14 + idx * 14));
-          if (vLines.length > 1) y += (vLines.length - 1) * 14;
-        }
-        y += 22;
-        pdf.setDrawColor("#F3F4F6");
-        pdf.setLineWidth(0.5);
-        pdf.line(M, y, pageW - M, y);
-      });
-
-      // ===== ESTIMATE RECORD (post-save only) =====
-      if (forAuthorization && authorization) {
-        if (y + 200 > pageH - M - 30) {
-          pdf.addPage();
-          y = M;
-        }
-        sectionLabel("Estimate Record");
-        const authDate = new Date(authorization.authorizedAt).toLocaleString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-        });
-        const aRows: { label: string; value: string; badge?: { bg: string; fg: string } }[] = [
-          {
-            label: "Status",
-            value: "Saved",
-            badge: { bg: "#DCFCE7", fg: "#15803D" },
-          },
-          { label: "Estimate Amount", value: fmtCurrency(authorization.amount) },
-          {
-            label: "Deductible",
-            value: authorization.hasDeductible
-              ? fmtCurrency(authorization.deductibleAmount)
-              : "No deductible",
-          },
-          { label: "Saved On", value: authDate },
-          { label: "Saved By", value: adjusterName },
-          {
-            label: "Next Step",
-            value: "Estimate progress preserved for continued review.",
-          },
-        ];
-        aRows.forEach((r) => {
-          need(26);
-          setText(11, "#6B7280");
-          pdf.text(r.label, M, y + 14);
-          if (r.badge) {
-            drawBadge(r.value, M + 180, y + 12, r.badge.bg, r.badge.fg);
-          } else {
-            setText(13, "#111827");
-            const vLines = pdf.splitTextToSize(r.value, W - 180) as string[];
-            vLines.forEach((ln, idx) => pdf.text(ln, M + 180, y + 14 + idx * 14));
-            if (vLines.length > 1) y += (vLines.length - 1) * 14;
-          }
-          y += 22;
-          pdf.setDrawColor("#F3F4F6");
-          pdf.setLineWidth(0.5);
-          pdf.line(M, y, pageW - M, y);
-        });
-      }
-
-
-      // ===== FOOTER on every page =====
-      const totalPages = pdf.getNumberOfPages();
-      for (let p = 1; p <= totalPages; p++) {
-        pdf.setPage(p);
-        const fy = pageH - 28;
-        pdf.setDrawColor("#E5E7EB");
-        pdf.setLineWidth(0.5);
-        pdf.line(M, fy - 12, pageW - M, fy - 12);
-        setText(11, "#9CA3AF");
-        pdf.text(
-          forAuthorization
-            ? `Authorized repair estimate. Authorization issued for Claim #${claimRef}.`
-            : "Draft assessment generated for review purposes. Not a final repair authorization.",
-          M,
-          fy,
-        );
-        pdf.text(`Claim #${claimRef} · ${dateStr}`, pageW - M, fy, { align: "right" });
-      }
-
-      pdf.save(fileName);
-      toast.success("Report downloaded", { id: tid, description: fileName });
-    } catch (error) {
-      console.error(error);
-      toast.error("Report could not be generated", {
-        id: tid,
-        description: "Please try again after confirming the estimate values.",
-      });
-    } finally {
-      setIsGeneratingReport(false);
-    }
-  };
-
-  // Keep parent ref updated with latest closure so post-cockpit screens can trigger PDF
-  useEffect(() => {
-    generateReportRef.current = generateReport;
-  });
-
-
-
   return (
     <div className="flex flex-col min-h-full gap-4">
-      {readOnly && (
-        <div
-          className="shrink-0 rounded-md border px-3 py-2.5"
-          style={{
-            backgroundColor: "#F3F4F6",
-            borderColor: COLORS.border,
-          }}
-        >
-          <div className="flex items-start gap-2">
-            <Lock size={14} className="mt-0.5 shrink-0" style={{ color: COLORS.muted }} />
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold" style={{ color: COLORS.text }}>
-                Submitted Estimate
-              </div>
-              <div className="text-[12px] mt-0.5 leading-snug" style={{ color: COLORS.muted }}>
-                This estimate has already been submitted and is now view-only.
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Estimate table */}
       <div className="shrink-0 overflow-x-auto">
         {seniorReview && (
@@ -5620,14 +4426,43 @@ function EstimateReviewPanel({
           openFinalConfirm(workflowMode);
         };
 
+        const buildSnapshot = (status: "SAVED" | "PENDING_SENIOR"): SavedSnapshot => {
+          const finalAdjusted = syncDraftValues();
+          const finalTotal = finalAdjusted.reduce((s, n) => s + (isFinite(n) ? n : 0), 0);
+          const snapOverrides: SavedOverride[] = claim.parts
+            .map((part, i) => {
+              if (finalAdjusted[i] === part.draftEstimate) return null;
+              const o = overrides[i];
+              const rationale =
+                o?.reason === "other"
+                  ? o.other.trim() || "Other adjustment"
+                  : o?.reason
+                    ? RATIONALE_LABELS[o.reason] ?? "Adjuster override"
+                    : "Adjuster override";
+              return {
+                partIndex: i,
+                name: part.name,
+                draft: part.draftEstimate,
+                adjusted: finalAdjusted[i],
+                rationale,
+              };
+            })
+            .filter(Boolean) as SavedOverride[];
+          return {
+            id: claim.id,
+            status,
+            adjusted: finalAdjusted,
+            notes: adjusterNotes,
+            overrides: snapOverrides,
+            draftTotal,
+            adjustedTotal: finalTotal,
+            savedAt: Date.now(),
+          };
+        };
+
         const confirmApproval = () => {
           setApprovalConfirmOpen(false);
-          onAuthorize({
-            amount: adjustedTotal,
-            deductibleAmount: approvalDeductibleAmount,
-            hasDeductible: approvalHasDeductible,
-            authorizedAt: Date.now(),
-          });
+          onSave(buildSnapshot("SAVED"));
           toast.success("Estimate saved.");
         };
 
@@ -5681,23 +4516,52 @@ function EstimateReviewPanel({
               </div>
             )}
 
-            {readOnly ? (
-              <div className="shrink-0 flex items-center gap-2 pt-1">
+            {isSaved ? (
+              <div className="shrink-0 flex flex-col gap-2 pt-1">
+                <div
+                  className="flex items-center gap-2 rounded-md border px-3 py-2.5"
+                  style={{
+                    backgroundColor:
+                      workflowMode === "SENIOR_AUTHORIZATION" ? COLORS.amberBg : COLORS.greenBg,
+                    borderColor:
+                      workflowMode === "SENIOR_AUTHORIZATION" ? COLORS.amberBorder : "#BBF7D0",
+                  }}
+                >
+                  {workflowMode === "SENIOR_AUTHORIZATION" ? (
+                    <Clock size={15} style={{ color: COLORS.amberText }} />
+                  ) : (
+                    <CheckCircle size={15} style={{ color: COLORS.greenText }} />
+                  )}
+                  <span
+                    className="text-sm font-semibold"
+                    style={{
+                      color:
+                        workflowMode === "SENIOR_AUTHORIZATION"
+                          ? COLORS.amberText
+                          : COLORS.greenText,
+                    }}
+                  >
+                    {workflowMode === "SENIOR_AUTHORIZATION"
+                      ? "Submitted for Senior Authorization ✓"
+                      : "Estimate Saved ✓"}
+                  </span>
+                </div>
+                {workflowMode === "SENIOR_AUTHORIZATION" && (
+                  <div
+                    className="flex items-center gap-1.5 text-[12px]"
+                    style={{ color: COLORS.muted }}
+                  >
+                    <Clock size={12} />
+                    Pending Senior Authorization
+                  </div>
+                )}
                 <button
                   type="button"
-                  disabled={isGeneratingReport}
-                  onClick={() => generateReport(authorization !== null)}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md py-2.5 text-sm font-semibold text-white transition-colors"
-                  style={{ backgroundColor: COLORS.blue }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.backgroundColor = COLORS.blueHover)
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.backgroundColor = COLORS.blue)
-                  }
+                  onClick={onUnlock}
+                  className="self-start text-xs font-medium underline-offset-2 hover:underline"
+                  style={{ color: COLORS.blue }}
                 >
-                  <FileText size={14} />
-                  {isGeneratingReport ? "Generating…" : "Download Estimate Report"}
+                  {workflowMode === "SENIOR_AUTHORIZATION" ? "Recall & Edit" : "Edit & Re-save"}
                 </button>
               </div>
             ) : (
@@ -5705,38 +4569,24 @@ function EstimateReviewPanel({
                 {/* Persistent Action Bar — always 3 actions, never disabled by warnings */}
                 <div className="shrink-0 flex items-center gap-2 pt-1">
                   {/* PRIMARY */}
-                  {workflowMode === "SENIOR_AUTHORIZATION" && seniorSubmitted ? (
-                    <div
-                      className="flex-1 flex items-center justify-center gap-1.5 rounded-md py-2.5 text-xs font-medium"
-                      style={{
-                        color: COLORS.muted,
-                        backgroundColor: "#F9FAFB",
-                        border: `1px solid ${COLORS.border}`,
-                      }}
-                    >
-                      <Clock size={13} />
-                      Pending Senior Authorization
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handlePrimary}
-                      className="flex-1 rounded-md py-2.5 text-sm font-semibold transition-colors"
-                      style={{
-                        backgroundColor: COLORS.blue,
-                        color: "white",
-                        border: "none",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = COLORS.blueHover)
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = COLORS.blue)
-                      }
-                    >
-                      {primaryLabel}
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={handlePrimary}
+                    className="flex-1 rounded-md py-2.5 text-sm font-semibold transition-colors"
+                    style={{
+                      backgroundColor: COLORS.blue,
+                      color: "white",
+                      border: "none",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor = COLORS.blueHover)
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = COLORS.blue)
+                    }
+                  >
+                    {primaryLabel}
+                  </button>
 
                   {/* SECONDARY: Edit / Save Edits */}
                   <button
@@ -5769,8 +4619,8 @@ function EstimateReviewPanel({
                   </button>
                 </div>
 
-                {/* Tertiary row: Generate Report + Add Internal Note */}
-                <div className="shrink-0 flex items-center justify-between pt-1">
+                {/* Add Internal Note */}
+                <div className="shrink-0 flex items-center pt-1">
                   <button
                     type="button"
                     onClick={() => {
@@ -5781,25 +4631,6 @@ function EstimateReviewPanel({
                     style={{ color: COLORS.muted }}
                   >
                     + Add Internal Note
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isGeneratingReport}
-                    onClick={() => {
-                      if (hasPendingOverrides) {
-                        setSubmitError(
-                          "Please provide a reason for all adjusted line items before submitting.",
-                        );
-                        return;
-                      }
-                      generateReport();
-                    }}
-                    className="inline-flex items-center gap-1 text-xs font-medium underline-offset-2 hover:underline"
-                    style={{ color: COLORS.blue }}
-                  >
-                    <FileText size={12} />
-                    {isGeneratingReport ? "Generating…" : "Generate Report"}
-                    <ChevronRight size={12} />
                   </button>
                 </div>
               </>
@@ -5901,7 +4732,7 @@ function EstimateReviewPanel({
                     type="button"
                     onClick={() => {
                       setSeniorConfirmOpen(false);
-                      onSeniorSubmit(adjustedTotal);
+                      onSave(buildSnapshot("PENDING_SENIOR"));
                       toast.success("Estimate submitted for senior adjuster authorization.");
                     }}
                     className="rounded-md px-4 py-2 text-sm font-semibold text-white"
