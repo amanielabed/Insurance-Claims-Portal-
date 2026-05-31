@@ -2371,6 +2371,10 @@ function ReviewEstimateStep({
   }, [selectedId, claim.delegationState]);
 
   const allScenariosSaved = savedEstimates.size >= SCENARIOS.length;
+  // Step 6 becomes reachable once every scenario has had a valid action taken
+  // on it — including scenarios saved while awaiting requested information.
+  const handledCount = SCENARIOS.filter((s) => handledScenarios.has(s.id)).length;
+  const allScenariosHandled = SCENARIOS.every((s) => handledScenarios.has(s.id));
 
   // Step 6 (Final Resolution) is only "active" once the adjuster explicitly
   // proceeds to the final report screen — not merely when all scenarios saved.
