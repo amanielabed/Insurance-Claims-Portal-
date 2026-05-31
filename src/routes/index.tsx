@@ -3941,10 +3941,8 @@ function EstimateReviewPanel({
   const [pendingPrimaryMode, setPendingPrimaryMode] = useState<
     "FAST_TRACK" | "VERIFICATION_RECOMMENDED" | "SENIOR_AUTHORIZATION" | null
   >(null);
-  const [editMode, setEditMode] = useState(false);
-  useEffect(() => {
-    if (isSaved) setEditMode(false);
-  }, [isSaved]);
+
+
 
   // Request Information modal state
   const [requestInfoOpen, setRequestInfoOpen] = useState(false);
