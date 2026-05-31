@@ -4039,7 +4039,7 @@ function EstimateReviewPanel({
   onAwaitingInfo: () => void;
   onClearAwaitingInfo: () => void;
 
-  onInfoRequest?: () => void;
+  onInformationRequest: (req: InformationRequest) => void;
 
   adjusted: number[];
   setAdjusted: Dispatch<SetStateAction<number[]>>;
