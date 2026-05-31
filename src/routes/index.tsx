@@ -2462,8 +2462,6 @@ function ReviewEstimateStep({
       y += 18;
       computed.forEach((r) => {
         need(22);
-        const badge = r.isSenior ? AMBER : GREEN;
-        const statusText = r.isSenior ? "Pending Senior Authorization" : "Estimate Saved";
         drawCell(scenarioNameMap[r.scenario.state], cols[0], y + 12, "#111827", true);
         drawCell(reviewTypeMap[r.scenario.state], cols[1], y + 12);
         drawCell(fmtCurrency(r.draftTotal), cols[2], y + 12);
@@ -2474,12 +2472,13 @@ function ReviewEstimateStep({
           y + 12,
           r.diff === 0 ? "#6B7280" : r.diff > 0 ? "#B45309" : "#15803D",
         );
-        drawBadge(statusText, cols[5].x + 2, y + 3, badge.bg, badge.fg);
+        drawBadge(r.statusText, cols[5].x + 2, y + 3, r.statusBadge.bg, r.statusBadge.fg);
         pdf.setDrawColor("#E5E7EB");
         pdf.setLineWidth(0.5);
         pdf.line(M, y + 18, pageW - M, y + 18);
         y += 18;
       });
+
       const combinedDraft = computed.reduce((a, r) => a + r.draftTotal, 0);
       const combinedAdjusted = computed.reduce((a, r) => a + r.adjustedTotal, 0);
       const combinedDiff = combinedAdjusted - combinedDraft;
