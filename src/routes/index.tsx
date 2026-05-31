@@ -4983,7 +4983,7 @@ function EstimateReviewPanel({
 
 
         const primaryLabel =
-          workflowMode === "SENIOR_AUTHORIZATION" ? "Submit for Senior Authorization" : "Submit Estimate";
+          claim.delegationState === "SENIOR_AUTHORIZATION" ? "Submit for Senior Authorization" : "Complete Review";
 
         const _cf = claimForm;
         const _cv = _cf?.coverage;
