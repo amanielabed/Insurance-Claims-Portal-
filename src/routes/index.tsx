@@ -404,6 +404,20 @@ type SavedSnapshot = {
   savedAt: number;
 };
 
+type ChangeLogEntry = {
+  id: string;
+  scenarioName: string;
+  action: string;
+  at: number;
+};
+
+const SCENARIO_NAME_BY_ID: Record<string, string> = {
+  "2026-001": "Fast-Track",
+  "2026-002": "Verification Recommended",
+  "2026-003": "Senior Authorization",
+};
+
+
 const STEPS = [
   "Submit Claim",
   "Upload Photos",
