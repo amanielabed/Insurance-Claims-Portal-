@@ -3605,6 +3605,24 @@ interface LogEntry {
   to: number;
 }
 
+// Rationale tracking for adjuster overrides (module scope so review state can be lifted)
+type RationaleCode =
+  | "additional_damage"
+  | "labor_rate"
+  | "scope_change"
+  | "parts_availability"
+  | "other";
+type Override = { reason: RationaleCode | null; other: string };
+
+// Per-scenario review state preserved across scenario switches
+type ScenarioReviewState = {
+  adjusted: number[];
+  drafts: string[];
+  adjusterNotes: string;
+  overrides: Record<number, Override>;
+  log: LogEntry[];
+};
+
 const SOURCE_META: Record<
   SourceKey,
   { short: string; label: string; bg: string; fg: string; border: string }
