@@ -2576,8 +2576,48 @@ function ReviewEstimateStep({
           y += 2;
           wrapped("No actions have been taken on this scenario.", M, W, 9, "#6B7280", true);
         }
+
+        // ===== Damage Photos (always included as part of the claim file) =====
+        y += 10;
+        setText(11, "#111827", true);
+        need(18);
+        pdf.text("Damage Photos", M, y + 8);
+        y += 14;
+        if (r.photos.length === 0) {
+          wrapped("No damage photos were provided for this scenario.", M, W, 9.5, "#6B7280", false);
+        } else {
+          r.photos.forEach((p) => {
+            const data = photoCache.get(p.url);
+            if (!data || data.w <= 0 || data.h <= 0) {
+              wrapped(`Photo unavailable — ${p.caption}`, M, W, 9, "#6B7280");
+              return;
+            }
+            const dispW = Math.min(W, 340);
+            const dispH = (data.h / data.w) * dispW;
+            // Keep image + caption together on the same page where possible.
+            need(dispH + 24);
+            try {
+              pdf.addImage(data.dataURL, "JPEG", M, y, dispW, dispH, undefined, "FAST");
+              pdf.setDrawColor("#E5E7EB");
+              pdf.setLineWidth(0.5);
+              pdf.rect(M, y, dispW, dispH);
+            } catch {
+              /* ignore draw failure */
+            }
+            y += dispH + 4;
+            setText(8.5, "#6B7280", false, true);
+            (pdf.splitTextToSize(`Caption: ${p.caption}`, W) as string[]).forEach((ln) => {
+              need(11);
+              pdf.text(ln, M, y + 8);
+              y += 11;
+            });
+            y += 6;
+          });
+        }
+
         wrapped("Damage description:", M, W, 10, "#6B7280", true);
         wrapped(r.scenario.description, M, W, 10, "#374151");
+
         y += 4;
         infoRow("Draft Total", fmtCurrency(r.draftTotal));
         infoRow("Adjusted Total", fmtCurrency(r.adjustedTotal));
