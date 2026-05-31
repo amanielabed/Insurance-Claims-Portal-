@@ -478,6 +478,23 @@ const STEPS = [
 ] as const;
 const SUBMISSION_STEPS = 3;
 
+// Readable labels for information-request items selected in the Request
+// Information modal. Used in both the individual scenario report and the
+// consolidated session report.
+const REQUEST_ITEM_LABELS: Record<string, string> = {
+  police_report: "Police report",
+  additional_photos: "Additional damage photos",
+  supporting_docs: "Supporting documentation",
+  customer_clarification: "Customer clarification",
+};
+
+type InformationRequest = {
+  items: string[];
+  message: string;
+  timestamp: string;
+};
+
+
 export interface UploadedPhoto {
   slotId: string;
   name: string;
