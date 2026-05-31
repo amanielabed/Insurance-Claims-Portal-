@@ -371,6 +371,55 @@ const COLORS = {
 const fmtCurrency = (n: number) =>
   `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+/**
+ * Loads an image URL and returns a JPEG data URL plus natural dimensions so it
+ * can be embedded into the generated PDF while preserving aspect ratio.
+ * Returns null if the image fails to load.
+ */
+async function loadImageForPdf(
+  url: string,
+): Promise<{ dataURL: string; w: number; h: number } | null> {
+  return new Promise((resolve) => {
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const w = img.naturalWidth || img.width;
+          const h = img.naturalHeight || img.height;
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return resolve(null);
+          ctx.drawImage(img, 0, 0);
+          resolve({ dataURL: canvas.toDataURL("image/jpeg", 0.9), w, h });
+        } catch {
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+/** Damage photos (with captions) attached to each scenario for the claim file. */
+function scenarioPhotos(claim: Claim): { url: string; caption: string }[] {
+  const overlays = OVERLAYS[claim.id] ?? [];
+  const out: { url: string; caption: string }[] = [];
+  if (claim.imageUrl) {
+    const caption = overlays.length
+      ? overlays.map((o) => o.label).join(" · ")
+      : claim.imagePlaceholder || "Submitted damage photo";
+    out.push({ url: claim.imageUrl, caption });
+  }
+  return out;
+}
+
+
 const SOURCE_LABELS: Record<SourceKey, string> = {
   mitchell: "Mitchell",
   ccc: "CCC",
@@ -2349,6 +2398,8 @@ function ReviewEstimateStep({
         latestActionAt: number | null;
         editRecallCount: number;
         hasAction: boolean;
+        photos: { url: string; caption: string }[];
+
       };
       const computed: Computed[] = SCENARIOS.map((s) => {
         const c = claimData.find((cd) => cd.id === s.id)!;
@@ -2395,8 +2446,21 @@ function ReviewEstimateStep({
           latestActionAt,
           editRecallCount,
           hasAction: actions.length > 0,
+          photos: scenarioPhotos(c),
         };
       });
+
+      // Preload every damage photo as a JPEG data URL so they can always be
+      // embedded into the report, regardless of scenario status.
+      const photoCache = new Map<string, { dataURL: string; w: number; h: number } | null>();
+      const photoUrls = new Set<string>();
+      computed.forEach((r) => r.photos.forEach((p) => photoUrls.add(p.url)));
+      await Promise.all(
+        [...photoUrls].map(async (u) => {
+          photoCache.set(u, await loadImageForPdf(u));
+        }),
+      );
+
 
       const fmtPct = (p: number) => `${p >= 0 ? "+" : "−"}${Math.abs(p).toFixed(1)}%`;
       const fmtDiff = (d: number) => `${d >= 0 ? "+" : "−"}${fmtCurrency(Math.abs(d))}`;
@@ -2512,8 +2576,48 @@ function ReviewEstimateStep({
           y += 2;
           wrapped("No actions have been taken on this scenario.", M, W, 9, "#6B7280", true);
         }
+
+        // ===== Damage Photos (always included as part of the claim file) =====
+        y += 10;
+        setText(11, "#111827", true);
+        need(18);
+        pdf.text("Damage Photos", M, y + 8);
+        y += 14;
+        if (r.photos.length === 0) {
+          wrapped("No damage photos were provided for this scenario.", M, W, 9.5, "#6B7280", false);
+        } else {
+          r.photos.forEach((p) => {
+            const data = photoCache.get(p.url);
+            if (!data || data.w <= 0 || data.h <= 0) {
+              wrapped(`Photo unavailable — ${p.caption}`, M, W, 9, "#6B7280");
+              return;
+            }
+            const dispW = Math.min(W, 340);
+            const dispH = (data.h / data.w) * dispW;
+            // Keep image + caption together on the same page where possible.
+            need(dispH + 24);
+            try {
+              pdf.addImage(data.dataURL, "JPEG", M, y, dispW, dispH, undefined, "FAST");
+              pdf.setDrawColor("#E5E7EB");
+              pdf.setLineWidth(0.5);
+              pdf.rect(M, y, dispW, dispH);
+            } catch {
+              /* ignore draw failure */
+            }
+            y += dispH + 4;
+            setText(8.5, "#6B7280", false, true);
+            (pdf.splitTextToSize(`Caption: ${p.caption}`, W) as string[]).forEach((ln) => {
+              need(11);
+              pdf.text(ln, M, y + 8);
+              y += 11;
+            });
+            y += 6;
+          });
+        }
+
         wrapped("Damage description:", M, W, 10, "#6B7280", true);
         wrapped(r.scenario.description, M, W, 10, "#374151");
+
         y += 4;
         infoRow("Draft Total", fmtCurrency(r.draftTotal));
         infoRow("Adjusted Total", fmtCurrency(r.adjustedTotal));
