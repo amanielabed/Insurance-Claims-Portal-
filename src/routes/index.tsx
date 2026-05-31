@@ -4006,7 +4006,7 @@ function EstimateReviewPanel({
   onAwaitingInfo,
   onClearAwaitingInfo,
 
-  onInfoRequest,
+  onInformationRequest,
 
 
   adjusted,
