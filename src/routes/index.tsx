@@ -2354,10 +2354,11 @@ function ReviewEstimateStep({
 
   const allScenariosSaved = savedEstimates.size >= SCENARIOS.length;
 
-  // Notify parent when every scenario has reached its saved/submitted state
+  // Step 6 (Final Resolution) is only "active" once the adjuster explicitly
+  // proceeds to the final report screen — not merely when all scenarios saved.
   useEffect(() => {
-    onFinalize?.(allScenariosSaved);
-  }, [allScenariosSaved, onFinalize]);
+    onFinalize?.(showFinalReport);
+  }, [showFinalReport, onFinalize]);
 
   const generateFullReport = async () => {
     setIsGeneratingFullReport(true);
