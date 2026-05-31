@@ -2257,7 +2257,7 @@ function ReviewEstimateStep({
   const updateScenarioReviewField = <K extends keyof ScenarioReviewState>(
     id: string,
     key: K,
-    value: React.SetStateAction<ScenarioReviewState[K]>,
+    value: SetStateAction<ScenarioReviewState[K]>,
   ) => {
     setReviewByScenario((prev) => {
       const cur = prev[id] ?? defaultScenarioReviewState(id);
