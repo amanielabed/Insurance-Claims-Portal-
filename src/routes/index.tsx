@@ -4693,8 +4693,12 @@ function EstimateReviewPanel({
                     + Add Internal Note
                   </button>
                 </div>
+                </>
+                  );
+                })()}
               </>
             )}
+
 
             {/* Approval Confirmation Modal */}
             <Dialog open={approvalConfirmOpen} onOpenChange={setApprovalConfirmOpen}>
