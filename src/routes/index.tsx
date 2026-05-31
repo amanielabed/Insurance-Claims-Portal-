@@ -4801,11 +4801,16 @@ function EstimateReviewPanel({
               };
             })
             .filter(Boolean) as SavedOverride[];
+          // Read the live notes value for the active scenario at click time so the
+          // snapshot never captures a stale render-time value. notesRef reflects the
+          // current textarea (bound to the parent-level adjusterNotes for this claim.id);
+          // fall back to the lifted prop if the field is not mounted.
+          const currentNotes = (notesRef.current?.value ?? adjusterNotes).slice(0, NOTES_LIMIT);
           return {
             id: claim.id,
             status,
             adjusted: finalAdjusted,
-            notes: adjusterNotes,
+            notes: currentNotes,
             overrides: snapOverrides,
             draftTotal,
             adjustedTotal: finalTotal,
