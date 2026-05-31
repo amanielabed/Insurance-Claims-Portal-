@@ -4876,6 +4876,9 @@ function EstimateReviewPanel({
               <>
                 {(() => {
                   const ackRequired = !isFastTrack && hasConcerns && !concernsDismissed;
+                  // While awaiting requested information, the primary action can
+                  // only save progress — completion / senior submission is blocked.
+                  const primaryDisabled = ackRequired && !awaitingInfo;
                   return (
                 <>
                 {/* Persistent Action Bar — always 3 actions, never disabled by warnings */}
@@ -4883,24 +4886,31 @@ function EstimateReviewPanel({
                   {/* PRIMARY */}
                   <button
                     type="button"
-                    onClick={handlePrimary}
-                    disabled={ackRequired}
+                    onClick={
+                      awaitingInfo
+                        ? () =>
+                            toast.success(
+                              "Review progress saved. Claim is awaiting requested information.",
+                            )
+                        : handlePrimary
+                    }
+                    disabled={primaryDisabled}
                     className="flex-1 rounded-md py-2.5 text-sm font-semibold transition-colors"
                     style={{
-                      backgroundColor: ackRequired ? "#9CA3AF" : COLORS.blue,
+                      backgroundColor: primaryDisabled ? "#9CA3AF" : COLORS.blue,
                       color: "white",
                       border: "none",
-                      cursor: ackRequired ? "not-allowed" : "pointer",
-                      opacity: ackRequired ? 0.7 : 1,
+                      cursor: primaryDisabled ? "not-allowed" : "pointer",
+                      opacity: primaryDisabled ? 0.7 : 1,
                     }}
                     onMouseEnter={(e) => {
-                      if (!ackRequired) e.currentTarget.style.backgroundColor = COLORS.blueHover;
+                      if (!primaryDisabled) e.currentTarget.style.backgroundColor = COLORS.blueHover;
                     }}
                     onMouseLeave={(e) => {
-                      if (!ackRequired) e.currentTarget.style.backgroundColor = COLORS.blue;
+                      if (!primaryDisabled) e.currentTarget.style.backgroundColor = COLORS.blue;
                     }}
                   >
-                    {primaryLabel}
+                    {awaitingInfo ? "Save Review Progress" : primaryLabel}
                   </button>
 
                   {/* TERTIARY: Save & Request Information */}
@@ -4916,9 +4926,37 @@ function EstimateReviewPanel({
                     onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F9FAFB")}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
                   >
-                    Save & Request Information
+                    {awaitingInfo ? "Request Additional Information" : "Save & Request Information"}
                   </button>
                 </div>
+
+                {/* Awaiting information indicator */}
+                {awaitingInfo && (
+                  <div className="shrink-0 flex flex-col gap-1 pt-2">
+                    <div
+                      className="flex items-start gap-2 rounded-md border px-3 py-2 text-xs font-medium"
+                      style={{
+                        backgroundColor: COLORS.amberBg,
+                        borderColor: COLORS.amberBorder,
+                        color: COLORS.amberText,
+                      }}
+                    >
+                      <Clock size={13} style={{ color: COLORS.amberText, marginTop: 1 }} />
+                      <span>
+                        Awaiting requested information — review cannot be completed until
+                        information is received.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onClearAwaitingInfo}
+                      className="self-start text-xs font-medium underline-offset-2 hover:underline"
+                      style={{ color: COLORS.blue }}
+                    >
+                      Mark information as received
+                    </button>
+                  </div>
+                )}
 
                 {/* Add Internal Note */}
                 <div className="shrink-0 flex items-center pt-1">
