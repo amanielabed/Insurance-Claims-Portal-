@@ -2268,6 +2268,14 @@ function ReviewEstimateStep({
     });
   const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>([]);
   const [isGeneratingFullReport, setIsGeneratingFullReport] = useState(false);
+  // Information request submitted via the Request Information modal (global to
+  // the session). Surfaced in the generated reports.
+  const [informationRequest, setInformationRequest] = useState<InformationRequest | null>(null);
+  // Compact summary bar "View Details" collapsible toggle.
+  const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
+  // Step 6 (Final Resolution / Session Complete) screen toggle.
+  const [showFinalReport, setShowFinalReport] = useState(false);
+  const [sessionReportDownloaded, setSessionReportDownloaded] = useState(false);
 
   // Per-scenario review state lifted from EstimateReviewPanel so unsaved work
   // (adjusted values, draft strings, notes, rationale overrides, activity log)
