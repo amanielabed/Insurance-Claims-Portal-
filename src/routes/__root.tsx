@@ -73,14 +73,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Insurance Claims Portal - Amani Alabed" },
+      { name: "description", content: "Insurance Claims Portal is a claims agent workspace for vehicle damage assessment, estimate review, and adaptive authorisation routing." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Insurance Claims Portal - Amani Alabed" },
+      { property: "og:description", content: "Insurance Claims Portal is a claims agent workspace for vehicle damage assessment, estimate review, and adaptive authorisation routing." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Insurance Claims Portal - Amani Alabed" },
+      { name: "twitter:description", content: "Insurance Claims Portal is a claims agent workspace for vehicle damage assessment, estimate review, and adaptive authorisation routing." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/NZ9ZuCi6kzTqkdVIumIGyAxXukH3/social-images/social-1780232991871-ChatGPT_Image_May_31,_2026,_04_09_43_PM.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/NZ9ZuCi6kzTqkdVIumIGyAxXukH3/social-images/social-1780232991871-ChatGPT_Image_May_31,_2026,_04_09_43_PM.webp" },
     ],
     links: [
       {
