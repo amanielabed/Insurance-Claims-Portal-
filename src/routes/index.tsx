@@ -2979,7 +2979,7 @@ function ReviewEstimateStep({
       const pending = snap?.status === "PENDING_SENIOR";
       return {
         name: row.name,
-        statusLabel: pending ? "Pending Senior Authorization" : "Review Complete",
+        statusLabel: pending ? "Pending Senior Authorization" : "Estimate Submitted",
         pending,
       };
     });
