@@ -4151,6 +4151,7 @@ function EstimateReviewPanel({
   awaitingInfo,
   onAwaitingInfo,
   onClearAwaitingInfo,
+  onSaveProgress,
 
   onInformationRequest,
 
