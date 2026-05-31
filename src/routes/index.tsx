@@ -3074,7 +3074,7 @@ function ReviewEstimateStep({
           </div>
 
           <p className="mt-4 text-sm font-medium" style={{ color: COLORS.text }}>
-            Total estimates submitted: 3 of 3
+            Total scenarios handled: {handledCount} of {SCENARIOS.length}
           </p>
 
           <div className="mt-8">
