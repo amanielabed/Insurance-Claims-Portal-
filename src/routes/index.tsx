@@ -4824,7 +4824,7 @@ function EstimateReviewPanel({
         return (
           <>
 
-            {isSaved ? (
+            {isSaved && !awaitingInfo ? (
               <div className="shrink-0 flex flex-col gap-2 pt-1">
                 <div
                   className="flex items-center gap-2 rounded-md border px-3 py-2.5"
