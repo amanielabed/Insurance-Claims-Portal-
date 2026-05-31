@@ -3287,6 +3287,7 @@ function ReviewEstimateStep({
             awaitingInfo={awaitingInfoIds.has(claim.id)}
             onAwaitingInfo={() => markAwaitingInfo(claim.id)}
             onClearAwaitingInfo={() => clearAwaitingInfo(claim.id)}
+            onInformationRequest={(req) => setInformationRequest(req)}
             adjusted={currentReview.adjusted}
             setAdjusted={(v) => updateScenarioReviewField(claim.id, "adjusted", v)}
             drafts={currentReview.drafts}
