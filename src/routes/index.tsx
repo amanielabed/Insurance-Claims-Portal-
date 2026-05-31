@@ -2398,6 +2398,8 @@ function ReviewEstimateStep({
         latestActionAt: number | null;
         editRecallCount: number;
         hasAction: boolean;
+        photos: { url: string; caption: string }[];
+
       };
       const computed: Computed[] = SCENARIOS.map((s) => {
         const c = claimData.find((cd) => cd.id === s.id)!;
