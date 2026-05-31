@@ -371,6 +371,39 @@ const COLORS = {
 const fmtCurrency = (n: number) =>
   `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+const SOURCE_LABELS: Record<SourceKey, string> = {
+  mitchell: "Mitchell",
+  ccc: "CCC",
+  oem: "OEM",
+  verify: "Verify",
+};
+
+const RATIONALE_LABELS: Record<string, string> = {
+  additional_damage: "Additional damage identified",
+  labor_rate: "Labor rate adjustment",
+  scope_change: "Repair scope change",
+  parts_availability: "Parts availability",
+};
+
+type SavedOverride = {
+  partIndex: number;
+  name: string;
+  draft: number;
+  adjusted: number;
+  rationale: string;
+};
+
+type SavedSnapshot = {
+  id: string;
+  status: "SAVED" | "PENDING_SENIOR";
+  adjusted: number[];
+  notes: string;
+  overrides: SavedOverride[];
+  draftTotal: number;
+  adjustedTotal: number;
+  savedAt: number;
+};
+
 const STEPS = [
   "Submit Claim",
   "Upload Photos",
@@ -2142,47 +2175,397 @@ function ReviewEstimateStep({
   const [scenarioOpen, setScenarioOpen] = useState(false);
   const [highlightedPart, setHighlightedPart] = useState<number | null>(null);
   const [concernsDismissed, setConcernsDismissed] = useState(false);
-  const [authorization, setAuthorization] = useState<AuthorizationDetails | null>(null);
-  const [seniorPending, setSeniorPending] = useState<{ amount: number; submittedAt: number } | null>(null);
-  const [viewingSubmitted, setViewingSubmitted] = useState(false);
-  const [reviewedScenarios, setReviewedScenarios] = useState<Set<string>>(() => new Set());
-  const generateReportRef = useRef<((forAuthorization?: boolean) => Promise<void>) | null>(null);
+  const [savedEstimates, setSavedEstimates] = useState<Map<string, SavedSnapshot>>(() => new Map());
+  const [isGeneratingFullReport, setIsGeneratingFullReport] = useState(false);
 
-  // Reset only the resolution state — preserves scenario, claimForm, photos, claimRef
-  const continueReviewing = () => {
-    setAuthorization(null);
-    setSeniorPending(null);
-    setViewingSubmitted(false);
-  };
+  const handleSave = (snap: SavedSnapshot) =>
+    setSavedEstimates((prev) => {
+      const next = new Map(prev);
+      next.set(snap.id, snap);
+      return next;
+    });
+  const handleUnlock = (id: string) =>
+    setSavedEstimates((prev) => {
+      const next = new Map(prev);
+      next.delete(id);
+      return next;
+    });
 
   // Sync escalation when switching claims — auto-load senior authorization for SENIOR_AUTHORIZATION scenarios
   useEffect(() => {
     setSeniorReview(claim.delegationState === "SENIOR_AUTHORIZATION");
     setHighlightedPart(null);
     setConcernsDismissed(false);
-    setAuthorization(null);
-    setSeniorPending(null);
-    setViewingSubmitted(false);
   }, [selectedId, claim.delegationState]);
 
-  // Track scenarios that reach a completion state
+  const allScenariosSaved = savedEstimates.size >= SCENARIOS.length;
+
+  // Notify parent when every scenario has reached its saved/submitted state
   useEffect(() => {
-    if (authorization !== null || seniorPending !== null) {
-      setReviewedScenarios((prev) => {
-        if (prev.has(selectedId)) return prev;
-        const next = new Set(prev);
-        next.add(selectedId);
-        return next;
+    onFinalize?.(allScenariosSaved);
+  }, [allScenariosSaved, onFinalize]);
+
+  const generateFullReport = async () => {
+    setIsGeneratingFullReport(true);
+    const tid = toast.loading("Generating claims assessment report…");
+    try {
+      const { jsPDF } = await import("jspdf");
+      const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const M = 40;
+      const W = pageW - M * 2;
+      let y = M;
+
+      const setText = (size: number, color = "#111827", bold = false, italic = false) => {
+        pdf.setFont("helvetica", bold ? (italic ? "bolditalic" : "bold") : italic ? "italic" : "normal");
+        pdf.setFontSize(size);
+        pdf.setTextColor(color);
+      };
+      const need = (h: number) => {
+        if (y + h > pageH - M - 64) {
+          pdf.addPage();
+          y = M;
+        }
+      };
+      const wrapped = (t: string, x: number, maxW: number, size = 10, color = "#374151", bold = false) => {
+        setText(size, color, bold);
+        const lh = size * 1.4;
+        (pdf.splitTextToSize(t, maxW) as string[]).forEach((ln) => {
+          need(lh);
+          pdf.text(ln, x, y + size);
+          y += lh;
+        });
+      };
+      const sectionTitle = (label: string) => {
+        need(46);
+        y += 18;
+        setText(13, "#111827", true);
+        pdf.text(label, M, y + 8);
+        y += 16;
+        pdf.setDrawColor("#111827");
+        pdf.setLineWidth(1);
+        pdf.line(M, y, pageW - M, y);
+        y += 12;
+      };
+      const infoRow = (label: string, value: string, valueColor = "#111827") => {
+        need(20);
+        setText(10, "#6B7280");
+        pdf.text(label, M, y + 10);
+        setText(10, valueColor, true);
+        pdf.text(value, pageW - M, y + 10, { align: "right" });
+        y += 18;
+      };
+      const drawBadge = (text: string, x: number, yTop: number, bg: string, fg: string) => {
+        setText(9, fg, true);
+        const tw = pdf.getTextWidth(text);
+        const bw = tw + 12;
+        pdf.setFillColor(bg);
+        pdf.roundedRect(x, yTop, bw, 15, 3, 3, "F");
+        pdf.setTextColor(fg);
+        pdf.text(text, x + 6, yTop + 10);
+        return bw;
+      };
+
+      const vehicle =
+        [claimForm?.year, claimForm?.make, claimForm?.model].filter(Boolean).join(" ").trim() || "—";
+      const reportDate = new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       });
+      const fullTimestamp = new Date().toLocaleString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      const GREEN = { bg: "#DCFCE7", fg: "#15803D" };
+      const AMBER = { bg: "#FEF3C7", fg: "#B45309" };
+      const reviewTypeMap: Record<string, string> = {
+        FAST_TRACK: "Fast-Track",
+        VERIFICATION_RECOMMENDED: "Manual Review",
+        SENIOR_AUTHORIZATION: "Senior Authorization",
+      };
+      const scenarioNameMap: Record<string, string> = {
+        FAST_TRACK: "Fast-Track",
+        VERIFICATION_RECOMMENDED: "Verification Recommended",
+        SENIOR_AUTHORIZATION: "Senior Authorization",
+      };
+
+      type Computed = {
+        scenario: ScenarioMeta;
+        claim: Claim;
+        snap: SavedSnapshot | undefined;
+        draftTotal: number;
+        adjustedTotal: number;
+        diff: number;
+        pct: number;
+        isSenior: boolean;
+      };
+      const computed: Computed[] = SCENARIOS.map((s) => {
+        const c = claimData.find((cd) => cd.id === s.id)!;
+        const snap = savedEstimates.get(s.id);
+        const draftTotal = c.parts.reduce((a, p) => a + p.draftEstimate, 0);
+        const adjustedTotal = snap?.adjustedTotal ?? draftTotal;
+        const diff = adjustedTotal - draftTotal;
+        const pct = draftTotal ? (diff / draftTotal) * 100 : 0;
+        return {
+          scenario: s,
+          claim: c,
+          snap,
+          draftTotal,
+          adjustedTotal,
+          diff,
+          pct,
+          isSenior: s.state === "SENIOR_AUTHORIZATION",
+        };
+      });
+      const fmtPct = (p: number) => `${p >= 0 ? "+" : "−"}${Math.abs(p).toFixed(1)}%`;
+      const fmtDiff = (d: number) => `${d >= 0 ? "+" : "−"}${fmtCurrency(Math.abs(d))}`;
+
+      // ===== COVER =====
+      setText(22, "#111827", true);
+      pdf.text("Claims Assessment Report", M, y + 22);
+      y += 40;
+      pdf.setDrawColor("#111827");
+      pdf.setLineWidth(1.5);
+      pdf.line(M, y, pageW - M, y);
+      y += 18;
+      infoRow("Policyholder", claimForm?.fullName?.trim() || "—");
+      infoRow("Policy", claimForm?.policyNumber?.trim() || "—");
+      infoRow("Vehicle", vehicle);
+      infoRow("Claim Reference", claimRef);
+      infoRow("Report Date", reportDate);
+      infoRow("Prepared By", ADJUSTER_NAME);
+
+      // ===== CLAIMS SUMMARY TABLE =====
+      sectionTitle("Claims Summary");
+      const cols = [
+        { x: M, w: 104, align: "left" as const, label: "Scenario" },
+        { x: M + 104, w: 88, align: "left" as const, label: "Review Type" },
+        { x: M + 192, w: 66, align: "right" as const, label: "Draft" },
+        { x: M + 258, w: 66, align: "right" as const, label: "Adjusted" },
+        { x: M + 324, w: 78, align: "right" as const, label: "Variance" },
+        { x: M + 402, w: W - 402, align: "left" as const, label: "Status" },
+      ];
+      const drawCell = (
+        text: string,
+        col: (typeof cols)[number],
+        rowY: number,
+        color = "#374151",
+        bold = false,
+        size = 8.5,
+      ) => {
+        setText(size, color, bold);
+        const tx = col.align === "right" ? col.x + col.w - 4 : col.x + 2;
+        pdf.text(text, tx, rowY, { align: col.align });
+      };
+      need(24);
+      pdf.setFillColor("#F3F4F6");
+      pdf.rect(M, y, W, 18, "F");
+      cols.forEach((c) => drawCell(c.label.toUpperCase(), c, y + 12, "#6B7280", true, 8));
+      y += 18;
+      computed.forEach((r) => {
+        need(22);
+        const badge = r.isSenior ? AMBER : GREEN;
+        const statusText = r.isSenior ? "Pending Senior Authorization" : "Estimate Saved";
+        drawCell(scenarioNameMap[r.scenario.state], cols[0], y + 12, "#111827", true);
+        drawCell(reviewTypeMap[r.scenario.state], cols[1], y + 12);
+        drawCell(fmtCurrency(r.draftTotal), cols[2], y + 12);
+        drawCell(fmtCurrency(r.adjustedTotal), cols[3], y + 12);
+        drawCell(
+          `${fmtDiff(r.diff)} (${fmtPct(r.pct)})`,
+          cols[4],
+          y + 12,
+          r.diff === 0 ? "#6B7280" : r.diff > 0 ? "#B45309" : "#15803D",
+        );
+        drawBadge(statusText, cols[5].x + 2, y + 3, badge.bg, badge.fg);
+        pdf.setDrawColor("#E5E7EB");
+        pdf.setLineWidth(0.5);
+        pdf.line(M, y + 18, pageW - M, y + 18);
+        y += 18;
+      });
+      const combinedDraft = computed.reduce((a, r) => a + r.draftTotal, 0);
+      const combinedAdjusted = computed.reduce((a, r) => a + r.adjustedTotal, 0);
+      const combinedDiff = combinedAdjusted - combinedDraft;
+      const combinedPct = combinedDraft ? (combinedDiff / combinedDraft) * 100 : 0;
+      need(22);
+      pdf.setFillColor("#F9FAFB");
+      pdf.rect(M, y, W, 18, "F");
+      drawCell("Combined Total", cols[0], y + 12, "#111827", true);
+      drawCell(fmtCurrency(combinedDraft), cols[2], y + 12, "#111827", true);
+      drawCell(fmtCurrency(combinedAdjusted), cols[3], y + 12, "#111827", true);
+      drawCell(`${fmtDiff(combinedDiff)} (${fmtPct(combinedPct)})`, cols[4], y + 12, "#111827", true);
+      y += 18;
+
+      // ===== PER-SCENARIO SECTIONS =====
+      computed.forEach((r, idx) => {
+        const badge = r.isSenior ? AMBER : GREEN;
+        const statusText = r.isSenior ? "Pending Senior Authorization" : "Estimate Saved";
+        sectionTitle(`Section ${idx + 1} — ${scenarioNameMap[r.scenario.state]}`);
+        need(20);
+        setText(10, "#6B7280");
+        pdf.text("Status", M, y + 10);
+        drawBadge(statusText, M + 50, y + 1, badge.bg, badge.fg);
+        y += 20;
+        infoRow("Review Type", reviewTypeMap[r.scenario.state]);
+        wrapped("Damage description:", M, W, 10, "#6B7280", true);
+        wrapped(r.scenario.description, M, W, 10, "#374151");
+        y += 4;
+        infoRow("Draft Total", fmtCurrency(r.draftTotal));
+        infoRow("Adjusted Total", fmtCurrency(r.adjustedTotal));
+        infoRow(
+          "Net Variance",
+          `${fmtDiff(r.diff)} (${fmtPct(r.pct)})`,
+          r.diff === 0 ? "#111827" : r.diff > 0 ? "#B45309" : "#15803D",
+        );
+
+        y += 8;
+        setText(9, "#111827", true);
+        need(16);
+        pdf.text("Estimate Breakdown", M, y + 8);
+        y += 12;
+        const bcols = [
+          { x: M, w: 118, align: "left" as const, label: "Line Item" },
+          { x: M + 118, w: 70, align: "left" as const, label: "Scope" },
+          { x: M + 188, w: 38, align: "right" as const, label: "Labor" },
+          { x: M + 226, w: 92, align: "left" as const, label: "Cost Basis" },
+          { x: M + 318, w: 70, align: "right" as const, label: "Draft" },
+          { x: M + 388, w: 66, align: "right" as const, label: "Adjusted" },
+          { x: M + 454, w: W - 454, align: "right" as const, label: "Diff" },
+        ];
+        const drawBCell = (
+          text: string,
+          col: (typeof bcols)[number],
+          rowY: number,
+          color = "#374151",
+          bold = false,
+        ) => {
+          setText(8, color, bold);
+          const lines = pdf.splitTextToSize(text, col.w - 4) as string[];
+          const tx = col.align === "right" ? col.x + col.w - 4 : col.x + 2;
+          pdf.text(lines[0] ?? "", tx, rowY, { align: col.align });
+        };
+        need(22);
+        pdf.setFillColor("#F3F4F6");
+        pdf.rect(M, y, W, 16, "F");
+        bcols.forEach((c) => drawBCell(c.label.toUpperCase(), c, y + 11, "#6B7280", true));
+        y += 16;
+        r.claim.parts.forEach((p, i) => {
+          need(20);
+          const adj = r.snap?.adjusted[i] ?? p.draftEstimate;
+          const d = adj - p.draftEstimate;
+          const costBasis = p.sources.map((s) => SOURCE_LABELS[s]).join(", ");
+          drawBCell(p.name, bcols[0], y + 11, "#111827");
+          drawBCell(p.suggestedRepairScope, bcols[1], y + 11);
+          drawBCell(`${p.laborHours}h`, bcols[2], y + 11);
+          drawBCell(costBasis, bcols[3], y + 11);
+          drawBCell(fmtCurrency(p.draftEstimate), bcols[4], y + 11);
+          drawBCell(fmtCurrency(adj), bcols[5], y + 11);
+          drawBCell(
+            d === 0 ? "—" : fmtDiff(d),
+            bcols[6],
+            y + 11,
+            d === 0 ? "#6B7280" : d > 0 ? "#B45309" : "#15803D",
+          );
+          pdf.setDrawColor("#E5E7EB");
+          pdf.setLineWidth(0.5);
+          pdf.line(M, y + 16, pageW - M, y + 16);
+          y += 16;
+        });
+
+        y += 8;
+        wrapped("Adjuster notes:", M, W, 9, "#111827", true);
+        wrapped(r.snap?.notes?.trim() || "No notes entered", M, W, 9, "#374151");
+
+        if (r.snap && r.snap.overrides.length > 0) {
+          y += 8;
+          wrapped("Adjuster Overrides", M, W, 9, "#111827", true);
+          const ocols = [
+            { x: M, w: 150, align: "left" as const, label: "Line Item" },
+            { x: M + 150, w: 80, align: "right" as const, label: "Draft" },
+            { x: M + 230, w: 80, align: "right" as const, label: "Adjusted" },
+            { x: M + 310, w: 80, align: "right" as const, label: "Variance" },
+            { x: M + 390, w: W - 390, align: "left" as const, label: "Rationale" },
+          ];
+          const drawOCell = (
+            text: string,
+            col: (typeof ocols)[number],
+            rowY: number,
+            color = "#374151",
+            bold = false,
+          ) => {
+            setText(8, color, bold);
+            const lines = pdf.splitTextToSize(text, col.w - 4) as string[];
+            const tx = col.align === "right" ? col.x + col.w - 4 : col.x + 2;
+            pdf.text(lines[0] ?? "", tx, rowY, { align: col.align });
+          };
+          need(20);
+          pdf.setFillColor("#F3F4F6");
+          pdf.rect(M, y, W, 16, "F");
+          ocols.forEach((c) => drawOCell(c.label.toUpperCase(), c, y + 11, "#6B7280", true));
+          y += 16;
+          r.snap.overrides.forEach((o) => {
+            need(20);
+            const ov = o.adjusted - o.draft;
+            drawOCell(o.name, ocols[0], y + 11, "#111827");
+            drawOCell(fmtCurrency(o.draft), ocols[1], y + 11);
+            drawOCell(fmtCurrency(o.adjusted), ocols[2], y + 11);
+            drawOCell(fmtDiff(ov), ocols[3], y + 11, ov > 0 ? "#B45309" : "#15803D");
+            drawOCell(o.rationale, ocols[4], y + 11);
+            pdf.setDrawColor("#E5E7EB");
+            pdf.setLineWidth(0.5);
+            pdf.line(M, y + 16, pageW - M, y + 16);
+            y += 16;
+          });
+        }
+
+        if (r.isSenior) {
+          y += 10;
+          const boxText =
+            "This estimate has been submitted for senior adjuster authorization. Repair cannot proceed until senior sign-off is confirmed.";
+          const lines = pdf.splitTextToSize(boxText, W - 24) as string[];
+          const boxH = lines.length * 13 + 16;
+          need(boxH + 6);
+          pdf.setFillColor("#FEF2F2");
+          pdf.rect(M, y, W, boxH, "F");
+          pdf.setFillColor("#DC2626");
+          pdf.rect(M, y, 3, boxH, "F");
+          setText(9, "#991B1B", true);
+          lines.forEach((ln, i) => pdf.text(ln, M + 14, y + 16 + i * 13));
+          y += boxH;
+        }
+      });
+
+      // ===== FOOTER ON EVERY PAGE =====
+      const footerText =
+        "Draft estimates prepared using Mitchell RepairCenter, CCC Intelligent Solutions, and OEM Repair Guidelines. All line items flagged as Verification Required are extrapolated and subject to adjuster confirmation.";
+      const totalPages = pdf.getNumberOfPages();
+      for (let p = 1; p <= totalPages; p++) {
+        pdf.setPage(p);
+        pdf.setDrawColor("#E5E7EB");
+        pdf.setLineWidth(0.5);
+        pdf.line(M, pageH - 50, pageW - M, pageH - 50);
+        setText(6.5, "#9CA3AF");
+        const fLines = pdf.splitTextToSize(footerText, W) as string[];
+        fLines.forEach((ln, i) => pdf.text(ln, M, pageH - 40 + i * 8));
+        setText(7, "#9CA3AF", true);
+        pdf.text(`Claim reference: ${claimRef}`, M, pageH - 14);
+        pdf.text(`Generated: ${fullTimestamp}`, pageW - M, pageH - 14, { align: "right" });
+      }
+
+      pdf.save(`Claims_Assessment_${claimRef}.pdf`);
+      toast.success("Claims assessment report generated.", { id: tid });
+    } catch (err) {
+      console.error(err);
+      toast.error("Could not generate the report. Please try again.", { id: tid });
+    } finally {
+      setIsGeneratingFullReport(false);
     }
-  }, [authorization, seniorPending, selectedId]);
-
-  // Notify parent when claim reaches a final workflow state
-  useEffect(() => {
-    onFinalize?.(authorization !== null || seniorPending !== null);
-  }, [authorization, seniorPending, onFinalize]);
-
-  const allScenariosReviewed = reviewedScenarios.size >= SCENARIOS.length;
+  };
 
 
 
