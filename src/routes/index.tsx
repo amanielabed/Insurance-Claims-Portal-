@@ -3651,11 +3651,7 @@ function AssessmentReviewPanel({
         </div>
 
         <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${isFastTrack ? "#BBF7D0" : COLORS.border}` }}>
-          {isFastTrack ? (
-            <p className="text-sm" style={{ color: COLORS.muted }}>
-              No additional review triggers detected.
-            </p>
-          ) : concernsDismissed ? (
+          {isFastTrack ? null : concernsDismissed ? (
             <div
               className="rounded-md border-2 px-3 py-2.5 flex items-center gap-2"
               style={{ backgroundColor: COLORS.greenBg, borderColor: "#86EFAC" }}
