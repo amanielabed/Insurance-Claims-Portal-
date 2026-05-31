@@ -3178,66 +3178,73 @@ function ReviewEstimateStep({
         )}
       </div>
 
-      {/* Vehicle & Policy Information */}
-      {effectiveClaimForm && (
-        <div className="px-4 pt-4">
-          <Card className="border" style={{ borderColor: COLORS.border }}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold" style={{ color: COLORS.text }}>
-                Vehicle & Policy Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                <div className="flex gap-2">
-                  <span className="font-medium" style={{ color: COLORS.muted }}>Vehicle:</span>
-                  <span style={{ color: COLORS.text }}>
-                    {effectiveClaimForm.year} {effectiveClaimForm.make} {effectiveClaimForm.model}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="font-medium" style={{ color: COLORS.muted }}>VIN:</span>
-                  <span className="tabular-nums" style={{ color: COLORS.text }}>{effectiveClaimForm.vin}</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="font-medium" style={{ color: COLORS.muted }}>Policy Number:</span>
-                  <span className="tabular-nums" style={{ color: COLORS.text }}>{effectiveClaimForm.policyNumber}</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="font-medium" style={{ color: COLORS.muted }}>Coverage Type:</span>
-                  <span style={{ color: COLORS.text }}>{currentScenario.coverageLabel}</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="font-medium" style={{ color: COLORS.muted }}>Deductible:</span>
-                  <span style={{ color: COLORS.text }}>{currentScenario.deductibleLabel}</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="font-medium" style={{ color: COLORS.muted }}>Date of Loss:</span>
-                  <span style={{ color: COLORS.text }}>
-                    {effectiveClaimForm.dateOfLoss
-                      ? new Date(effectiveClaimForm.dateOfLoss + "T00:00:00").toLocaleDateString("en-GB", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })
-                      : "—"}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="font-medium" style={{ color: COLORS.muted }}>Incident Type:</span>
-                  <span style={{ color: COLORS.text }}>
-                    {effectiveClaimForm.incidentType === "other"
-                      ? effectiveClaimForm.incidentTypeOther || "Other"
-                      : effectiveClaimForm.incidentType
-                        ? effectiveClaimForm.incidentType.charAt(0).toUpperCase() + effectiveClaimForm.incidentType.slice(1)
-                        : "—"}
-                  </span>
-                </div>
+      {/* Compact Vehicle & Policy summary bar */}
+      {effectiveClaimForm && (() => {
+        const vehicleStr = [effectiveClaimForm.year, effectiveClaimForm.make, effectiveClaimForm.model]
+          .filter(Boolean)
+          .join(" ") || "—";
+        const dateStr = effectiveClaimForm.dateOfLoss
+          ? new Date(effectiveClaimForm.dateOfLoss + "T00:00:00").toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })
+          : "—";
+        const incidentStr =
+          effectiveClaimForm.incidentType === "other"
+            ? effectiveClaimForm.incidentTypeOther || "Other"
+            : effectiveClaimForm.incidentType
+              ? effectiveClaimForm.incidentType.charAt(0).toUpperCase() + effectiveClaimForm.incidentType.slice(1)
+              : "—";
+        const Item = ({ label, value }: { label: string; value: string }) => (
+          <span className="whitespace-nowrap">
+            <span className="font-medium">{label}:</span> <span style={{ color: COLORS.text }}>{value}</span>
+          </span>
+        );
+        return (
+          <div className="border-b shrink-0" style={{ borderColor: COLORS.border }}>
+            <div
+              className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 text-xs"
+              style={{ backgroundColor: "#F9FAFB", color: COLORS.muted }}
+            >
+              <Item label="Vehicle" value={vehicleStr} />
+              <span style={{ color: COLORS.border }}>|</span>
+              <Item label="Policy" value={effectiveClaimForm.policyNumber || "—"} />
+              <span style={{ color: COLORS.border }}>|</span>
+              <Item label="Coverage" value={currentScenario.coverageLabel} />
+              <span style={{ color: COLORS.border }}>|</span>
+              <Item label="Deductible" value={currentScenario.deductibleLabel} />
+              <span style={{ color: COLORS.border }}>|</span>
+              <Item label="Incident" value={incidentStr} />
+              <span style={{ color: COLORS.border }}>|</span>
+              <Item label="Date of Incident" value={dateStr} />
+              <button
+                type="button"
+                onClick={() => setViewDetailsOpen((v) => !v)}
+                className="ml-auto font-medium hover:underline"
+                style={{ color: COLORS.blue }}
+              >
+                {viewDetailsOpen ? "Hide Details" : "View Details"}
+              </button>
+            </div>
+            {viewDetailsOpen && (
+              <div
+                className="grid grid-cols-2 gap-x-8 gap-y-2 px-4 pb-3 pt-1 text-xs animate-fade-in"
+                style={{ backgroundColor: "#F9FAFB", color: COLORS.muted }}
+              >
+                <Item label="Vehicle" value={vehicleStr} />
+                <Item label="VIN" value={effectiveClaimForm.vin || "—"} />
+                <Item label="Policy Number" value={effectiveClaimForm.policyNumber || "—"} />
+                <Item label="Coverage Type" value={currentScenario.coverageLabel} />
+                <Item label="Deductible" value={currentScenario.deductibleLabel} />
+                <Item label="Incident Type" value={incidentStr} />
+                <Item label="Date of Incident" value={dateStr} />
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+            )}
+          </div>
+        );
+      })()}
+
 
       <main
         key={claim.id}
