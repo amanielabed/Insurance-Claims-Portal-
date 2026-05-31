@@ -3152,6 +3152,18 @@ function ReviewEstimateStep({
             isSaved={savedEstimates.has(claim.id)}
             onSave={handleSave}
             onUnlock={() => handleUnlock(claim.id)}
+            adjusted={currentReview.adjusted}
+            setAdjusted={(v) => updateScenarioReviewField(claim.id, "adjusted", v)}
+            drafts={currentReview.drafts}
+            setDrafts={(v) => updateScenarioReviewField(claim.id, "drafts", v)}
+            adjusterNotes={currentReview.adjusterNotes}
+            setAdjusterNotes={(v) =>
+              updateScenarioReviewField(claim.id, "adjusterNotes", v)
+            }
+            overrides={currentReview.overrides}
+            setOverrides={(v) => updateScenarioReviewField(claim.id, "overrides", v)}
+            log={currentReview.log}
+            setLog={(v) => updateScenarioReviewField(claim.id, "log", v)}
           />
         </Panel>
       </main>
