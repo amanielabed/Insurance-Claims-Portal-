@@ -4906,21 +4906,6 @@ function EstimateReviewPanel({
                     {primaryLabel}
                   </button>
 
-
-                  {/* SECONDARY: Edit / Save Edits */}
-                  <button
-                    type="button"
-                    onClick={handleEditToggle}
-                    className="rounded-md border px-3 py-2.5 text-sm font-semibold transition-colors"
-                    style={{
-                      borderColor: COLORS.blue,
-                      color: editMode ? "white" : COLORS.blue,
-                      backgroundColor: editMode ? COLORS.blue : "transparent",
-                    }}
-                  >
-                    {editMode ? "Save Edits" : "Edit Estimate"}
-                  </button>
-
                   {/* TERTIARY: Save & Request Information */}
                   <button
                     type="button"
