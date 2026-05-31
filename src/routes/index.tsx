@@ -2370,7 +2370,6 @@ function ReviewEstimateStep({
     setConcernsDismissed(false);
   }, [selectedId, claim.delegationState]);
 
-  const allScenariosSaved = savedEstimates.size >= SCENARIOS.length;
   // Step 6 becomes reachable once every scenario has had a valid action taken
   // on it — including scenarios saved while awaiting requested information.
   const handledCount = SCENARIOS.filter((s) => handledScenarios.has(s.id)).length;
