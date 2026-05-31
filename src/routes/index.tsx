@@ -2598,6 +2598,15 @@ function ReviewEstimateStep({
         "#6B7280",
         false,
       );
+      y += 2;
+      wrapped(
+        "This report summarizes the current review session. Some claims may remain pending additional information or senior authorization before claim closure.",
+        M,
+        W,
+        9,
+        "#6B7280",
+        false,
+      );
 
 
       // ===== CLAIMS SUMMARY TABLE =====
