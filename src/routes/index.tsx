@@ -371,6 +371,55 @@ const COLORS = {
 const fmtCurrency = (n: number) =>
   `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+/**
+ * Loads an image URL and returns a JPEG data URL plus natural dimensions so it
+ * can be embedded into the generated PDF while preserving aspect ratio.
+ * Returns null if the image fails to load.
+ */
+async function loadImageForPdf(
+  url: string,
+): Promise<{ dataURL: string; w: number; h: number } | null> {
+  return new Promise((resolve) => {
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const w = img.naturalWidth || img.width;
+          const h = img.naturalHeight || img.height;
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return resolve(null);
+          ctx.drawImage(img, 0, 0);
+          resolve({ dataURL: canvas.toDataURL("image/jpeg", 0.9), w, h });
+        } catch {
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+/** Damage photos (with captions) attached to each scenario for the claim file. */
+function scenarioPhotos(claim: Claim): { url: string; caption: string }[] {
+  const overlays = OVERLAYS[claim.id] ?? [];
+  const out: { url: string; caption: string }[] = [];
+  if (claim.imageUrl) {
+    const caption = overlays.length
+      ? overlays.map((o) => o.label).join(" · ")
+      : claim.imagePlaceholder || "Submitted damage photo";
+    out.push({ url: claim.imageUrl, caption });
+  }
+  return out;
+}
+
+
 const SOURCE_LABELS: Record<SourceKey, string> = {
   mitchell: "Mitchell",
   ccc: "CCC",
