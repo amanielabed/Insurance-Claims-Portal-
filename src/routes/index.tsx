@@ -2624,7 +2624,18 @@ function ReviewEstimateStep({
           });
         }
 
-        if (r.isSenior) {
+        // Per-scenario actions taken
+        y += 8;
+        wrapped("Actions Taken", M, W, 9, "#111827", true);
+        if (r.actions.length === 0) {
+          wrapped("No actions have been taken on this scenario.", M, W, 9, "#6B7280");
+        } else {
+          r.actions.forEach((a) => {
+            wrapped(`• ${fmtActionTime(a.at)} — ${a.action}`, M, W, 9, "#374151");
+          });
+        }
+
+        if (r.snap && r.snap.status === "PENDING_SENIOR") {
           y += 10;
           const boxText =
             "This estimate has been submitted for senior adjuster authorization. Repair cannot proceed until senior sign-off is confirmed.";
@@ -2640,6 +2651,47 @@ function ReviewEstimateStep({
           y += boxH;
         }
       });
+
+      // ===== SESSION CHANGE LOG =====
+      sectionTitle("Change Log — Actions Taken This Session");
+      if (changeLog.length === 0) {
+        wrapped("No actions have been taken in this session yet.", M, W, 10, "#6B7280");
+      } else {
+        const lcols = [
+          { x: M, w: 120, align: "left" as const, label: "Timestamp" },
+          { x: M + 120, w: 150, align: "left" as const, label: "Scenario" },
+          { x: M + 270, w: W - 270, align: "left" as const, label: "Action" },
+        ];
+        const drawLCell = (
+          text: string,
+          col: (typeof lcols)[number],
+          rowY: number,
+          color = "#374151",
+          bold = false,
+        ) => {
+          setText(8.5, color, bold);
+          const lines = pdf.splitTextToSize(text, col.w - 4) as string[];
+          pdf.text(lines[0] ?? "", col.x + 2, rowY);
+        };
+        need(22);
+        pdf.setFillColor("#F3F4F6");
+        pdf.rect(M, y, W, 16, "F");
+        lcols.forEach((c) => drawLCell(c.label.toUpperCase(), c, y + 11, "#6B7280", true));
+        y += 16;
+        [...changeLog]
+          .sort((a, b) => a.at - b.at)
+          .forEach((e) => {
+            need(20);
+            drawLCell(fmtActionTime(e.at), lcols[0], y + 11, "#111827");
+            drawLCell(e.scenarioName, lcols[1], y + 11);
+            drawLCell(e.action, lcols[2], y + 11);
+            pdf.setDrawColor("#E5E7EB");
+            pdf.setLineWidth(0.5);
+            pdf.line(M, y + 16, pageW - M, y + 16);
+            y += 16;
+          });
+      }
+
 
       // ===== FOOTER ON EVERY PAGE =====
       const footerText =
