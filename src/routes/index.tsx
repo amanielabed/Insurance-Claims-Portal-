@@ -4560,36 +4560,7 @@ function EstimateReviewPanel({
         );
       })()}
 
-      {/* Estimate Sources */}
 
-      <div
-        className="shrink-0 rounded-md border px-3 py-2.5"
-        style={{ backgroundColor: "#FAFAFA", borderColor: COLORS.border }}
-      >
-        <Label>Estimate Sources</Label>
-        <ul className="mt-1.5 flex flex-col gap-1 text-xs" style={{ color: COLORS.text }}>
-          <li>
-            <span className="font-semibold">Mitchell RepairCenter</span>
-            <span style={{ color: COLORS.muted }}> — labor benchmarks</span>
-          </li>
-          <li>
-            <span className="font-semibold">CCC Intelligent Solutions</span>
-            <span style={{ color: COLORS.muted }}> — parts pricing</span>
-          </li>
-          <li>
-            <span className="font-semibold">OEM Repair Guidelines</span>
-            <span style={{ color: COLORS.muted }}> — repair procedures</span>
-          </li>
-        </ul>
-        <p className="text-[11px] mt-2 leading-snug" style={{ color: COLORS.muted }}>
-          Draft estimates combine repair labor references, parts pricing, and manufacturer repair guidance with regional adjustment factors.
-        </p>
-      </div>
-
-      {/* Disclaimer */}
-      <p className="shrink-0 text-[11px] leading-snug" style={{ color: COLORS.muted }}>
-        Draft estimates are generated using standardized repair references and require adjuster review before final authorization.
-      </p>
 
       {/* Override Summary */}
       {(() => {
