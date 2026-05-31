@@ -4822,10 +4822,7 @@ function EstimateReviewPanel({
           toast.success("Estimate saved.");
         };
 
-        const handleEditToggle = () => {
-          if (editMode) syncDraftValues();
-          setEditMode((v) => !v);
-        };
+
 
         return (
           <>
