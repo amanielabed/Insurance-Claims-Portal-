@@ -3167,6 +3167,9 @@ function ReviewEstimateStep({
             isSaved={savedEstimates.has(claim.id)}
             onSave={handleSave}
             onUnlock={() => handleUnlock(claim.id)}
+            awaitingInfo={awaitingInfoIds.has(claim.id)}
+            onAwaitingInfo={() => markAwaitingInfo(claim.id)}
+            onClearAwaitingInfo={() => clearAwaitingInfo(claim.id)}
             adjusted={currentReview.adjusted}
             setAdjusted={(v) => updateScenarioReviewField(claim.id, "adjusted", v)}
             drafts={currentReview.drafts}
