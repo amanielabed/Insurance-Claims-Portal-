@@ -2321,7 +2321,7 @@ function ReviewEstimateStep({
 
   const handleSave = (snap: SavedSnapshot) => {
     const alreadySaved = changeLog.some(
-      (e) => e.id === snap.id && (e.action === "Estimate saved" || e.action === "Submitted for Senior Authorization"),
+      (e) => e.id === snap.id && (e.action === "Estimate submitted" || e.action === "Submitted for Senior Authorization"),
     );
     setSavedEstimates((prev) => {
       const next = new Map(prev);
@@ -2331,7 +2331,7 @@ function ReviewEstimateStep({
     if (snap.status === "PENDING_SENIOR") {
       logAction(snap.id, alreadySaved ? "Re-submitted for Senior Authorization" : "Submitted for Senior Authorization");
     } else {
-      logAction(snap.id, alreadySaved ? "Estimate re-saved after edit" : "Estimate saved");
+      logAction(snap.id, alreadySaved ? "Estimate resubmitted after edit" : "Estimate submitted");
     }
   };
   const handleUnlock = (id: string) => {
@@ -2499,7 +2499,7 @@ function ReviewEstimateStep({
             statusText = "Pending Senior Authorization";
             statusBadge = AMBER;
           } else {
-            statusText = "Review Complete";
+            statusText = "Estimate Submitted";
             statusBadge = GREEN;
           }
         } else if (actions.length > 0) {
@@ -2562,7 +2562,7 @@ function ReviewEstimateStep({
       infoRow("Report Type", "Live Session Report");
       infoRow(
         "Session Progress",
-        `${completedCount} of ${SCENARIOS.length} reviewed${inProgressCount ? ` · ${inProgressCount} in progress` : ""}`,
+        `${completedCount} of ${SCENARIOS.length} submitted${inProgressCount ? ` · ${inProgressCount} in progress` : ""}`,
       );
       y += 4;
       wrapped(
@@ -3032,7 +3032,7 @@ function ReviewEstimateStep({
           </div>
 
           <p className="mt-4 text-sm font-medium" style={{ color: COLORS.text }}>
-            Total scenarios reviewed: 3 of 3
+            Total estimates submitted: 3 of 3
           </p>
 
           <div className="mt-8">
@@ -4983,7 +4983,7 @@ function EstimateReviewPanel({
 
 
         const primaryLabel =
-          workflowMode === "SENIOR_AUTHORIZATION" ? "Submit for Senior Authorization" : "Complete Review";
+          workflowMode === "SENIOR_AUTHORIZATION" ? "Submit for Senior Authorization" : "Submit Estimate";
 
         const _cf = claimForm;
         const _cv = _cf?.coverage;
@@ -5062,7 +5062,7 @@ function EstimateReviewPanel({
         const confirmApproval = () => {
           setApprovalConfirmOpen(false);
           onSave(buildSnapshot("SAVED"));
-          toast.success("Estimate saved.");
+          toast.success("Estimate submitted.");
         };
 
 
@@ -5097,7 +5097,7 @@ function EstimateReviewPanel({
                   >
                     {workflowMode === "SENIOR_AUTHORIZATION"
                       ? "Estimate Submitted ✓"
-                      : "Review Complete ✓"}
+                      : "Estimate Submitted ✓"}
                   </span>
                 </div>
                 {workflowMode === "SENIOR_AUTHORIZATION" && (
@@ -5115,7 +5115,7 @@ function EstimateReviewPanel({
                   className="self-start text-xs font-medium underline-offset-2 hover:underline"
                   style={{ color: COLORS.blue }}
                 >
-                  {workflowMode === "SENIOR_AUTHORIZATION" ? "Recall & Edit" : "Edit & Re-save"}
+                  {workflowMode === "SENIOR_AUTHORIZATION" ? "Recall & Edit" : "Edit & Resubmit"}
                 </button>
               </div>
             ) : (
