@@ -2494,15 +2494,24 @@ function ReviewEstimateStep({
 
       // ===== PER-SCENARIO SECTIONS =====
       computed.forEach((r, idx) => {
-        const badge = r.isSenior ? AMBER : GREEN;
-        const statusText = r.isSenior ? "Pending Senior Authorization" : "Estimate Saved";
         sectionTitle(`Section ${idx + 1} — ${scenarioNameMap[r.scenario.state]}`);
         need(20);
         setText(10, "#6B7280");
         pdf.text("Status", M, y + 10);
-        drawBadge(statusText, M + 50, y + 1, badge.bg, badge.fg);
+        drawBadge(r.statusText, M + 50, y + 1, r.statusBadge.bg, r.statusBadge.fg);
         y += 20;
+        infoRow("Scenario ID", r.claim.id);
         infoRow("Review Type", reviewTypeMap[r.scenario.state]);
+        infoRow("Action Taken", r.hasAction ? "Yes" : "No");
+        infoRow(
+          "Latest Action",
+          r.latestActionAt ? fmtActionTime(r.latestActionAt) : "—",
+        );
+        infoRow("Edits / Recalls", String(r.editRecallCount));
+        if (!r.hasAction) {
+          y += 2;
+          wrapped("No actions have been taken on this scenario.", M, W, 9, "#6B7280", true);
+        }
         wrapped("Damage description:", M, W, 10, "#6B7280", true);
         wrapped(r.scenario.description, M, W, 10, "#374151");
         y += 4;
@@ -2513,6 +2522,7 @@ function ReviewEstimateStep({
           `${fmtDiff(r.diff)} (${fmtPct(r.pct)})`,
           r.diff === 0 ? "#111827" : r.diff > 0 ? "#B45309" : "#15803D",
         );
+
 
         y += 8;
         setText(9, "#111827", true);
