@@ -2236,6 +2236,42 @@ function ReviewEstimateStep({
   const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>([]);
   const [isGeneratingFullReport, setIsGeneratingFullReport] = useState(false);
 
+  // Per-scenario review state lifted from EstimateReviewPanel so unsaved work
+  // (adjusted values, draft strings, notes, rationale overrides, activity log)
+  // is preserved when the adjuster switches between scenarios.
+  const defaultScenarioReviewState = (id: string): ScenarioReviewState => {
+    const c = claimData.find((cd) => cd.id === id) ?? claimData[0];
+    return {
+      adjusted: c.parts.map((p) => p.draftEstimate),
+      drafts: c.parts.map((p) => p.draftEstimate.toFixed(2)),
+      adjusterNotes: "",
+      overrides: {},
+      log: [],
+    };
+  };
+  const [reviewByScenario, setReviewByScenario] = useState<
+    Record<string, ScenarioReviewState>
+  >({});
+  const currentReview =
+    reviewByScenario[claim.id] ?? defaultScenarioReviewState(claim.id);
+  const updateScenarioReviewField = <K extends keyof ScenarioReviewState>(
+    id: string,
+    key: K,
+    value: React.SetStateAction<ScenarioReviewState[K]>,
+  ) => {
+    setReviewByScenario((prev) => {
+      const cur = prev[id] ?? defaultScenarioReviewState(id);
+      const nextVal =
+        typeof value === "function"
+          ? (value as (p: ScenarioReviewState[K]) => ScenarioReviewState[K])(
+              cur[key],
+            )
+          : value;
+      return { ...prev, [id]: { ...cur, [key]: nextVal } };
+    });
+  };
+
+
   const logAction = (id: string, action: string) =>
     setChangeLog((prev) => [
       ...prev,
