@@ -3405,21 +3405,29 @@ function ReviewEstimateStep({
         </Panel>
       </main>
 
-      {/* Proceed to Final Report — shown once all three scenarios are saved/submitted */}
-      {allScenariosSaved && (
-        <div className="px-4 pb-4 shrink-0">
-          <button
-            type="button"
-            onClick={() => setShowFinalReport(true)}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold text-white transition-colors"
-            style={{ backgroundColor: COLORS.blue }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
-          >
-            Proceed to Final Report
-          </button>
-        </div>
-      )}
+      {/* Proceed to Final Report — always visible in Step 5 so the Final
+          Resolution screen is discoverable; enabled once all three scenarios
+          have been saved/submitted. */}
+      <div className="px-4 pb-4 shrink-0">
+        <button
+          type="button"
+          onClick={() => setShowFinalReport(true)}
+          disabled={!allScenariosSaved}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed"
+          style={{ backgroundColor: allScenariosSaved ? COLORS.blue : "#9CA3AF", opacity: allScenariosSaved ? 1 : 0.7 }}
+          onMouseEnter={(e) => {
+            if (allScenariosSaved) e.currentTarget.style.backgroundColor = COLORS.blueHover;
+          }}
+          onMouseLeave={(e) => {
+            if (allScenariosSaved) e.currentTarget.style.backgroundColor = COLORS.blue;
+          }}
+        >
+          {allScenariosSaved
+            ? "Proceed to Final Report"
+            : `Save all scenarios to continue (${savedEstimates.size} of ${SCENARIOS.length} saved)`}
+        </button>
+      </div>
+
 
 
       <DemoGuide />
