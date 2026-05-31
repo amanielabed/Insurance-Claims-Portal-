@@ -3428,29 +3428,40 @@ function ReviewEstimateStep({
         </Panel>
       </main>
 
-      {/* Final report transition — a clear completion signal appears once all
-          three delegation states have been reviewed. Transition stays
-          user-controlled (no auto-redirect). */}
-      {allScenariosSaved && (
-        <div className="px-4 pb-4 shrink-0 flex flex-col gap-2.5">
+      {/* Final report transition — a clear completion signal appears once every
+          delegation state has been handled (reviewed, submitted, or saved while
+          awaiting information). Transition stays user-controlled (no auto-redirect). */}
+      <div className="px-4 pb-4 shrink-0 flex flex-col gap-2.5">
+        {!allScenariosHandled && (
           <div
-            className="rounded-md px-4 py-2.5 text-sm font-semibold text-center"
-            style={{ backgroundColor: COLORS.green, color: "#FFFFFF" }}
+            className="rounded-md px-4 py-2.5 text-sm font-medium text-center"
+            style={{ backgroundColor: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.muted }}
           >
-            All delegation states reviewed. Ready to generate final report.
+            {handledCount} of {SCENARIOS.length} scenarios handled
           </div>
-          <button
-            type="button"
-            onClick={() => setShowFinalReport(true)}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold text-white transition-colors"
-            style={{ backgroundColor: COLORS.blue }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
-          >
-            Proceed to Final Report
-          </button>
-        </div>
-      )}
+        )}
+        {allScenariosHandled && (
+          <>
+            <div
+              className="rounded-md px-4 py-2.5 text-sm font-semibold text-center"
+              style={{ backgroundColor: COLORS.green, color: "#FFFFFF" }}
+            >
+              All delegation states handled. Ready to generate final report.
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowFinalReport(true)}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold text-white transition-colors"
+              style={{ backgroundColor: COLORS.blue }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
+            >
+              Proceed to Final Report
+            </button>
+          </>
+        )}
+      </div>
+
 
 
 
