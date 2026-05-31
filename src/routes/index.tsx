@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { AlertTriangle, Check, CheckCircle, Clock, FileText, ChevronRight, Lock } from "lucide-react";
+import { AlertTriangle, Check, CheckCircle, Clock, FileText } from "lucide-react";
 import claimSimpleImage from "@/assets/claim-simple.jpg";
 import claimComplexImage from "@/assets/claim-complex.jpg";
 
