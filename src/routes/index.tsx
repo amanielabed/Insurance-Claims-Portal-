@@ -3966,15 +3966,7 @@ function EstimateReviewPanel({
   };
   const anyRequestItemSelected = Object.values(requestItems).some(Boolean);
 
-  // Rationale tracking for adjuster overrides
-  type RationaleCode =
-    | "additional_damage"
-    | "labor_rate"
-    | "scope_change"
-    | "parts_availability"
-    | "other";
-  type Override = { reason: RationaleCode | null; other: string };
-  const [overrides, setOverrides] = useState<Record<number, Override>>({});
+  // Rationale tracking for adjuster overrides (state lifted to parent)
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const isOverrideConfirmed = (o: Override | undefined) =>
