@@ -13,6 +13,7 @@ import {
 import { AlertTriangle, Check, CheckCircle, Clock, FileText } from "lucide-react";
 import claimSimpleImage from "@/assets/claim-simple.jpg";
 import claimComplexImage from "@/assets/claim-complex.jpg";
+import claimSeniorImage from "@/assets/claim-senior.jpg";
 
 
 export const Route = createFileRoute("/")({
@@ -202,7 +203,7 @@ const claimData: Claim[] = [
     actionMessage:
       "Senior authorization required. This claim must be reviewed by a senior adjuster before authorization.",
     imagePlaceholder: "Multi-panel structural damage",
-    imageUrl: claimComplexImage,
+    imageUrl: claimSeniorImage,
     parts: [
       {
         name: "Front bumper assembly",
