@@ -5159,10 +5159,12 @@ function EstimateReviewPanel({
                     type="button"
                     onClick={
                       awaitingInfo
-                        ? () =>
+                        ? () => {
+                            onSaveProgress();
                             toast.success(
                               "Review progress saved. Claim is awaiting requested information.",
-                            )
+                            );
+                          }
                         : handlePrimary
                     }
                     disabled={primaryDisabled}
