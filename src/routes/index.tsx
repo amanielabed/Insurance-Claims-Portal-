@@ -78,7 +78,7 @@ const SCENARIOS: ScenarioMeta[] = [
     fault: "other",
     coverageLabel: "Full Coverage Policy",
     faultLabel: "Other party at fault",
-    deductibleLabel: "N/A — liability handled by at-fault party",
+    deductibleLabel: "N/A",
     deductibleValue: "",
     estimateRange: "$329.50",
   },
@@ -2108,7 +2108,7 @@ function EligibilityCheck({
                         Deductible
                       </div>
                       <div className="text-sm font-medium" style={{ color: COLORS.text }}>
-                        N/A — handled by at-fault party
+                        N/A
                       </div>
                     </div>
                     <div className="text-[11px] italic" style={{ color: COLORS.muted }}>
@@ -3405,28 +3405,29 @@ function ReviewEstimateStep({
         </Panel>
       </main>
 
-      {/* Proceed to Final Report — always visible in Step 5 so the Final
-          Resolution screen is discoverable; enabled once all three scenarios
-          have been saved/submitted. */}
-      <div className="px-4 pb-4 shrink-0">
-        <button
-          type="button"
-          onClick={() => setShowFinalReport(true)}
-          disabled={!allScenariosSaved}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed"
-          style={{ backgroundColor: allScenariosSaved ? COLORS.blue : "#9CA3AF", opacity: allScenariosSaved ? 1 : 0.7 }}
-          onMouseEnter={(e) => {
-            if (allScenariosSaved) e.currentTarget.style.backgroundColor = COLORS.blueHover;
-          }}
-          onMouseLeave={(e) => {
-            if (allScenariosSaved) e.currentTarget.style.backgroundColor = COLORS.blue;
-          }}
-        >
-          {allScenariosSaved
-            ? "Proceed to Final Report"
-            : `Save all scenarios to continue (${savedEstimates.size} of ${SCENARIOS.length} saved)`}
-        </button>
-      </div>
+      {/* Final report transition — a clear completion signal appears once all
+          three delegation states have been reviewed. Transition stays
+          user-controlled (no auto-redirect). */}
+      {allScenariosSaved && (
+        <div className="px-4 pb-4 shrink-0 flex flex-col gap-2.5">
+          <div
+            className="rounded-md px-4 py-2.5 text-sm font-semibold text-center"
+            style={{ backgroundColor: COLORS.green, color: "#FFFFFF" }}
+          >
+            All delegation states reviewed. Ready to generate final report.
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowFinalReport(true)}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold text-white transition-colors"
+            style={{ backgroundColor: COLORS.blue }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = COLORS.blueHover)}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.blue)}
+          >
+            Proceed to Final Report
+          </button>
+        </div>
+      )}
 
 
 
@@ -3651,11 +3652,7 @@ function AssessmentReviewPanel({
         </div>
 
         <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${isFastTrack ? "#BBF7D0" : COLORS.border}` }}>
-          {isFastTrack ? (
-            <p className="text-sm" style={{ color: COLORS.muted }}>
-              No additional review triggers detected.
-            </p>
-          ) : concernsDismissed ? (
+          {isFastTrack ? null : concernsDismissed ? (
             <div
               className="rounded-md border-2 px-3 py-2.5 flex items-center gap-2"
               style={{ backgroundColor: COLORS.greenBg, borderColor: "#86EFAC" }}
