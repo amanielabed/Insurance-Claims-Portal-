@@ -3123,6 +3123,67 @@ function ReviewEstimateStep({
         )}
       </div>
 
+      {/* Vehicle & Policy Information */}
+      {effectiveClaimForm && (
+        <div className="px-4 pt-4">
+          <Card className="border" style={{ borderColor: COLORS.border }}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: COLORS.text }}>
+                Vehicle & Policy Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                <div className="flex gap-2">
+                  <span className="font-medium" style={{ color: COLORS.muted }}>Vehicle:</span>
+                  <span style={{ color: COLORS.text }}>
+                    {effectiveClaimForm.year} {effectiveClaimForm.make} {effectiveClaimForm.model}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="font-medium" style={{ color: COLORS.muted }}>VIN:</span>
+                  <span className="tabular-nums" style={{ color: COLORS.text }}>{effectiveClaimForm.vin}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="font-medium" style={{ color: COLORS.muted }}>Policy Number:</span>
+                  <span className="tabular-nums" style={{ color: COLORS.text }}>{effectiveClaimForm.policyNumber}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="font-medium" style={{ color: COLORS.muted }}>Coverage Type:</span>
+                  <span style={{ color: COLORS.text }}>{currentScenario.coverageLabel}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="font-medium" style={{ color: COLORS.muted }}>Deductible:</span>
+                  <span style={{ color: COLORS.text }}>{currentScenario.deductibleLabel}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="font-medium" style={{ color: COLORS.muted }}>Date of Loss:</span>
+                  <span style={{ color: COLORS.text }}>
+                    {effectiveClaimForm.dateOfLoss
+                      ? new Date(effectiveClaimForm.dateOfLoss + "T00:00:00").toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })
+                      : "—"}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="font-medium" style={{ color: COLORS.muted }}>Incident Type:</span>
+                  <span style={{ color: COLORS.text }}>
+                    {effectiveClaimForm.incidentType === "other"
+                      ? effectiveClaimForm.incidentTypeOther || "Other"
+                      : effectiveClaimForm.incidentType
+                        ? effectiveClaimForm.incidentType.charAt(0).toUpperCase() + effectiveClaimForm.incidentType.slice(1)
+                        : "—"}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <main
         key={claim.id}
         className="flex-1 min-h-0 grid grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(420px,1.35fr)] gap-4 p-4 animate-fade-in"
