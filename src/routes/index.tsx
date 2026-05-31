@@ -3002,10 +3002,26 @@ function ReviewEstimateStep({
     ].map((row) => {
       const snap = savedEstimates.get(row.id);
       const pending = snap?.status === "PENDING_SENIOR";
+      const awaiting = !snap && awaitingInfoIds.has(row.id) && handledScenarios.has(row.id);
+      let statusLabel: string;
+      let kind: "complete" | "pending" | "awaiting";
+      if (pending) {
+        statusLabel = "Pending Senior Authorization";
+        kind = "pending";
+      } else if (snap) {
+        statusLabel = "Review Complete";
+        kind = "complete";
+      } else if (awaiting) {
+        statusLabel = "Awaiting Information";
+        kind = "awaiting";
+      } else {
+        statusLabel = "Not Started";
+        kind = "awaiting";
+      }
       return {
         name: row.name,
-        statusLabel: pending ? "Pending Senior Authorization" : "Estimate Submitted",
-        pending,
+        statusLabel,
+        kind,
       };
     });
     return (
