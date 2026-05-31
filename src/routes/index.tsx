@@ -3060,14 +3060,15 @@ function ReviewEstimateStep({
                   <span
                     className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold"
                     style={
-                      row.pending
-                        ? { backgroundColor: COLORS.amberBg, color: COLORS.amberText }
-                        : { backgroundColor: "#DCFCE7", color: "#15803D" }
+                      row.kind === "complete"
+                        ? { backgroundColor: "#DCFCE7", color: "#15803D" }
+                        : { backgroundColor: COLORS.amberBg, color: COLORS.amberText }
                     }
                   >
                     {row.statusLabel}
                   </span>
                 </span>
+
               </div>
             ))}
           </div>
