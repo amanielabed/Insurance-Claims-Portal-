@@ -3884,7 +3884,12 @@ function EstimateReviewPanel({
   onSave,
   onUnlock,
 
+  awaitingInfo,
+  onAwaitingInfo,
+  onClearAwaitingInfo,
+
   onInfoRequest,
+
 
   adjusted,
   setAdjusted,
