@@ -2764,6 +2764,35 @@ function ReviewEstimateStep({
         wrapped("Adjuster notes:", M, W, 9, "#111827", true);
         wrapped(r.snap?.notes?.trim() || "No notes entered", M, W, 9, "#374151");
 
+        // ===== INFORMATION REQUESTS ===== (after Adjuster Notes, before Verification Record)
+        y += 10;
+        wrapped("INFORMATION REQUESTS", M, W, 9, "#111827", true);
+        if (!informationRequest || informationRequest.items.length === 0) {
+          wrapped("No additional information requested.", M, W, 9, "#6B7280");
+        } else {
+          const reqSent = new Date(informationRequest.timestamp).toLocaleString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          wrapped(`Request sent: ${reqSent}`, M, W, 9, "#374151");
+          wrapped("Items requested:", M, W, 9, "#374151", true);
+          informationRequest.items.forEach((it) =>
+            wrapped(`• ${REQUEST_ITEM_LABELS[it] ?? it}`, M, W, 9, "#374151"),
+          );
+          if (informationRequest.message.trim()) {
+            wrapped(
+              `Message to policyholder: "${informationRequest.message.trim()}"`,
+              M,
+              W,
+              9,
+              "#374151",
+            );
+          }
+        }
+
         if (r.snap && r.snap.overrides.length > 0) {
           y += 8;
           wrapped("Adjuster Overrides", M, W, 9, "#111827", true);
