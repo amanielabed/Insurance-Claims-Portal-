@@ -50,7 +50,7 @@ Getting Started
 
 1. Clone the repository
 
-git clone https://github.com/your-username/insurance-claims-portal.git
+git clone https://github.com/amanielabed/Insurance-Claims-Portal-
 cd insurance-claims-portal
 
 2. Install dependencies
